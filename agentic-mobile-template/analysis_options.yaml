@@ -1,0 +1,70 @@
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    # Style rules
+    prefer_const_constructors: true
+    prefer_const_literals_to_create_immutables: true
+    prefer_final_locals: true
+    sort_constructors_first: true
+
+    # Error prevention
+    avoid_print: true
+    avoid_unnecessary_containers: true
+    avoid_web_libraries_in_flutter: true
+    no_logic_in_create_state: true
+    prefer_relative_imports: true
+    sized_box_for_whitespace: true
+    use_build_context_synchronously: true
+
+    # Best practices
+    always_declare_return_types: true
+    annotate_overrides: true
+    avoid_init_to_null: true
+    avoid_null_checks_in_equality_operators: true
+    avoid_return_types_on_setters: true
+    avoid_shadowing_type_parameters: true
+    avoid_types_as_parameter_names: true
+    camel_case_extensions: true
+    curly_braces_in_flow_control_structures: true
+    empty_catches: true
+    empty_constructor_bodies: true
+    library_names: true
+    library_prefixes: true
+    null_closures: true
+    prefer_adjacent_string_concatenation: true
+    prefer_collection_literals: true
+    prefer_conditional_assignment: true
+    prefer_contains: true
+    prefer_equal_for_default_values: true
+    prefer_final_fields: true
+    prefer_for_elements_to_map_fromIterable: true
+    prefer_generic_function_type_aliases: true
+    prefer_if_null_operators: true
+    prefer_is_empty: true
+    prefer_is_not_empty: true
+    prefer_iterable_whereType: true
+    prefer_single_quotes: true
+    prefer_spread_collections: true
+    recursive_getters: true
+    slash_for_doc_comments: true
+    type_init_formals: true
+    unawaited_futures: true
+    unnecessary_const: true
+    unnecessary_new: true
+    unnecessary_null_in_if_null_operators: true
+    unnecessary_this: true
+    unrelated_type_equality_checks: true
+    use_function_type_syntax_for_parameters: true
+    use_rethrow_when_possible: true
+    valid_regexps: true
+
+analyzer:
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "build/**"
+    - "lib/generated/**"
+
+  errors:
+    invalid_annotation_target: ignore

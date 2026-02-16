@@ -1,0 +1,260 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:workmanager/workmanager.dart';
+import 'package:welltrack/features/health/data/baseline_calibration.dart';
+import 'package:welltrack/features/health/data/health_repository.dart';
+import 'package:welltrack/features/health/data/health_repository_impl.dart';
+
+/// Background sync service for health data using Workmanager
+///
+/// Features:
+/// - Periodic sync every 6 hours
+/// - Network-connected constraint
+/// - Auto-triggers baseline calibration after sync
+/// - Logs sync timestamps to SharedPreferences
+class HealthBackgroundSync {
+  static const String syncTaskName = 'welltrack_health_sync';
+  static const String periodicTaskName = 'welltrack_health_periodic_sync';
+  static const String _lastSyncKey = 'health_last_sync_time';
+  static const String _lastSyncProfileKey = 'health_last_sync_profile_id';
+
+  final SharedPreferences _prefs;
+
+  HealthBackgroundSync({
+    required SharedPreferences preferences,
+  }) : _prefs = preferences;
+
+  /// Initialize workmanager and register periodic sync
+  ///
+  /// Must be called during app initialization (e.g., main.dart)
+  /// Registers the background task callback dispatcher
+  Future<void> initialize() async {
+    try {
+      await Workmanager().initialize(
+        callbackDispatcher,
+        isInDebugMode: false, // Set to true for debug logging
+      );
+      print('HealthBackgroundSync: Workmanager initialized');
+    } catch (e) {
+      print('HealthBackgroundSync: Failed to initialize workmanager: $e');
+      rethrow;
+    }
+  }
+
+  /// Registers periodic sync task
+  ///
+  /// Frequency: Every 6 hours
+  /// Constraints: Network connected
+  /// Existing work policy: Keep (don't replace if already registered)
+  Future<void> registerPeriodicSync() async {
+    try {
+      await Workmanager().registerPeriodicTask(
+        periodicTaskName,
+        periodicTaskName,
+        frequency: const Duration(hours: 6),
+        constraints: Constraints(
+          networkType: NetworkType.connected,
+        ),
+        existingWorkPolicy: ExistingWorkPolicy.keep,
+        backoffPolicy: BackoffPolicy.exponential,
+        backoffPolicyDelay: const Duration(minutes: 15),
+      );
+      print('HealthBackgroundSync: Periodic sync registered (every 6 hours)');
+    } catch (e) {
+      print('HealthBackgroundSync: Failed to register periodic sync: $e');
+      rethrow;
+    }
+  }
+
+  /// Cancels all registered sync tasks
+  Future<void> cancelSync() async {
+    try {
+      await Workmanager().cancelAll();
+      print('HealthBackgroundSync: All sync tasks cancelled');
+    } catch (e) {
+      print('HealthBackgroundSync: Failed to cancel sync tasks: $e');
+      rethrow;
+    }
+  }
+
+  /// Triggers immediate one-time sync (for manual refresh from UI)
+  ///
+  /// Steps:
+  /// 1. Sync health data for the last 24 hours
+  /// 2. Check baseline calibration status
+  /// 3. Compute baselines if ready
+  /// 4. Update last sync timestamp
+  Future<void> syncNow(String profileId) async {
+    try {
+      print('HealthBackgroundSync: Starting manual sync for profile $profileId');
+
+      // Check if user is authenticated
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) {
+        print('HealthBackgroundSync: User not authenticated, skipping sync');
+        return;
+      }
+
+      // Create repository instances
+      final healthRepo = HealthRepository();
+      final calibration = BaselineCalibration();
+
+      // Sync health data (last 24h)
+      final syncResult = await healthRepo.syncHealthData(profileId);
+      print('HealthBackgroundSync: Synced ${syncResult['sleep']} sleep, '
+          '${syncResult['steps']} steps, ${syncResult['hr']} HR records');
+
+      // Check if baselines are complete
+      final allComplete = await calibration.hasAllBaselinesComplete(profileId);
+
+      if (!allComplete) {
+        print('HealthBackgroundSync: Baselines incomplete, computing...');
+        final baselines = await calibration.computeAllBaselines(profileId);
+        print('HealthBackgroundSync: Computed ${baselines.length} baselines');
+      } else {
+        print('HealthBackgroundSync: All baselines already complete');
+      }
+
+      // Update last sync timestamp
+      await _updateLastSyncTime(profileId);
+
+      print('HealthBackgroundSync: Manual sync completed successfully');
+    } catch (e) {
+      print('HealthBackgroundSync: Error during manual sync: $e');
+      rethrow;
+    }
+  }
+
+  /// Gets the last sync timestamp for a profile
+  Future<DateTime?> getLastSyncTime() async {
+    try {
+      final timestamp = _prefs.getString(_lastSyncKey);
+      if (timestamp == null) return null;
+      return DateTime.parse(timestamp);
+    } catch (e) {
+      print('HealthBackgroundSync: Error getting last sync time: $e');
+      return null;
+    }
+  }
+
+  /// Gets the profile ID from last sync
+  Future<String?> getLastSyncProfileId() async {
+    return _prefs.getString(_lastSyncProfileKey);
+  }
+
+  /// Updates the last sync timestamp
+  Future<void> _updateLastSyncTime(String profileId) async {
+    try {
+      final now = DateTime.now();
+      await _prefs.setString(_lastSyncKey, now.toIso8601String());
+      await _prefs.setString(_lastSyncProfileKey, profileId);
+      print('HealthBackgroundSync: Updated last sync time to $now');
+    } catch (e) {
+      print('HealthBackgroundSync: Error updating last sync time: $e');
+    }
+  }
+
+  /// Checks if sync is due (last sync was more than 6 hours ago)
+  Future<bool> isSyncDue() async {
+    final lastSync = await getLastSyncTime();
+    if (lastSync == null) return true;
+
+    final now = DateTime.now();
+    final difference = now.difference(lastSync);
+    return difference.inHours >= 6;
+  }
+}
+
+/// Top-level callback dispatcher for Workmanager
+///
+/// REQUIRED: This must be a top-level function (not in a class)
+/// Workmanager invokes this in a separate isolate
+@pragma('vm:entry-point')
+void callbackDispatcher() {
+  Workmanager().executeTask((task, inputData) async {
+    print('HealthBackgroundSync: Background task started: $task');
+
+    try {
+      // Initialize Supabase in the background isolate
+      await Supabase.initialize(
+        url: const String.fromEnvironment('SUPABASE_URL'),
+        anonKey: const String.fromEnvironment('SUPABASE_ANON_KEY'),
+      );
+
+      // Initialize SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+
+      // Get profile ID from last sync
+      final profileId = prefs.getString('health_last_sync_profile_id');
+
+      if (profileId == null) {
+        print('HealthBackgroundSync: No profile ID found, skipping sync');
+        return Future.value(true);
+      }
+
+      // Check if user is authenticated
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) {
+        print('HealthBackgroundSync: User not authenticated in background, skipping sync');
+        return Future.value(true);
+      }
+
+      // Create repository instances
+      final healthRepo = HealthRepository();
+      final calibration = BaselineCalibration();
+
+      // Sync health data (last 24h)
+      final syncResult = await healthRepo.syncHealthData(profileId);
+      print('HealthBackgroundSync: Background synced ${syncResult['sleep']} sleep, '
+          '${syncResult['steps']} steps, ${syncResult['hr']} HR records');
+
+      // Check if baselines are complete
+      final allComplete = await calibration.hasAllBaselinesComplete(profileId);
+
+      if (!allComplete) {
+        print('HealthBackgroundSync: Baselines incomplete, computing in background...');
+        final baselines = await calibration.computeAllBaselines(profileId);
+        print('HealthBackgroundSync: Computed ${baselines.length} baselines in background');
+      }
+
+      // Update last sync timestamp
+      await prefs.setString(
+        'health_last_sync_time',
+        DateTime.now().toIso8601String(),
+      );
+
+      print('HealthBackgroundSync: Background sync completed successfully');
+      return Future.value(true);
+    } catch (e) {
+      print('HealthBackgroundSync: Background sync failed: $e');
+      // Return false to trigger backoff retry
+      return Future.value(false);
+    }
+  });
+}
+
+/// Riverpod provider for HealthBackgroundSync
+final healthBackgroundSyncProvider = Provider<HealthBackgroundSync>((ref) {
+  throw UnimplementedError(
+    'healthBackgroundSyncProvider must be overridden with SharedPreferences instance',
+  );
+});
+
+/// Provider for last sync time
+final lastSyncTimeProvider = FutureProvider<DateTime?>((ref) async {
+  final sync = ref.watch(healthBackgroundSyncProvider);
+  return await sync.getLastSyncTime();
+});
+
+/// Provider to check if sync is due
+final isSyncDueProvider = FutureProvider<bool>((ref) async {
+  final sync = ref.watch(healthBackgroundSyncProvider);
+  return await sync.isSyncDue();
+});
+
+/// Provider for last synced profile ID
+final lastSyncProfileIdProvider = FutureProvider<String?>((ref) async {
+  final sync = ref.watch(healthBackgroundSyncProvider);
+  return await sync.getLastSyncProfileId();
+});
