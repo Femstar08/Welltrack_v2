@@ -1,15 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/health/data/health_data_source.dart';
-import 'package:welltrack/features/health/data/health_repository.dart';
-import 'package:welltrack/features/health/domain/health_metric_entity.dart';
-import 'package:welltrack/features/health/domain/baseline_entity.dart';
+import '../data/health_data_source.dart';
+import '../data/health_repository.dart';
+import '../domain/health_metric_entity.dart';
+import '../domain/baseline_entity.dart';
+import '../../../shared/core/logging/app_logger.dart';
+
+final _logger = AppLogger();
 
 /// Health connection state
 class HealthConnectionState {
-  final bool isConnected;
-  final DateTime? lastSyncTime;
-  final bool isSyncing;
-  final String? error;
 
   const HealthConnectionState({
     this.isConnected = false,
@@ -17,6 +16,10 @@ class HealthConnectionState {
     this.isSyncing = false,
     this.error,
   });
+  final bool isConnected;
+  final DateTime? lastSyncTime;
+  final bool isSyncing;
+  final String? error;
 
   HealthConnectionState copyWith({
     bool? isConnected,
@@ -35,9 +38,6 @@ class HealthConnectionState {
 
 /// Notifier for managing health connection state
 class HealthConnectionNotifier extends StateNotifier<HealthConnectionState> {
-  final HealthDataSource _dataSource;
-  final HealthRepository _repository;
-  final String _profileId;
 
   HealthConnectionNotifier({
     required String profileId,
@@ -49,6 +49,9 @@ class HealthConnectionNotifier extends StateNotifier<HealthConnectionState> {
         super(const HealthConnectionState()) {
     _checkInitialPermissions();
   }
+  final HealthDataSource _dataSource;
+  final HealthRepository _repository;
+  final String _profileId;
 
   Future<void> _checkInitialPermissions() async {
     try {
@@ -56,7 +59,7 @@ class HealthConnectionNotifier extends StateNotifier<HealthConnectionState> {
       state = state.copyWith(isConnected: hasPermissions);
     } catch (e) {
       // Non-fatal — leave as disconnected
-      print('Error checking initial health permissions: $e');
+      _logger.warning('Error checking initial health permissions: $e');
     }
   }
 

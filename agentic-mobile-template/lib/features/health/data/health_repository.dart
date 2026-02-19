@@ -1,16 +1,16 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:welltrack/features/health/data/health_data_source.dart';
-import 'package:welltrack/features/health/data/health_normalizer.dart';
-import 'package:welltrack/features/health/data/health_validator.dart';
-import 'package:welltrack/features/health/domain/health_metric_entity.dart';
-import 'package:welltrack/features/health/domain/baseline_entity.dart';
+import 'health_data_source.dart';
+import 'health_normalizer.dart';
+import 'health_validator.dart';
+import '../domain/health_metric_entity.dart';
+import '../domain/baseline_entity.dart';
+import '../../../shared/core/logging/app_logger.dart';
+
+final _logger = AppLogger();
 
 /// Repository for managing health data sync and storage
 class HealthRepository {
-  final HealthDataSource _dataSource;
-  final HealthNormalizer _normalizer;
-  final SupabaseClient _supabase;
 
   HealthRepository({
     HealthDataSource? dataSource,
@@ -19,6 +19,9 @@ class HealthRepository {
   })  : _dataSource = dataSource ?? HealthDataSource(),
         _normalizer = normalizer ?? HealthNormalizer(),
         _supabase = supabase ?? Supabase.instance.client;
+  final HealthDataSource _dataSource;
+  final HealthNormalizer _normalizer;
+  final SupabaseClient _supabase;
 
   /// Sync health data for the last 24 hours
   Future<Map<String, int>> syncHealthData(String profileId) async {
@@ -149,7 +152,7 @@ class HealthRepository {
             );
         upsertedCount++;
       } catch (e) {
-        print('Error upserting metric: $e');
+        _logger.error('Error upserting metric: $e');
       }
     }
 
@@ -186,7 +189,7 @@ class HealthRepository {
           .map((json) => HealthMetricEntity.fromSupabaseJson(json))
           .toList();
     } catch (e) {
-      print('Error fetching metrics: $e');
+      _logger.error('Error fetching metrics: $e');
       return [];
     }
   }
@@ -210,7 +213,7 @@ class HealthRepository {
         for (final baseline in baselines) baseline.metricType: baseline,
       };
     } catch (e) {
-      print('Error fetching baseline status: $e');
+      _logger.error('Error fetching baseline status: $e');
       return {};
     }
   }
@@ -298,7 +301,7 @@ class HealthRepository {
             newBaseline.toSupabaseJson(),
           );
     } catch (e) {
-      print('Error updating baseline for $metricType: $e');
+      _logger.error('Error updating baseline for $metricType: $e');
     }
   }
 

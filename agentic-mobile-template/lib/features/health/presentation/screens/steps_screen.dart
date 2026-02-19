@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:welltrack/features/health/data/health_repository.dart';
-import 'package:welltrack/features/health/domain/health_metric_entity.dart';
-import 'package:welltrack/features/health/presentation/widgets/metric_chart.dart';
-import 'package:welltrack/features/insights/domain/forecast_entity.dart';
-import 'package:welltrack/shared/core/theme/app_colors.dart';
+import '../../data/health_repository.dart';
+import '../../domain/health_metric_entity.dart';
+import '../widgets/metric_chart.dart';
+import '../../../insights/domain/forecast_entity.dart';
+import '../../../../shared/core/theme/app_colors.dart';
 
 class StepsScreen extends ConsumerStatefulWidget {
-  final String profileId;
 
   const StepsScreen({super.key, required this.profileId});
+  final String profileId;
 
   @override
   ConsumerState<StepsScreen> createState() => _StepsScreenState();
@@ -115,7 +115,7 @@ class _StepsScreenState extends ConsumerState<StepsScreen> {
                           padding: const EdgeInsets.all(20),
                           child: Column(
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.directions_walk,
                                 size: 40,
                                 color: AppColors.primary,
@@ -183,7 +183,7 @@ class _StepsScreenState extends ConsumerState<StepsScreen> {
                       // Weekly average card
                       Card(
                         child: ListTile(
-                          leading: Icon(Icons.show_chart, color: AppColors.secondary),
+                          leading: const Icon(Icons.show_chart, color: AppColors.secondary),
                           title: const Text('Weekly Average'),
                           trailing: Text(
                             NumberFormat('#,###').format(_weeklyAverage.toInt()),

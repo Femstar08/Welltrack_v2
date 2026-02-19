@@ -3,9 +3,6 @@ import 'package:flutter/material.dart';
 /// Shimmer effect widget — no external packages needed.
 /// Uses AnimationController + LinearGradient + ShaderMask.
 class ShimmerBox extends StatelessWidget {
-  final double width;
-  final double height;
-  final double borderRadius;
 
   const ShimmerBox({
     super.key,
@@ -13,6 +10,9 @@ class ShimmerBox extends StatelessWidget {
     required this.height,
     this.borderRadius = 12,
   });
+  final double width;
+  final double height;
+  final double borderRadius;
 
   @override
   Widget build(BuildContext context) {
@@ -84,32 +84,32 @@ class _DashboardShimmerState extends State<DashboardShimmer>
           child: child!,
         );
       },
-      child: SingleChildScrollView(
-        physics: const NeverScrollableScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: const SingleChildScrollView(
+        physics: NeverScrollableScrollPhysics(),
+        padding: EdgeInsets.symmetric(horizontal: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 60),
+            SizedBox(height: 60),
 
             // Section 1: Today Summary skeleton
-            const ShimmerBox(width: 180, height: 24, borderRadius: 8),
-            const SizedBox(height: 8),
-            const ShimmerBox(width: 120, height: 18, borderRadius: 8),
-            const SizedBox(height: 16),
-            const ShimmerBox(
+            ShimmerBox(width: 180, height: 24, borderRadius: 8),
+            SizedBox(height: 8),
+            ShimmerBox(width: 120, height: 18, borderRadius: 8),
+            SizedBox(height: 16),
+            ShimmerBox(
               width: double.infinity,
               height: 140,
               borderRadius: 16,
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
 
             // Section 2: Key Signals 2x2 grid skeleton
             Row(
               children: [
                 Expanded(
                   child: Column(
-                    children: const [
+                    children: [
                       ShimmerBox(
                         width: double.infinity,
                         height: 100,
@@ -122,10 +122,10 @@ class _DashboardShimmerState extends State<DashboardShimmer>
                     ],
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Expanded(
                   child: Column(
-                    children: const [
+                    children: [
                       ShimmerBox(
                         width: double.infinity,
                         height: 100,
@@ -140,31 +140,31 @@ class _DashboardShimmerState extends State<DashboardShimmer>
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
 
             // Section 3: Intelligence insight skeleton
-            const ShimmerBox(
+            ShimmerBox(
               width: double.infinity,
               height: 90,
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
 
             // Section 4: Trends chart skeleton
-            const ShimmerBox(
+            ShimmerBox(
               width: double.infinity,
               height: 170,
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
 
             // Section 5: Secondary modules skeleton
-            const ShimmerBox(width: 100, height: 18, borderRadius: 8),
-            const SizedBox(height: 12),
-            const ShimmerBox(width: double.infinity, height: 60),
-            const SizedBox(height: 8),
-            const ShimmerBox(width: double.infinity, height: 60),
-            const SizedBox(height: 8),
-            const ShimmerBox(width: double.infinity, height: 60),
-            const SizedBox(height: 100),
+            ShimmerBox(width: 100, height: 18, borderRadius: 8),
+            SizedBox(height: 12),
+            ShimmerBox(width: double.infinity, height: 60),
+            SizedBox(height: 8),
+            ShimmerBox(width: double.infinity, height: 60),
+            SizedBox(height: 8),
+            ShimmerBox(width: double.infinity, height: 60),
+            SizedBox(height: 100),
           ],
         ),
       ),

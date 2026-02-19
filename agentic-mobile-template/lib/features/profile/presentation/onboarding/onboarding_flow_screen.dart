@@ -2,18 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:welltrack/features/profile/data/profile_repository.dart';
-import 'package:welltrack/features/profile/presentation/onboarding/onboarding_state.dart';
-import 'package:welltrack/features/profile/presentation/onboarding/screens/welcome_screen.dart';
-import 'package:welltrack/features/profile/presentation/onboarding/screens/goal_selection_screen.dart';
-import 'package:welltrack/features/profile/presentation/onboarding/screens/focus_intensity_screen.dart';
-import 'package:welltrack/features/profile/presentation/onboarding/screens/quick_profile_screen.dart';
-import 'package:welltrack/features/profile/presentation/onboarding/screens/connect_devices_screen.dart';
-import 'package:welltrack/features/profile/presentation/onboarding/screens/focus_introduction_screen.dart';
-import 'package:welltrack/features/profile/presentation/onboarding/screens/baseline_summary_screen.dart';
-import 'package:welltrack/features/profile/presentation/onboarding/widgets/onboarding_progress_dots.dart';
-import 'package:welltrack/features/profile/presentation/profile_provider.dart';
-import 'package:welltrack/shared/core/router/app_router.dart';
+import '../../data/profile_repository.dart';
+import 'onboarding_state.dart';
+import 'screens/welcome_screen.dart';
+import 'screens/goal_selection_screen.dart';
+import 'screens/focus_intensity_screen.dart';
+import 'screens/quick_profile_screen.dart';
+import 'screens/connect_devices_screen.dart';
+import 'screens/focus_introduction_screen.dart';
+import 'screens/baseline_summary_screen.dart';
+import 'widgets/onboarding_progress_dots.dart';
+import '../profile_provider.dart';
+import '../../../../shared/core/router/app_router.dart';
+import '../../../../shared/core/logging/app_logger.dart';
+
+final _logger = AppLogger();
 
 class OnboardingFlowScreen extends ConsumerStatefulWidget {
   const OnboardingFlowScreen({super.key});
@@ -51,7 +54,7 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
       }
     } catch (e) {
       // Non-fatal: user may be creating their first profile
-      print('Onboarding: Could not load existing profile: $e');
+      _logger.warning('Onboarding: Could not load existing profile: $e');
     }
   }
 
@@ -78,7 +81,7 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
     try {
       final userId = Supabase.instance.client.auth.currentUser?.id;
       if (userId == null) throw Exception('No authenticated user');
-      print('Onboarding _complete: userId=$userId');
+      _logger.info('Onboarding _complete: userId=$userId');
 
       final data = ref.read(onboardingDataProvider);
       // Use repository directly so exceptions propagate (the notifier
@@ -98,7 +101,7 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
               .split('T')
               .first,
       };
-      print('Onboarding _complete: updateFields=$updateFields');
+      _logger.debug('Onboarding _complete: updateFields=$updateFields');
 
       // Ensure wt_users row exists before any profile operations
       final email = Supabase.instance.client.auth.currentUser?.email;
@@ -106,17 +109,17 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
       await repository.ensureUserExists(userId, displayName: fallbackName);
 
       // Load existing profile (trigger should have created one on signup)
-      print('Onboarding _complete: loading active profile...');
+      _logger.info('Onboarding _complete: loading active profile...');
       final existingProfile = await repository.getActiveProfile();
-      print('Onboarding _complete: existingProfile=${existingProfile?.id}');
+      _logger.info('Onboarding _complete: existingProfile=${existingProfile?.id}');
 
       if (existingProfile != null) {
-        print('Onboarding _complete: updating profile ${existingProfile.id}');
+        _logger.info('Onboarding _complete: updating profile ${existingProfile.id}');
         await repository.updateProfile(existingProfile.id, updateFields);
-        print('Onboarding _complete: profile updated');
+        _logger.info('Onboarding _complete: profile updated');
       } else {
         // No profile exists — create one (use 'parent' to match DB enum)
-        print('Onboarding _complete: creating new profile for $fallbackName');
+        _logger.info('Onboarding _complete: creating new profile for $fallbackName');
         await repository.createProfile(
           userId: userId,
           profileType: 'parent',
@@ -129,30 +132,28 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
           goalIntensity: data.goalIntensity,
           isPrimary: true,
         );
-        print('Onboarding _complete: profile created');
+        _logger.info('Onboarding _complete: profile created');
       }
 
-      print('Onboarding _complete: marking onboarding complete...');
+      _logger.info('Onboarding _complete: marking onboarding complete...');
       await repository.markOnboardingComplete(userId);
-      print('Onboarding _complete: onboarding marked complete');
+      _logger.info('Onboarding _complete: onboarding marked complete');
 
-      if (mounted) {
-        ref.read(onboardingCompleteProvider.notifier).state = true;
+      if (!mounted) return;
+      ref.read(onboardingCompleteProvider.notifier).state = true;
 
-        // Reload the profile into the notifier for the rest of the app
-        await ref.read(activeProfileProvider.notifier).loadActiveProfile();
-        final updatedProfile = ref.read(activeProfileProvider).valueOrNull;
-        if (updatedProfile != null) {
-          ref.read(activeProfileIdProvider.notifier).state = updatedProfile.id;
-          ref.read(activeDisplayNameProvider.notifier).state =
-              updatedProfile.displayName;
-        }
-
-        context.go('/');
+      // Reload the profile into the notifier for the rest of the app
+      await ref.read(activeProfileProvider.notifier).loadActiveProfile();
+      final updatedProfile = ref.read(activeProfileProvider).valueOrNull;
+      if (updatedProfile != null) {
+        ref.read(activeProfileIdProvider.notifier).state = updatedProfile.id;
+        ref.read(activeDisplayNameProvider.notifier).state =
+            updatedProfile.displayName;
       }
+
+      if (mounted) context.go('/');
     } catch (e, stack) {
-      print('Onboarding _complete ERROR: $e');
-      print('Onboarding _complete STACK: $stack');
+      _logger.error('Onboarding _complete ERROR: $e', e, stack);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

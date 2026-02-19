@@ -1,24 +1,6 @@
-import 'package:welltrack/features/profile/domain/profile_entity.dart';
+import '../domain/profile_entity.dart';
 
 class ProfileModel {
-  final String id;
-  final String userId;
-  final String profileType;
-  final String displayName;
-  final DateTime? dateOfBirth;
-  final String? gender;
-  final double? heightCm;
-  final double? weightKg;
-  final String? activityLevel;
-  final String? fitnessGoals;
-  final String? dietaryRestrictions;
-  final String? allergies;
-  final String? primaryGoal;
-  final String? goalIntensity;
-  final bool isPrimary;
-  final String? avatarUrl;
-  final DateTime createdAt;
-  final DateTime updatedAt;
 
   const ProfileModel({
     required this.id,
@@ -70,6 +52,47 @@ class ProfileModel {
     );
   }
 
+  factory ProfileModel.fromEntity(ProfileEntity entity) {
+    return ProfileModel(
+      id: entity.id,
+      userId: entity.userId,
+      profileType: entity.profileType,
+      displayName: entity.displayName,
+      dateOfBirth: entity.dateOfBirth,
+      gender: entity.gender,
+      heightCm: entity.heightCm,
+      weightKg: entity.weightKg,
+      activityLevel: entity.activityLevel,
+      fitnessGoals: entity.fitnessGoals,
+      dietaryRestrictions: entity.dietaryRestrictions,
+      allergies: entity.allergies,
+      primaryGoal: entity.primaryGoal,
+      goalIntensity: entity.goalIntensity,
+      isPrimary: entity.isPrimary,
+      avatarUrl: entity.avatarUrl,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+    );
+  }
+  final String id;
+  final String userId;
+  final String profileType;
+  final String displayName;
+  final DateTime? dateOfBirth;
+  final String? gender;
+  final double? heightCm;
+  final double? weightKg;
+  final String? activityLevel;
+  final String? fitnessGoals;
+  final String? dietaryRestrictions;
+  final String? allergies;
+  final String? primaryGoal;
+  final String? goalIntensity;
+  final bool isPrimary;
+  final String? avatarUrl;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -113,29 +136,6 @@ class ProfileModel {
       avatarUrl: avatarUrl,
       createdAt: createdAt,
       updatedAt: updatedAt,
-    );
-  }
-
-  factory ProfileModel.fromEntity(ProfileEntity entity) {
-    return ProfileModel(
-      id: entity.id,
-      userId: entity.userId,
-      profileType: entity.profileType,
-      displayName: entity.displayName,
-      dateOfBirth: entity.dateOfBirth,
-      gender: entity.gender,
-      heightCm: entity.heightCm,
-      weightKg: entity.weightKg,
-      activityLevel: entity.activityLevel,
-      fitnessGoals: entity.fitnessGoals,
-      dietaryRestrictions: entity.dietaryRestrictions,
-      allergies: entity.allergies,
-      primaryGoal: entity.primaryGoal,
-      goalIntensity: entity.goalIntensity,
-      isPrimary: entity.isPrimary,
-      avatarUrl: entity.avatarUrl,
-      createdAt: entity.createdAt,
-      updatedAt: entity.updatedAt,
     );
   }
 }

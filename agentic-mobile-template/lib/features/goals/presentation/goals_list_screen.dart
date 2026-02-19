@@ -1,13 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:welltrack/features/goals/domain/goal_entity.dart';
-import 'package:welltrack/features/goals/presentation/goals_provider.dart';
+import '../domain/goal_entity.dart';
+import 'goals_provider.dart';
 
 class GoalsListScreen extends ConsumerWidget {
-  final String profileId;
 
   const GoalsListScreen({super.key, required this.profileId});
+  final String profileId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -40,7 +42,10 @@ class GoalsListScreen extends ConsumerWidget {
           }
           return RefreshIndicator(
             onRefresh: () async {
-              ref.read(goalsProvider(profileId).notifier).refresh();
+              unawaited(
+                Future(() =>
+                    ref.read(goalsProvider(profileId).notifier).refresh()),
+              );
             },
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
@@ -64,7 +69,7 @@ class GoalsListScreen extends ConsumerWidget {
             Icon(
               Icons.flag_outlined,
               size: 64,
-              color: theme.colorScheme.primary.withOpacity(0.5),
+              color: theme.colorScheme.primary.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 16),
             Text(
@@ -75,7 +80,7 @@ class GoalsListScreen extends ConsumerWidget {
             Text(
               'Tap + to create your first goal.',
               style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
               textAlign: TextAlign.center,
             ),
@@ -93,9 +98,9 @@ class GoalsListScreen extends ConsumerWidget {
 }
 
 class _GoalCard extends StatelessWidget {
-  final GoalEntity goal;
 
   const _GoalCard({required this.goal});
+  final GoalEntity goal;
 
   @override
   Widget build(BuildContext context) {
@@ -140,7 +145,7 @@ class _GoalCard extends StatelessWidget {
                         goal.goalDescription!,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color:
-                              theme.colorScheme.onSurface.withOpacity(0.6),
+                              theme.colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                       ),
                     const SizedBox(height: 8),
@@ -171,7 +176,7 @@ class _GoalCard extends StatelessWidget {
                               goal.forecast!.projectionMessage,
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: theme.colorScheme.onSurface
-                                    .withOpacity(0.6),
+                                    .withValues(alpha: 0.6),
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -185,7 +190,7 @@ class _GoalCard extends StatelessWidget {
               // Chevron
               Icon(
                 Icons.chevron_right,
-                color: theme.colorScheme.onSurface.withOpacity(0.4),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
               ),
             ],
           ),
@@ -250,17 +255,17 @@ class _GoalCard extends StatelessWidget {
 }
 
 class _StatusChip extends StatelessWidget {
-  final String label;
-  final Color color;
 
   const _StatusChip({required this.label, required this.color});
+  final String label;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(

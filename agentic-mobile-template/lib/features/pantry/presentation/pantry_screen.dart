@@ -1,11 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/pantry/domain/pantry_item_entity.dart';
-import 'package:welltrack/features/pantry/presentation/add_pantry_item_sheet.dart';
-import 'package:welltrack/features/pantry/presentation/pantry_provider.dart';
-import 'package:welltrack/features/profile/presentation/profile_provider.dart';
-import 'package:welltrack/features/recipes/presentation/recipe_generation_provider.dart';
-import 'package:welltrack/features/recipes/presentation/recipe_suggestions_screen.dart';
+import '../domain/pantry_item_entity.dart';
+import 'add_pantry_item_sheet.dart';
+import 'pantry_provider.dart';
+import '../../profile/presentation/profile_provider.dart';
+import '../../recipes/presentation/recipe_generation_provider.dart';
+import '../../recipes/presentation/recipe_suggestions_screen.dart';
 
 class PantryScreen extends ConsumerStatefulWidget {
   const PantryScreen({super.key});
@@ -55,7 +57,9 @@ class _PantryScreenState extends ConsumerState<PantryScreen>
   }
 
   void _onSearch(String query, String profileId) {
-    ref.read(pantryItemsProvider(profileId).notifier).searchItems(query);
+    unawaited(
+      ref.read(pantryItemsProvider(profileId).notifier).searchItems(query),
+    );
   }
 
   @override
@@ -172,7 +176,11 @@ class _PantryScreenState extends ConsumerState<PantryScreen>
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () {
-                      ref.read(pantryItemsProvider(profile.id).notifier).refresh();
+                      unawaited(
+                        Future(() => ref
+                            .read(pantryItemsProvider(profile.id).notifier)
+                            .refresh()),
+                      );
                     },
                     child: const Text('Retry'),
                   ),
@@ -205,12 +213,12 @@ class _PantryScreenState extends ConsumerState<PantryScreen>
 
                   // Navigate to suggestions screen
                   if (context.mounted) {
-                    Navigator.push(
+                    unawaited(Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => const RecipeSuggestionsScreen(),
                       ),
-                    );
+                    ));
                   }
                 },
                 icon: const Icon(Icons.auto_awesome),
@@ -220,8 +228,8 @@ class _PantryScreenState extends ConsumerState<PantryScreen>
               const SizedBox(height: 16),
               FloatingActionButton(
                 onPressed: () => _showAddItemSheet(context, profile.id),
-                child: const Icon(Icons.add),
                 heroTag: 'add',
+                child: const Icon(Icons.add),
               ),
             ],
           ),
@@ -238,13 +246,13 @@ class _PantryScreenState extends ConsumerState<PantryScreen>
 }
 
 class _PantryItemCard extends ConsumerWidget {
-  final PantryItemEntity item;
-  final String profileId;
 
   const _PantryItemCard({
     required this.item,
     required this.profileId,
   });
+  final PantryItemEntity item;
+  final String profileId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -286,7 +294,11 @@ class _PantryItemCard extends ConsumerWidget {
           );
         },
         onDismissed: (direction) {
-          ref.read(pantryItemsProvider(profileId).notifier).deleteItem(item.id);
+          unawaited(
+            ref
+                .read(pantryItemsProvider(profileId).notifier)
+                .deleteItem(item.id),
+          );
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('${item.name} removed')),
           );

@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:welltrack/features/goals/domain/goal_entity.dart';
-import 'package:welltrack/features/goals/presentation/goals_provider.dart';
-import 'package:welltrack/features/goals/presentation/widgets/goal_projection_chart.dart';
-import 'package:welltrack/features/freemium/presentation/freemium_gate_widget.dart';
-import 'package:welltrack/shared/core/constants/feature_flags.dart';
-import 'package:welltrack/shared/core/router/app_router.dart';
+import '../domain/goal_entity.dart';
+import 'goals_provider.dart';
+import 'widgets/goal_projection_chart.dart';
+import '../../freemium/presentation/freemium_gate_widget.dart';
+import '../../../shared/core/constants/feature_flags.dart';
+import '../../../shared/core/router/app_router.dart';
 
 class GoalDetailScreen extends ConsumerWidget {
-  final String goalId;
 
   const GoalDetailScreen({super.key, required this.goalId});
+  final String goalId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -39,9 +39,9 @@ class GoalDetailScreen extends ConsumerWidget {
 }
 
 class _GoalDetailContent extends ConsumerWidget {
-  final GoalEntity goal;
 
   const _GoalDetailContent({required this.goal});
+  final GoalEntity goal;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -56,7 +56,6 @@ class _GoalDetailContent extends ConsumerWidget {
             icon: const Icon(Icons.edit_outlined),
             onPressed: () {
               // Navigate to edit screen - push with goal data
-              final profileId = ref.read(activeProfileIdProvider) ?? '';
               context.push('/goals/create', extra: goal);
             },
           ),
@@ -162,7 +161,7 @@ class _GoalDetailContent extends ConsumerWidget {
             Text(
               '${goal.currentValue} → ${goal.targetValue} ${goal.unit}',
               style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.7),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
               ),
             ),
             if (goal.goalDescription != null &&
@@ -171,7 +170,7 @@ class _GoalDetailContent extends ConsumerWidget {
               Text(
                 goal.goalDescription!,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.5),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                 ),
               ),
             ],
@@ -216,7 +215,7 @@ class _GoalDetailContent extends ConsumerWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.15),
+                    color: statusColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(
@@ -257,7 +256,7 @@ class _GoalDetailContent extends ConsumerWidget {
                 child: Text(
                   'Insufficient data for projection. Keep logging your metrics!',
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     fontStyle: FontStyle.italic,
                   ),
                 ),
@@ -275,7 +274,7 @@ class _GoalDetailContent extends ConsumerWidget {
         Text(
           label,
           style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurface.withOpacity(0.6),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
           ),
         ),
         Text(
@@ -314,7 +313,7 @@ class _GoalDetailContent extends ConsumerWidget {
               Text(
                 'Projected date: ${forecast.projectedDate!.day}/${forecast.projectedDate!.month}/${forecast.projectedDate!.year}',
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
             ],
@@ -335,7 +334,7 @@ class _GoalDetailContent extends ConsumerWidget {
             Text(
               'Model Quality',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
             Text(
@@ -376,13 +375,13 @@ class _GoalDetailContent extends ConsumerWidget {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.of(ctx).pop();
               final profileId = ref.read(activeProfileIdProvider) ?? '';
-              ref
+              await ref
                   .read(goalsProvider(profileId).notifier)
                   .deleteGoal(goal.id);
-              context.pop();
+              if (context.mounted) context.pop();
             },
             child: const Text('Delete'),
           ),

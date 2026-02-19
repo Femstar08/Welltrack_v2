@@ -2,18 +2,18 @@ import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/health/presentation/health_provider.dart';
-import 'package:welltrack/features/profile/presentation/onboarding/onboarding_state.dart';
+import '../../../../health/presentation/health_provider.dart';
+import '../onboarding_state.dart';
 
 class ConnectDevicesScreen extends ConsumerWidget {
-  final VoidCallback onContinue;
-  final String? profileId;
 
   const ConnectDevicesScreen({
     super.key,
     required this.onContinue,
     this.profileId,
   });
+  final VoidCallback onContinue;
+  final String? profileId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -126,13 +126,6 @@ class ConnectDevicesScreen extends ConsumerWidget {
 }
 
 class _DeviceConnectionTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color accent;
-  final bool isConnected;
-  final bool isComingSoon;
-  final VoidCallback? onConnect;
 
   const _DeviceConnectionTile({
     required this.icon,
@@ -143,6 +136,13 @@ class _DeviceConnectionTile extends StatelessWidget {
     this.isComingSoon = false,
     this.onConnect,
   });
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color accent;
+  final bool isConnected;
+  final bool isComingSoon;
+  final VoidCallback? onConnect;
 
   @override
   Widget build(BuildContext context) {

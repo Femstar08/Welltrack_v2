@@ -1,16 +1,6 @@
 /// Recovery Score Entity
 /// Deterministic score calculated from stress, sleep, HR, and training load components
-class RecoveryScoreEntity {
-  final String id;
-  final String profileId;
-  final DateTime scoreDate;
-  final double? stressComponent; // 0-100, nullable if no stress data
-  final double? sleepComponent; // 0-100, nullable if no sleep data
-  final double? hrComponent; // 0-100, nullable if no HR data
-  final double? loadComponent; // 0-100, nullable if no load data
-  final double recoveryScore; // Weighted average of available components
-  final int componentsAvailable; // Count of non-null components
-  final Map<String, dynamic>? rawData; // Optional debug/audit data
+class RecoveryScoreEntity { // Optional debug/audit data
 
   const RecoveryScoreEntity({
     required this.id,
@@ -24,6 +14,31 @@ class RecoveryScoreEntity {
     required this.componentsAvailable,
     this.rawData,
   });
+
+  factory RecoveryScoreEntity.fromJson(Map<String, dynamic> json) {
+    return RecoveryScoreEntity(
+      id: json['id'] as String,
+      profileId: json['profile_id'] as String,
+      scoreDate: DateTime.parse(json['score_date'] as String),
+      stressComponent: json['stress_component'] as double?,
+      sleepComponent: json['sleep_component'] as double?,
+      hrComponent: json['hr_component'] as double?,
+      loadComponent: json['load_component'] as double?,
+      recoveryScore: (json['recovery_score'] as num).toDouble(),
+      componentsAvailable: json['components_available'] as int,
+      rawData: json['raw_data'] as Map<String, dynamic>?,
+    );
+  }
+  final String id;
+  final String profileId;
+  final DateTime scoreDate;
+  final double? stressComponent; // 0-100, nullable if no stress data
+  final double? sleepComponent; // 0-100, nullable if no sleep data
+  final double? hrComponent; // 0-100, nullable if no HR data
+  final double? loadComponent; // 0-100, nullable if no load data
+  final double recoveryScore; // Weighted average of available components
+  final int componentsAvailable; // Count of non-null components
+  final Map<String, dynamic>? rawData;
 
   /// Get interpretation label for the recovery score
   String get interpretationLabel {
@@ -114,21 +129,6 @@ class RecoveryScoreEntity {
       'components_available': componentsAvailable,
       'raw_data': rawData,
     };
-  }
-
-  factory RecoveryScoreEntity.fromJson(Map<String, dynamic> json) {
-    return RecoveryScoreEntity(
-      id: json['id'] as String,
-      profileId: json['profile_id'] as String,
-      scoreDate: DateTime.parse(json['score_date'] as String),
-      stressComponent: json['stress_component'] as double?,
-      sleepComponent: json['sleep_component'] as double?,
-      hrComponent: json['hr_component'] as double?,
-      loadComponent: json['load_component'] as double?,
-      recoveryScore: (json['recovery_score'] as num).toDouble(),
-      componentsAvailable: json['components_available'] as int,
-      rawData: json['raw_data'] as Map<String, dynamic>?,
-    );
   }
 
   RecoveryScoreEntity copyWith({

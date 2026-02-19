@@ -1,17 +1,17 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/recipes/domain/recipe_entity.dart';
-import 'package:welltrack/features/recipes/domain/recipe_step.dart';
-import 'package:welltrack/features/meals/presentation/log_meal_screen.dart';
+import '../domain/recipe_entity.dart';
+import '../domain/recipe_step.dart';
+import '../../meals/presentation/log_meal_screen.dart';
 
 class PrepWalkthroughScreen extends ConsumerStatefulWidget {
-  final RecipeEntity recipe;
 
   const PrepWalkthroughScreen({
     super.key,
     required this.recipe,
   });
+  final RecipeEntity recipe;
 
   @override
   ConsumerState<PrepWalkthroughScreen> createState() => _PrepWalkthroughScreenState();
@@ -341,7 +341,7 @@ class _PrepWalkthroughScreenState extends ConsumerState<PrepWalkthroughScreen> {
               color: theme.colorScheme.surface,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 4,
                   offset: const Offset(0, -2),
                 ),

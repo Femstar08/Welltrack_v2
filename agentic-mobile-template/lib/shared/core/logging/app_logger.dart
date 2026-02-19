@@ -3,9 +3,9 @@ import 'package:logger/logger.dart';
 /// Singleton logger for WellTrack app
 /// Provides structured logging with different levels
 class AppLogger {
+  factory AppLogger() => _instance;
   AppLogger._internal();
   static final AppLogger _instance = AppLogger._internal();
-  factory AppLogger() => _instance;
 
   late final Logger _logger;
 

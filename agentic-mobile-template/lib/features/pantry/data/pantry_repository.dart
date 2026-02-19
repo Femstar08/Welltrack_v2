@@ -1,15 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:welltrack/features/pantry/domain/pantry_item_entity.dart';
+import '../domain/pantry_item_entity.dart';
 
 final pantryRepositoryProvider = Provider<PantryRepository>((ref) {
   return PantryRepository(Supabase.instance.client);
 });
 
 class PantryRepository {
-  final SupabaseClient _client;
 
   PantryRepository(this._client);
+  final SupabaseClient _client;
 
   Future<List<PantryItemEntity>> getItems(String profileId, {String? category}) async {
     try {

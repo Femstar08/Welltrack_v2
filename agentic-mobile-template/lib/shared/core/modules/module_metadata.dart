@@ -63,10 +63,6 @@ enum WellTrackModule {
 
 /// Configuration for a module including its enabled state and tile settings
 class ModuleConfig {
-  final WellTrackModule module;
-  final bool enabled;
-  final int tileOrder;
-  final Map<String, dynamic> tileConfig;
 
   const ModuleConfig({
     required this.module,
@@ -74,6 +70,29 @@ class ModuleConfig {
     this.tileOrder = 0,
     this.tileConfig = const {},
   });
+
+  /// Create from JSON from database
+  factory ModuleConfig.fromJson(Map<String, dynamic> json) {
+    final moduleName = json['module_name'] as String?;
+    final module = moduleName != null
+        ? WellTrackModule.fromDatabaseValue(moduleName)
+        : null;
+
+    if (module == null) {
+      throw ArgumentError('Invalid module name: $moduleName');
+    }
+
+    return ModuleConfig(
+      module: module,
+      enabled: json['enabled'] as bool? ?? true,
+      tileOrder: json['tile_order'] as int? ?? 0,
+      tileConfig: json['tile_config'] as Map<String, dynamic>? ?? {},
+    );
+  }
+  final WellTrackModule module;
+  final bool enabled;
+  final int tileOrder;
+  final Map<String, dynamic> tileConfig;
 
   /// Create a copy with updated fields
   ModuleConfig copyWith({
@@ -97,25 +116,6 @@ class ModuleConfig {
       'tile_order': tileOrder,
       'tile_config': tileConfig,
     };
-  }
-
-  /// Create from JSON from database
-  factory ModuleConfig.fromJson(Map<String, dynamic> json) {
-    final moduleName = json['module_name'] as String?;
-    final module = moduleName != null
-        ? WellTrackModule.fromDatabaseValue(moduleName)
-        : null;
-
-    if (module == null) {
-      throw ArgumentError('Invalid module name: $moduleName');
-    }
-
-    return ModuleConfig(
-      module: module,
-      enabled: json['enabled'] as bool? ?? true,
-      tileOrder: json['tile_order'] as int? ?? 0,
-      tileConfig: json['tile_config'] as Map<String, dynamic>? ?? {},
-    );
   }
 
   @override

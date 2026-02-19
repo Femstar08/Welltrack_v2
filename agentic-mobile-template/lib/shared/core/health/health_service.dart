@@ -17,14 +17,6 @@ enum HealthPlatformStatus {
 
 /// Normalized health metric record from platform APIs
 class HealthMetricRecord {
-  final String type; // 'sleep', 'steps', 'resting_hr'
-  final num value; // minutes, count, bpm
-  final String? stagesJson; // JSON array for sleep stages
-  final DateTime startTime;
-  final DateTime endTime;
-  final DateTime recordedAt;
-  final String source; // 'health_connect' or 'healthkit'
-  final Map<String, dynamic> rawPayload;
 
   HealthMetricRecord({
     required this.type,
@@ -36,6 +28,14 @@ class HealthMetricRecord {
     required this.source,
     required this.rawPayload,
   });
+  final String type; // 'sleep', 'steps', 'resting_hr'
+  final num value; // minutes, count, bpm
+  final String? stagesJson; // JSON array for sleep stages
+  final DateTime startTime;
+  final DateTime endTime;
+  final DateTime recordedAt;
+  final String source; // 'health_connect' or 'healthkit'
+  final Map<String, dynamic> rawPayload;
 
   /// Compute dedupe hash for this record
   String get dedupeHash {
@@ -167,7 +167,7 @@ class HealthService {
         _logger.warning('Health permissions denied');
       }
 
-      return granted ?? false;
+      return granted;
     } catch (e, stackTrace) {
       _logger.error('Error requesting health permissions', e, stackTrace);
       await _storage.write(key: _permissionsCacheKey, value: 'false');

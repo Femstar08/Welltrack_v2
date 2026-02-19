@@ -8,6 +8,12 @@ import 'supabase_service.dart';
 
 /// Manager for handling authentication session state and persistence
 class SessionManager {
+
+  SessionManager({
+    required SupabaseService supabaseService,
+    required SecureStorageService secureStorage,
+  })  : _supabaseService = supabaseService,
+        _secureStorage = secureStorage;
   final SupabaseService _supabaseService;
   final SecureStorageService _secureStorage;
   final AppLogger _logger = AppLogger();
@@ -15,12 +21,6 @@ class SessionManager {
   StreamSubscription<AuthState>? _authSubscription;
   final StreamController<AuthState> _authStateController =
       StreamController<AuthState>.broadcast();
-
-  SessionManager({
-    required SupabaseService supabaseService,
-    required SecureStorageService secureStorage,
-  })  : _supabaseService = supabaseService,
-        _secureStorage = secureStorage;
 
   /// Get auth state changes stream
   Stream<AuthState> get authStateChanges => _authStateController.stream;

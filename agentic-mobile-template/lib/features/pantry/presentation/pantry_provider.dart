@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/pantry/data/pantry_repository.dart';
-import 'package:welltrack/features/pantry/domain/pantry_item_entity.dart';
+import '../data/pantry_repository.dart';
+import '../domain/pantry_item_entity.dart';
 
 final pantryItemsProvider = StateNotifierProvider.family<
     PantryNotifier,
@@ -21,23 +21,23 @@ final pantryItemsByCategoryProvider = StateNotifierProvider.family<
 });
 
 class PantryCategoryParams {
-  final String profileId;
-  final String category;
 
   PantryCategoryParams({
     required this.profileId,
     required this.category,
   });
+  final String profileId;
+  final String category;
 }
 
 class PantryNotifier extends StateNotifier<AsyncValue<List<PantryItemEntity>>> {
-  final PantryRepository _repository;
-  final String _profileId;
 
   PantryNotifier(this._repository, this._profileId)
       : super(const AsyncValue.loading()) {
     loadItems();
   }
+  final PantryRepository _repository;
+  final String _profileId;
 
   Future<void> loadItems({String? category}) async {
     state = const AsyncValue.loading();
@@ -125,14 +125,14 @@ class PantryNotifier extends StateNotifier<AsyncValue<List<PantryItemEntity>>> {
 }
 
 class PantryByCategoryNotifier extends StateNotifier<AsyncValue<List<PantryItemEntity>>> {
-  final PantryRepository _repository;
-  final String _profileId;
-  final String _category;
 
   PantryByCategoryNotifier(this._repository, this._profileId, this._category)
       : super(const AsyncValue.loading()) {
     loadItems();
   }
+  final PantryRepository _repository;
+  final String _profileId;
+  final String _category;
 
   Future<void> loadItems() async {
     state = const AsyncValue.loading();

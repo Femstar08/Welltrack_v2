@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/goals/data/goal_repository.dart';
-import 'package:welltrack/features/goals/domain/goal_entity.dart';
-import 'package:welltrack/features/insights/data/insights_repository.dart';
+import '../data/goal_repository.dart';
+import '../domain/goal_entity.dart';
+import '../../insights/data/insights_repository.dart';
 
 final goalsProvider = StateNotifierProvider.family<
     GoalsNotifier,
@@ -21,14 +21,14 @@ final goalDetailProvider =
 });
 
 class GoalsNotifier extends StateNotifier<AsyncValue<List<GoalEntity>>> {
-  final GoalsRepository _repository;
-  final InsightsRepository _insightsRepository;
-  final String _profileId;
 
   GoalsNotifier(this._repository, this._insightsRepository, this._profileId)
       : super(const AsyncValue.loading()) {
     loadGoals();
   }
+  final GoalsRepository _repository;
+  final InsightsRepository _insightsRepository;
+  final String _profileId;
 
   Future<void> loadGoals() async {
     state = const AsyncValue.loading();

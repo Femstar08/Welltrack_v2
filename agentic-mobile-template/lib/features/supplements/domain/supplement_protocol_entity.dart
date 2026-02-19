@@ -49,17 +49,6 @@ enum ProtocolTimeOfDay {
 }
 
 class SupplementProtocolEntity {
-  final String id;
-  final String profileId;
-  final String supplementId;
-  final String supplementName;
-  final ProtocolTimeOfDay timeOfDay;
-  final double dosage;
-  final String unit;
-  final String? linkedGoalId;
-  final bool isActive;
-  final DateTime createdAt;
-  final DateTime updatedAt;
 
   const SupplementProtocolEntity({
     required this.id,
@@ -90,6 +79,17 @@ class SupplementProtocolEntity {
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
   }
+  final String id;
+  final String profileId;
+  final String supplementId;
+  final String supplementName;
+  final ProtocolTimeOfDay timeOfDay;
+  final double dosage;
+  final String unit;
+  final String? linkedGoalId;
+  final bool isActive;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   Map<String, dynamic> toJson() {
     return {

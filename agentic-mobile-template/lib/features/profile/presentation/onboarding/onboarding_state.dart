@@ -1,13 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class OnboardingData {
-  final String? primaryGoal;
-  final String? goalIntensity;
-  final int? age;
-  final double? heightCm;
-  final double? weightKg;
-  final String? activityLevel;
-  final bool skippedDevices;
 
   const OnboardingData({
     this.primaryGoal,
@@ -18,6 +11,13 @@ class OnboardingData {
     this.activityLevel,
     this.skippedDevices = false,
   });
+  final String? primaryGoal;
+  final String? goalIntensity;
+  final int? age;
+  final double? heightCm;
+  final double? weightKg;
+  final String? activityLevel;
+  final bool skippedDevices;
 
   OnboardingData copyWith({
     String? primaryGoal,

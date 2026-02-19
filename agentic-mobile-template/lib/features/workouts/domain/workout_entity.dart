@@ -1,17 +1,6 @@
 // lib/features/workouts/domain/workout_entity.dart
 
 class WorkoutEntity {
-  final String id;
-  final String profileId;
-  final String name;
-  final String workoutType;
-  final DateTime scheduledDate;
-  final bool completed;
-  final DateTime? completedAt;
-  final int? durationMinutes;
-  final String? notes;
-  final DateTime createdAt;
-  final DateTime updatedAt;
 
   const WorkoutEntity({
     required this.id,
@@ -44,6 +33,17 @@ class WorkoutEntity {
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
   }
+  final String id;
+  final String profileId;
+  final String name;
+  final String workoutType;
+  final DateTime scheduledDate;
+  final bool completed;
+  final DateTime? completedAt;
+  final int? durationMinutes;
+  final String? notes;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   Map<String, dynamic> toJson() {
     return {

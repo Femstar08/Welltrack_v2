@@ -2,9 +2,8 @@ import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/health/presentation/health_provider.dart';
-import 'package:welltrack/features/health/domain/health_metric_entity.dart';
-import 'package:welltrack/shared/core/router/app_router.dart';
+import '../../health/presentation/health_provider.dart';
+import '../../../shared/core/router/app_router.dart';
 
 class HealthSettingsScreen extends ConsumerWidget {
   const HealthSettingsScreen({super.key});
@@ -128,7 +127,7 @@ class HealthSettingsScreen extends ConsumerWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: colorScheme.primary.withOpacity(0.1),
+                color: colorScheme.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
@@ -162,10 +161,10 @@ class HealthSettingsScreen extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: statusColor.withOpacity(isDark ? 0.2 : 0.1),
+                color: statusColor.withValues(alpha: isDark ? 0.2 : 0.1),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: statusColor.withOpacity(0.3),
+                  color: statusColor.withValues(alpha: 0.3),
                   width: 1,
                 ),
               ),
@@ -284,19 +283,19 @@ class HealthSettingsScreen extends ConsumerWidget {
 
   Widget _buildPermissionsCard(BuildContext context, ColorScheme colorScheme) {
     final permissions = [
-      _PermissionItem(
+      const _PermissionItem(
         icon: Icons.bedtime,
         label: 'Sleep',
         description: 'Sleep duration and stages',
         isGranted: true,
       ),
-      _PermissionItem(
+      const _PermissionItem(
         icon: Icons.directions_walk,
         label: 'Steps',
         description: 'Daily step count',
         isGranted: true,
       ),
-      _PermissionItem(
+      const _PermissionItem(
         icon: Icons.favorite,
         label: 'Heart Rate',
         description: 'Resting heart rate',
@@ -334,7 +333,7 @@ class HealthSettingsScreen extends ConsumerWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: colorScheme.primary.withOpacity(0.1),
+              color: colorScheme.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
@@ -553,10 +552,6 @@ class HealthSettingsScreen extends ConsumerWidget {
 }
 
 class _PermissionItem {
-  final IconData icon;
-  final String label;
-  final String description;
-  final bool isGranted;
 
   const _PermissionItem({
     required this.icon,
@@ -564,4 +559,8 @@ class _PermissionItem {
     required this.description,
     required this.isGranted,
   });
+  final IconData icon;
+  final String label;
+  final String description;
+  final bool isGranted;
 }

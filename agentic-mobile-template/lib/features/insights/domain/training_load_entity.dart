@@ -1,15 +1,6 @@
 /// Training Load Entity
 /// Represents a single workout's training load calculation
-class TrainingLoadEntity {
-  final String id;
-  final String profileId;
-  final String? workoutId; // Optional link to wt_workouts
-  final DateTime loadDate;
-  final double durationMinutes;
-  final double intensityFactor; // 0.0 - 2.0+ (1.0 = moderate, 1.5 = hard, 2.0 = max)
-  final double trainingLoad; // Computed: duration × intensity
-  final TrainingLoadType loadType;
-  final double? avgHrBpm; // Optional average heart rate
+class TrainingLoadEntity { // Optional average heart rate
 
   const TrainingLoadEntity({
     required this.id,
@@ -22,6 +13,34 @@ class TrainingLoadEntity {
     required this.loadType,
     this.avgHrBpm,
   });
+
+  factory TrainingLoadEntity.fromJson(Map<String, dynamic> json) {
+    return TrainingLoadEntity(
+      id: json['id'] as String,
+      profileId: json['profile_id'] as String,
+      workoutId: json['workout_id'] as String?,
+      loadDate: DateTime.parse(json['load_date'] as String),
+      durationMinutes: (json['duration_minutes'] as num).toDouble(),
+      intensityFactor: (json['intensity_factor'] as num).toDouble(),
+      trainingLoad: (json['training_load'] as num).toDouble(),
+      loadType: TrainingLoadType.values.firstWhere(
+        (e) => e.name == json['load_type'],
+        orElse: () => TrainingLoadType.mixed,
+      ),
+      avgHrBpm: json['avg_hr_bpm'] != null
+          ? (json['avg_hr_bpm'] as num).toDouble()
+          : null,
+    );
+  }
+  final String id;
+  final String profileId;
+  final String? workoutId; // Optional link to wt_workouts
+  final DateTime loadDate;
+  final double durationMinutes;
+  final double intensityFactor; // 0.0 - 2.0+ (1.0 = moderate, 1.5 = hard, 2.0 = max)
+  final double trainingLoad; // Computed: duration × intensity
+  final TrainingLoadType loadType;
+  final double? avgHrBpm;
 
   /// Calculate training load from duration and intensity
   static double computeTrainingLoad(
@@ -68,25 +87,6 @@ class TrainingLoadEntity {
     };
   }
 
-  factory TrainingLoadEntity.fromJson(Map<String, dynamic> json) {
-    return TrainingLoadEntity(
-      id: json['id'] as String,
-      profileId: json['profile_id'] as String,
-      workoutId: json['workout_id'] as String?,
-      loadDate: DateTime.parse(json['load_date'] as String),
-      durationMinutes: (json['duration_minutes'] as num).toDouble(),
-      intensityFactor: (json['intensity_factor'] as num).toDouble(),
-      trainingLoad: (json['training_load'] as num).toDouble(),
-      loadType: TrainingLoadType.values.firstWhere(
-        (e) => e.name == json['load_type'],
-        orElse: () => TrainingLoadType.mixed,
-      ),
-      avgHrBpm: json['avg_hr_bpm'] != null
-          ? (json['avg_hr_bpm'] as num).toDouble()
-          : null,
-    );
-  }
-
   TrainingLoadEntity copyWith({
     String? id,
     String? profileId,
@@ -121,13 +121,6 @@ enum TrainingLoadType {
 
 /// Helper class for weekly load calculations
 class WeeklyLoadSummary {
-  final DateTime weekStart;
-  final DateTime weekEnd;
-  final List<TrainingLoadEntity> loads;
-  final double totalLoad;
-  final double avgDailyLoad;
-  final int workoutCount;
-  final double avgIntensity;
 
   const WeeklyLoadSummary({
     required this.weekStart,
@@ -164,6 +157,13 @@ class WeeklyLoadSummary {
       avgIntensity: avgIntensity,
     );
   }
+  final DateTime weekStart;
+  final DateTime weekEnd;
+  final List<TrainingLoadEntity> loads;
+  final double totalLoad;
+  final double avgDailyLoad;
+  final int workoutCount;
+  final double avgIntensity;
 
   /// Calculate load ratio compared to previous week
   double getLoadRatioTo(WeeklyLoadSummary? previous) {
@@ -194,10 +194,6 @@ class WeeklyLoadSummary {
 
 /// Daily load summary for charts
 class DailyLoadPoint {
-  final DateTime date;
-  final double load;
-  final int workoutCount;
-  final double avgIntensity;
 
   const DailyLoadPoint({
     required this.date,
@@ -226,6 +222,10 @@ class DailyLoadPoint {
       avgIntensity: avgIntensity,
     );
   }
+  final DateTime date;
+  final double load;
+  final int workoutCount;
+  final double avgIntensity;
 
   String get dateLabel {
     final weekday = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];

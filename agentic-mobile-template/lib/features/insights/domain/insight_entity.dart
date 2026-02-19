@@ -1,15 +1,6 @@
 /// Insight Entity
 /// AI-generated narrative summary for a time period
 class InsightEntity {
-  final String id;
-  final String profileId;
-  final PeriodType periodType;
-  final DateTime periodStart;
-  final DateTime periodEnd;
-  final String summaryText; // AI-generated narrative
-  final String? aiModel; // e.g., 'gpt-4', 'claude-3'
-  final Map<String, dynamic>? metricsSnapshot; // Key metrics for the period
-  final DateTime createdAt;
 
   const InsightEntity({
     required this.id,
@@ -22,6 +13,32 @@ class InsightEntity {
     this.metricsSnapshot,
     required this.createdAt,
   });
+
+  factory InsightEntity.fromJson(Map<String, dynamic> json) {
+    return InsightEntity(
+      id: json['id'] as String,
+      profileId: json['profile_id'] as String,
+      periodType: PeriodType.values.firstWhere(
+        (e) => e.name == json['period_type'],
+        orElse: () => PeriodType.week,
+      ),
+      periodStart: DateTime.parse(json['period_start'] as String),
+      periodEnd: DateTime.parse(json['period_end'] as String),
+      summaryText: json['summary_text'] as String,
+      aiModel: json['ai_model'] as String?,
+      metricsSnapshot: json['metrics_snapshot'] as Map<String, dynamic>?,
+      createdAt: DateTime.parse(json['created_at'] as String),
+    );
+  }
+  final String id;
+  final String profileId;
+  final PeriodType periodType;
+  final DateTime periodStart;
+  final DateTime periodEnd;
+  final String summaryText; // AI-generated narrative
+  final String? aiModel; // e.g., 'gpt-4', 'claude-3'
+  final Map<String, dynamic>? metricsSnapshot; // Key metrics for the period
+  final DateTime createdAt;
 
   /// Get period label
   String get periodLabel {
@@ -105,23 +122,6 @@ class InsightEntity {
     };
   }
 
-  factory InsightEntity.fromJson(Map<String, dynamic> json) {
-    return InsightEntity(
-      id: json['id'] as String,
-      profileId: json['profile_id'] as String,
-      periodType: PeriodType.values.firstWhere(
-        (e) => e.name == json['period_type'],
-        orElse: () => PeriodType.week,
-      ),
-      periodStart: DateTime.parse(json['period_start'] as String),
-      periodEnd: DateTime.parse(json['period_end'] as String),
-      summaryText: json['summary_text'] as String,
-      aiModel: json['ai_model'] as String?,
-      metricsSnapshot: json['metrics_snapshot'] as Map<String, dynamic>?,
-      createdAt: DateTime.parse(json['created_at'] as String),
-    );
-  }
-
   InsightEntity copyWith({
     String? id,
     String? profileId,
@@ -155,14 +155,6 @@ enum PeriodType {
 
 /// Metrics snapshot structure for consistency
 class MetricsSnapshot {
-  final double? avgRecoveryScore;
-  final double? avgSleepHours;
-  final double? avgStress;
-  final double? totalTrainingLoad;
-  final int? totalWorkouts;
-  final double? avgVO2Max;
-  final int? totalSteps;
-  final int? activeDays;
 
   const MetricsSnapshot({
     this.avgRecoveryScore,
@@ -174,19 +166,6 @@ class MetricsSnapshot {
     this.totalSteps,
     this.activeDays,
   });
-
-  Map<String, dynamic> toJson() {
-    return {
-      'avg_recovery_score': avgRecoveryScore,
-      'avg_sleep_hours': avgSleepHours,
-      'avg_stress': avgStress,
-      'total_training_load': totalTrainingLoad,
-      'total_workouts': totalWorkouts,
-      'avg_vo2_max': avgVO2Max,
-      'total_steps': totalSteps,
-      'active_days': activeDays,
-    };
-  }
 
   factory MetricsSnapshot.fromJson(Map<String, dynamic> json) {
     return MetricsSnapshot(
@@ -209,5 +188,26 @@ class MetricsSnapshot {
       totalSteps: json['total_steps'] as int?,
       activeDays: json['active_days'] as int?,
     );
+  }
+  final double? avgRecoveryScore;
+  final double? avgSleepHours;
+  final double? avgStress;
+  final double? totalTrainingLoad;
+  final int? totalWorkouts;
+  final double? avgVO2Max;
+  final int? totalSteps;
+  final int? activeDays;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'avg_recovery_score': avgRecoveryScore,
+      'avg_sleep_hours': avgSleepHours,
+      'avg_stress': avgStress,
+      'total_training_load': totalTrainingLoad,
+      'total_workouts': totalWorkouts,
+      'avg_vo2_max': avgVO2Max,
+      'total_steps': totalSteps,
+      'active_days': activeDays,
+    };
   }
 }

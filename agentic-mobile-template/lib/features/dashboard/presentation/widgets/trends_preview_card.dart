@@ -1,13 +1,10 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:welltrack/features/dashboard/presentation/dashboard_home_provider.dart';
-import 'package:welltrack/features/insights/domain/forecast_entity.dart';
+import '../dashboard_home_provider.dart';
+import '../../../insights/domain/forecast_entity.dart';
 
 /// Section 4: Mini sparkline chart with 7-day trend data.
 class TrendsPreviewCard extends StatelessWidget {
-  final List<DataPoint> trendData;
-  final String trendLabel;
-  final TrendDirection trendDirection;
 
   const TrendsPreviewCard({
     super.key,
@@ -15,6 +12,9 @@ class TrendsPreviewCard extends StatelessWidget {
     required this.trendLabel,
     required this.trendDirection,
   });
+  final List<DataPoint> trendData;
+  final String trendLabel;
+  final TrendDirection trendDirection;
 
   @override
   Widget build(BuildContext context) {
@@ -108,9 +108,9 @@ class TrendsPreviewCard extends StatelessWidget {
 }
 
 class _TrendChip extends StatelessWidget {
-  final TrendDirection direction;
 
   const _TrendChip({required this.direction});
+  final TrendDirection direction;
 
   @override
   Widget build(BuildContext context) {

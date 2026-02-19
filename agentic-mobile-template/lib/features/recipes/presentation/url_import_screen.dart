@@ -1,24 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/recipes/data/recipe_repository.dart';
-import 'package:welltrack/features/recipes/data/url_recipe_extractor.dart';
-import 'package:welltrack/features/recipes/domain/recipe_entity.dart';
-import 'package:welltrack/features/auth/presentation/auth_provider.dart';
-import 'package:welltrack/features/auth/domain/auth_state.dart';
-import 'package:welltrack/features/profile/presentation/profile_provider.dart';
+import '../data/recipe_repository.dart';
+import '../data/url_recipe_extractor.dart';
+import '../domain/recipe_entity.dart';
+import '../../auth/presentation/auth_provider.dart';
+import '../../auth/domain/auth_state.dart';
+import '../../profile/presentation/profile_provider.dart';
 
 /// State for URL import
 class UrlImportState {
-  final bool isLoading;
-  final RecipeEntity? extractedRecipe;
-  final String? error;
 
   const UrlImportState({
     this.isLoading = false,
     this.extractedRecipe,
     this.error,
   });
+  final bool isLoading;
+  final RecipeEntity? extractedRecipe;
+  final String? error;
 
   UrlImportState copyWith({
     bool? isLoading,
@@ -35,10 +35,6 @@ class UrlImportState {
 
 /// Controller for URL recipe import
 class UrlImportController extends StateNotifier<UrlImportState> {
-  final UrlRecipeExtractor _extractor;
-  final RecipeRepository _repository;
-  final String _userId;
-  final String _profileId;
 
   UrlImportController(
     this._extractor,
@@ -46,6 +42,10 @@ class UrlImportController extends StateNotifier<UrlImportState> {
     this._userId,
     this._profileId,
   ) : super(const UrlImportState());
+  final UrlRecipeExtractor _extractor;
+  final RecipeRepository _repository;
+  final String _userId;
+  final String _profileId;
 
   /// Extract recipe from URL
   Future<void> extractRecipe(String url) async {
@@ -202,7 +202,7 @@ class _UrlImportScreenState extends ConsumerState<UrlImportScreen> {
             Text(
               'We\'ll extract the recipe details automatically',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
             const SizedBox(height: 24),
@@ -289,7 +289,7 @@ class _UrlImportScreenState extends ConsumerState<UrlImportScreen> {
           Text(
             'Review and edit the extracted recipe',
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
           const SizedBox(height: 24),

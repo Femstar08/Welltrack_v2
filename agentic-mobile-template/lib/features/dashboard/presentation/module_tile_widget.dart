@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:welltrack/shared/core/modules/module_metadata.dart';
-import 'package:welltrack/shared/core/theme/app_colors.dart';
-import 'package:welltrack/shared/core/theme/app_typography.dart';
+import '../../../shared/core/modules/module_metadata.dart';
+import '../../../shared/core/theme/app_colors.dart';
+import '../../../shared/core/theme/app_typography.dart';
 
 /// Reusable dashboard tile widget for module display
 class ModuleTileWidget extends StatelessWidget {
-  final ModuleConfig config;
-  final VoidCallback? onTap;
-  final bool isDraggable;
 
   const ModuleTileWidget({
     super.key,
@@ -16,6 +13,9 @@ class ModuleTileWidget extends StatelessWidget {
     this.onTap,
     this.isDraggable = false,
   });
+  final ModuleConfig config;
+  final VoidCallback? onTap;
+  final bool isDraggable;
 
   @override
   Widget build(BuildContext context) {
@@ -39,8 +39,8 @@ class ModuleTileWidget extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                accentColor.withOpacity(0.1),
-                accentColor.withOpacity(0.05),
+                accentColor.withValues(alpha: 0.1),
+                accentColor.withValues(alpha: 0.05),
               ],
             ),
           ),
@@ -51,7 +51,7 @@ class ModuleTileWidget extends StatelessWidget {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: accentColor.withOpacity(0.2),
+                  color: accentColor.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
@@ -165,14 +165,14 @@ class ModuleTileWidget extends StatelessWidget {
 
 /// Compact version of module tile for grid layout
 class CompactModuleTile extends StatelessWidget {
-  final ModuleConfig config;
-  final VoidCallback? onTap;
 
   const CompactModuleTile({
     super.key,
     required this.config,
     this.onTap,
   });
+  final ModuleConfig config;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -195,8 +195,8 @@ class CompactModuleTile extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                accentColor.withOpacity(0.15),
-                accentColor.withOpacity(0.05),
+                accentColor.withValues(alpha: 0.15),
+                accentColor.withValues(alpha: 0.05),
               ],
             ),
           ),

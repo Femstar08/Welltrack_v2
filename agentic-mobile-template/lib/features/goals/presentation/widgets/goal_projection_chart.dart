@@ -1,11 +1,11 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:welltrack/features/goals/domain/goal_entity.dart';
+import '../../domain/goal_entity.dart';
 
 class GoalProjectionChart extends StatelessWidget {
-  final GoalEntity goal;
 
   const GoalProjectionChart({super.key, required this.goal});
+  final GoalEntity goal;
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +21,7 @@ class GoalProjectionChart extends StatelessWidget {
 
     // Build historical data points (past 30 days using slope/intercept)
     final historicalSpots = <FlSpot>[];
-    final daysBack = 30;
+    const daysBack = 30;
     for (int i = daysBack; i >= 0; i--) {
       final dayOffset = -i.toDouble();
       final value = forecast.slope * (forecast.dataPoints - i) + forecast.intercept;
@@ -77,7 +77,7 @@ class GoalProjectionChart extends StatelessWidget {
           drawVerticalLine: false,
           horizontalInterval: (maxY - minY) / 5,
           getDrawingHorizontalLine: (value) => FlLine(
-            color: theme.colorScheme.outline.withOpacity(0.2),
+            color: theme.colorScheme.outline.withValues(alpha: 0.2),
             strokeWidth: 1,
           ),
         ),
@@ -89,7 +89,7 @@ class GoalProjectionChart extends StatelessWidget {
               getTitlesWidget: (value, meta) => Text(
                 value.toStringAsFixed(0),
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.5),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                 ),
               ),
             ),
@@ -105,7 +105,7 @@ class GoalProjectionChart extends StatelessWidget {
                   '${date.day}/${date.month}',
                   style: theme.textTheme.bodySmall?.copyWith(
                     fontSize: 10,
-                    color: theme.colorScheme.onSurface.withOpacity(0.5),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                   ),
                 );
               },
@@ -122,14 +122,14 @@ class GoalProjectionChart extends StatelessWidget {
             // Target line
             HorizontalLine(
               y: goal.targetValue,
-              color: Colors.red.withOpacity(0.6),
+              color: Colors.red.withValues(alpha: 0.6),
               strokeWidth: 2,
               dashArray: [8, 4],
               label: HorizontalLineLabel(
                 show: true,
                 alignment: Alignment.topRight,
                 style: TextStyle(
-                  color: Colors.red.withOpacity(0.8),
+                  color: Colors.red.withValues(alpha: 0.8),
                   fontSize: 10,
                   fontWeight: FontWeight.w500,
                 ),
@@ -141,14 +141,14 @@ class GoalProjectionChart extends StatelessWidget {
             // Today line
             VerticalLine(
               x: 0,
-              color: theme.colorScheme.outline.withOpacity(0.4),
+              color: theme.colorScheme.outline.withValues(alpha: 0.4),
               strokeWidth: 1,
               dashArray: [4, 4],
               label: VerticalLineLabel(
                 show: true,
                 alignment: Alignment.topRight,
                 style: TextStyle(
-                  color: theme.colorScheme.onSurface.withOpacity(0.5),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                   fontSize: 10,
                 ),
                 labelResolver: (_) => 'Today',
@@ -161,14 +161,14 @@ class GoalProjectionChart extends StatelessWidget {
                     .difference(now)
                     .inDays
                     .toDouble(),
-                color: Colors.orange.withOpacity(0.6),
+                color: Colors.orange.withValues(alpha: 0.6),
                 strokeWidth: 2,
                 dashArray: [6, 4],
                 label: VerticalLineLabel(
                   show: true,
                   alignment: Alignment.topRight,
                   style: TextStyle(
-                    color: Colors.orange.withOpacity(0.8),
+                    color: Colors.orange.withValues(alpha: 0.8),
                     fontSize: 10,
                   ),
                   labelResolver: (_) => 'Projected',
@@ -189,7 +189,7 @@ class GoalProjectionChart extends StatelessWidget {
               dotData: const FlDotData(show: false),
               belowBarData: BarAreaData(
                 show: true,
-                color: theme.colorScheme.primary.withOpacity(0.08),
+                color: theme.colorScheme.primary.withValues(alpha: 0.08),
               ),
             ),
           // Projection line (dashed green)

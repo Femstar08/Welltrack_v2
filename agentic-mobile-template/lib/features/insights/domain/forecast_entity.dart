@@ -1,20 +1,6 @@
 /// Forecast Entity
 /// Linear regression forecast for goal achievement
 class ForecastEntity {
-  final String id;
-  final String profileId;
-  final String? goalForecastId; // Link to wt_goal_forecasts if applicable
-  final String metricType; // e.g., 'vo2max', 'weight', 'sleep_duration'
-  final double currentValue;
-  final double targetValue;
-  final double slope; // Regression slope (rate of change per day)
-  final double intercept; // Regression intercept
-  final double rSquared; // R² goodness of fit (0-1)
-  final DateTime? projectedDate; // When target will be reached (null if not achievable)
-  final ForecastConfidence confidence; // Based on R² and data points
-  final int dataPoints; // Number of historical data points used
-  final String modelType; // 'linear_regression'
-  final DateTime calculatedAt;
 
   const ForecastEntity({
     required this.id,
@@ -32,6 +18,44 @@ class ForecastEntity {
     required this.modelType,
     required this.calculatedAt,
   });
+
+  factory ForecastEntity.fromJson(Map<String, dynamic> json) {
+    return ForecastEntity(
+      id: json['id'] as String,
+      profileId: json['profile_id'] as String,
+      goalForecastId: json['goal_forecast_id'] as String?,
+      metricType: json['metric_type'] as String,
+      currentValue: (json['current_value'] as num).toDouble(),
+      targetValue: (json['target_value'] as num).toDouble(),
+      slope: (json['slope'] as num).toDouble(),
+      intercept: (json['intercept'] as num).toDouble(),
+      rSquared: (json['r_squared'] as num).toDouble(),
+      projectedDate: json['projected_date'] != null
+          ? DateTime.parse(json['projected_date'] as String)
+          : null,
+      confidence: ForecastConfidence.values.firstWhere(
+        (e) => e.name == json['confidence'],
+        orElse: () => ForecastConfidence.low,
+      ),
+      dataPoints: json['data_points'] as int,
+      modelType: json['model_type'] as String,
+      calculatedAt: DateTime.parse(json['calculated_at'] as String),
+    );
+  }
+  final String id;
+  final String profileId;
+  final String? goalForecastId; // Link to wt_goal_forecasts if applicable
+  final String metricType; // e.g., 'vo2max', 'weight', 'sleep_duration'
+  final double currentValue;
+  final double targetValue;
+  final double slope; // Regression slope (rate of change per day)
+  final double intercept; // Regression intercept
+  final double rSquared; // R² goodness of fit (0-1)
+  final DateTime? projectedDate; // When target will be reached (null if not achievable)
+  final ForecastConfidence confidence; // Based on R² and data points
+  final int dataPoints; // Number of historical data points used
+  final String modelType; // 'linear_regression'
+  final DateTime calculatedAt;
 
   /// Check if target is achievable based on current trend
   bool get isAchievable => projectedDate != null;
@@ -130,30 +154,6 @@ class ForecastEntity {
     };
   }
 
-  factory ForecastEntity.fromJson(Map<String, dynamic> json) {
-    return ForecastEntity(
-      id: json['id'] as String,
-      profileId: json['profile_id'] as String,
-      goalForecastId: json['goal_forecast_id'] as String?,
-      metricType: json['metric_type'] as String,
-      currentValue: (json['current_value'] as num).toDouble(),
-      targetValue: (json['target_value'] as num).toDouble(),
-      slope: (json['slope'] as num).toDouble(),
-      intercept: (json['intercept'] as num).toDouble(),
-      rSquared: (json['r_squared'] as num).toDouble(),
-      projectedDate: json['projected_date'] != null
-          ? DateTime.parse(json['projected_date'] as String)
-          : null,
-      confidence: ForecastConfidence.values.firstWhere(
-        (e) => e.name == json['confidence'],
-        orElse: () => ForecastConfidence.low,
-      ),
-      dataPoints: json['data_points'] as int,
-      modelType: json['model_type'] as String,
-      calculatedAt: DateTime.parse(json['calculated_at'] as String),
-    );
-  }
-
   ForecastEntity copyWith({
     String? id,
     String? profileId,
@@ -197,13 +197,20 @@ enum ForecastConfidence {
 
 /// Data point for regression calculations
 class DataPoint {
-  final DateTime date;
-  final double value;
 
   const DataPoint({
     required this.date,
     required this.value,
   });
+
+  factory DataPoint.fromJson(Map<String, dynamic> json) {
+    return DataPoint(
+      date: DateTime.parse(json['date'] as String),
+      value: (json['value'] as num).toDouble(),
+    );
+  }
+  final DateTime date;
+  final double value;
 
   /// Convert date to days since baseline for regression
   int daysSince(DateTime baseline) {
@@ -216,21 +223,10 @@ class DataPoint {
       'value': value,
     };
   }
-
-  factory DataPoint.fromJson(Map<String, dynamic> json) {
-    return DataPoint(
-      date: DateTime.parse(json['date'] as String),
-      value: (json['value'] as num).toDouble(),
-    );
-  }
 }
 
 /// Linear regression result
 class RegressionResult {
-  final double slope;
-  final double intercept;
-  final double rSquared;
-  final int dataPoints;
 
   const RegressionResult({
     required this.slope,
@@ -238,6 +234,10 @@ class RegressionResult {
     required this.rSquared,
     required this.dataPoints,
   });
+  final double slope;
+  final double intercept;
+  final double rSquared;
+  final int dataPoints;
 
   /// Predict value at given x (days since baseline)
   double predict(int x) {

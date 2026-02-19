@@ -1,18 +1,6 @@
 // lib/features/supplements/domain/supplement_entity.dart
 
 class SupplementEntity {
-  final String id;
-  final String profileId;
-  final String name;
-  final String? brand;
-  final String? description;
-  final double dosage;
-  final String unit;
-  final double? servingSize;
-  final String? barcode;
-  final String? notes;
-  final DateTime createdAt;
-  final DateTime updatedAt;
 
   const SupplementEntity({
     required this.id,
@@ -47,6 +35,18 @@ class SupplementEntity {
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
   }
+  final String id;
+  final String profileId;
+  final String name;
+  final String? brand;
+  final String? description;
+  final double dosage;
+  final String unit;
+  final double? servingSize;
+  final String? barcode;
+  final String? notes;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   Map<String, dynamic> toJson() {
     return {

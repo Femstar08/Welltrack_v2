@@ -1,19 +1,4 @@
 class MealEntity {
-  final String id;
-  final String profileId;
-  final String? recipeId;
-  final DateTime mealDate;
-  final String mealType; // 'breakfast', 'lunch', 'dinner', 'snack'
-  final String name;
-  final double servingsConsumed;
-  final Map<String, dynamic>? nutritionInfo;
-  final String? score; // A-D or null
-  final double? rating; // 1-5 stars
-  final String? notes;
-  final String? photoUrl;
-  final bool isFavorite;
-  final DateTime createdAt;
-  final DateTime updatedAt;
 
   const MealEntity({
     required this.id,
@@ -32,6 +17,43 @@ class MealEntity {
     required this.createdAt,
     required this.updatedAt,
   });
+
+  factory MealEntity.fromJson(Map<String, dynamic> json) {
+    return MealEntity(
+      id: json['id'] as String,
+      profileId: json['profile_id'] as String,
+      recipeId: json['recipe_id'] as String?,
+      mealDate: DateTime.parse(json['meal_date'] as String),
+      mealType: json['meal_type'] as String,
+      name: json['name'] as String,
+      servingsConsumed: json['servings_consumed'] != null
+          ? (json['servings_consumed'] as num).toDouble()
+          : 1.0,
+      nutritionInfo: json['nutrition_info'] as Map<String, dynamic>?,
+      score: json['score'] as String?,
+      rating: json['rating'] != null ? (json['rating'] as num).toDouble() : null,
+      notes: json['notes'] as String?,
+      photoUrl: json['photo_url'] as String?,
+      isFavorite: json['is_favorite'] as bool? ?? false,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
+    );
+  }
+  final String id;
+  final String profileId;
+  final String? recipeId;
+  final DateTime mealDate;
+  final String mealType; // 'breakfast', 'lunch', 'dinner', 'snack'
+  final String name;
+  final double servingsConsumed;
+  final Map<String, dynamic>? nutritionInfo;
+  final String? score; // A-D or null
+  final double? rating; // 1-5 stars
+  final String? notes;
+  final String? photoUrl;
+  final bool isFavorite;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   MealEntity copyWith({
     String? recipeId,
@@ -83,28 +105,6 @@ class MealEntity {
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
-  }
-
-  factory MealEntity.fromJson(Map<String, dynamic> json) {
-    return MealEntity(
-      id: json['id'] as String,
-      profileId: json['profile_id'] as String,
-      recipeId: json['recipe_id'] as String?,
-      mealDate: DateTime.parse(json['meal_date'] as String),
-      mealType: json['meal_type'] as String,
-      name: json['name'] as String,
-      servingsConsumed: json['servings_consumed'] != null
-          ? (json['servings_consumed'] as num).toDouble()
-          : 1.0,
-      nutritionInfo: json['nutrition_info'] as Map<String, dynamic>?,
-      score: json['score'] as String?,
-      rating: json['rating'] != null ? (json['rating'] as num).toDouble() : null,
-      notes: json['notes'] as String?,
-      photoUrl: json['photo_url'] as String?,
-      isFavorite: json['is_favorite'] as bool? ?? false,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
-    );
   }
 
   String get mealTypeDisplayName {

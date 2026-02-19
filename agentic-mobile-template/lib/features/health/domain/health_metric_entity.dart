@@ -1,22 +1,5 @@
 /// Represents a normalized health metric from any source
 class HealthMetricEntity {
-  final String? id;
-  final String userId;
-  final String profileId;
-  final HealthSource source;
-  final MetricType metricType;
-  final double? valueNum;
-  final String? valueText;
-  final String unit;
-  final DateTime startTime;
-  final DateTime? endTime;
-  final DateTime recordedAt;
-  final Map<String, dynamic>? rawPayload;
-  final String? dedupeHash;
-  final ValidationStatus validationStatus;
-  final String? ingestionSourceVersion;
-  final ProcessingStatus processingStatus;
-  final bool isPrimary;
 
   const HealthMetricEntity({
     this.id,
@@ -37,28 +20,6 @@ class HealthMetricEntity {
     this.processingStatus = ProcessingStatus.pending,
     this.isPrimary = false,
   });
-
-  Map<String, dynamic> toSupabaseJson() {
-    return {
-      if (id != null) 'id': id,
-      'user_id': userId,
-      'profile_id': profileId,
-      'source': source.name,
-      'metric_type': metricType.name,
-      'value_num': valueNum,
-      'value_text': valueText,
-      'unit': unit,
-      'start_time': startTime.toIso8601String(),
-      'end_time': endTime?.toIso8601String(),
-      'recorded_at': recordedAt.toIso8601String(),
-      'raw_payload_json': rawPayload,
-      'dedupe_hash': dedupeHash,
-      'validation_status': validationStatus.name,
-      'ingestion_source_version': ingestionSourceVersion,
-      'processing_status': processingStatus.name,
-      'is_primary': isPrimary,
-    };
-  }
 
   factory HealthMetricEntity.fromSupabaseJson(Map<String, dynamic> json) {
     return HealthMetricEntity(
@@ -87,6 +48,45 @@ class HealthMetricEntity {
       isPrimary: json['is_primary'] as bool? ?? false,
     );
   }
+  final String? id;
+  final String userId;
+  final String profileId;
+  final HealthSource source;
+  final MetricType metricType;
+  final double? valueNum;
+  final String? valueText;
+  final String unit;
+  final DateTime startTime;
+  final DateTime? endTime;
+  final DateTime recordedAt;
+  final Map<String, dynamic>? rawPayload;
+  final String? dedupeHash;
+  final ValidationStatus validationStatus;
+  final String? ingestionSourceVersion;
+  final ProcessingStatus processingStatus;
+  final bool isPrimary;
+
+  Map<String, dynamic> toSupabaseJson() {
+    return {
+      if (id != null) 'id': id,
+      'user_id': userId,
+      'profile_id': profileId,
+      'source': source.name,
+      'metric_type': metricType.name,
+      'value_num': valueNum,
+      'value_text': valueText,
+      'unit': unit,
+      'start_time': startTime.toIso8601String(),
+      'end_time': endTime?.toIso8601String(),
+      'recorded_at': recordedAt.toIso8601String(),
+      'raw_payload_json': rawPayload,
+      'dedupe_hash': dedupeHash,
+      'validation_status': validationStatus.name,
+      'ingestion_source_version': ingestionSourceVersion,
+      'processing_status': processingStatus.name,
+      'is_primary': isPrimary,
+    };
+  }
 }
 
 enum HealthSource {
@@ -106,10 +106,10 @@ enum MetricType {
   hrv,
   calories,
   distance,
-  active_minutes,
+  activeMinutes,
   weight,
-  body_fat,
-  blood_pressure,
+  bodyFat,
+  bloodPressure,
   spo2;
 }
 

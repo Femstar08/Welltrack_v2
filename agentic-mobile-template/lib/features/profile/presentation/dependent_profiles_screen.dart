@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/freemium/presentation/freemium_gate_widget.dart';
-import 'package:welltrack/shared/core/constants/feature_flags.dart';
+import '../../freemium/presentation/freemium_gate_widget.dart';
+import '../../../shared/core/constants/feature_flags.dart';
 
 /// Stub screen for managing dependent profiles
 ///
@@ -37,7 +37,7 @@ class DependentProfilesScreen extends ConsumerWidget {
             children: [
               // Info card
               Card(
-                color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+                color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -139,7 +139,7 @@ class DependentProfilesScreen extends ConsumerWidget {
         // Coming soon overlay
         Positioned.fill(
           child: Container(
-            color: theme.colorScheme.surface.withOpacity(0.95),
+            color: theme.colorScheme.surface.withValues(alpha: 0.95),
             child: Center(
               child: Card(
                 margin: const EdgeInsets.all(32),
@@ -218,8 +218,8 @@ class DependentProfilesScreen extends ConsumerWidget {
         title: Text(name),
         subtitle: Text(relationship),
         trailing: isPrimary
-            ? Chip(
-                label: const Text('Primary'),
+            ? const Chip(
+                label: Text('Primary'),
                 visualDensity: VisualDensity.compact,
               )
             : IconButton(
@@ -261,7 +261,7 @@ class DependentProfilesScreen extends ConsumerWidget {
                 Text(
                   description,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
               ],

@@ -1,13 +1,13 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/reminders/domain/reminder_entity.dart';
+import '../domain/reminder_entity.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 /// Service for managing push notifications and local notifications
 class NotificationService {
-  final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin;
 
   NotificationService(this._flutterLocalNotificationsPlugin);
+  final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin;
 
   /// Initializes the notification service
   ///
@@ -119,10 +119,9 @@ class NotificationService {
 
   /// Schedules a notification for a specific reminder
   Future<void> scheduleNotification(ReminderEntity reminder) async {
-    final scheduledDate = tz.TZDateTime.from(reminder.remindAt, tz.local);
-
     // If the reminder time is in the past, don't schedule
-    if (scheduledDate.isBefore(tz.TZDateTime.now(tz.local))) {
+    if (tz.TZDateTime.from(reminder.remindAt, tz.local)
+        .isBefore(tz.TZDateTime.now(tz.local))) {
       return;
     }
 
@@ -153,7 +152,7 @@ class NotificationService {
       reminder.id.hashCode, // Use reminder ID hash as notification ID
       reminder.title,
       reminder.body,
-      scheduledDate,
+      tz.TZDateTime.from(reminder.remindAt, tz.local),
       notificationDetails,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
@@ -167,8 +166,6 @@ class NotificationService {
     if (reminder.repeatRule == null || reminder.repeatRule == 'once') {
       return scheduleNotification(reminder);
     }
-
-    final scheduledDate = tz.TZDateTime.from(reminder.remindAt, tz.local);
 
     // If the reminder time is in the past, calculate next occurrence
     final nextDate = reminder.getNextReminderTime();
@@ -263,7 +260,6 @@ class NotificationService {
     if (parts.length != 2) return null;
 
     final module = parts[0];
-    final reminderId = parts[1];
 
     // Map module to route
     switch (module) {

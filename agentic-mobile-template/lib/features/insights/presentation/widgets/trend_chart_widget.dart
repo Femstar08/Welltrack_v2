@@ -1,16 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:welltrack/features/insights/domain/forecast_entity.dart';
+import '../../domain/forecast_entity.dart';
 
 /// Trend Chart Widget
 /// Reusable line chart with optional forecast projection
 class TrendChartWidget extends StatelessWidget {
-  final List<DataPoint> dataPoints;
-  final ForecastEntity? forecast;
-  final String yAxisLabel;
-  final Color color;
-  final double? minY;
-  final double? maxY;
 
   const TrendChartWidget({
     super.key,
@@ -21,6 +15,12 @@ class TrendChartWidget extends StatelessWidget {
     this.minY,
     this.maxY,
   });
+  final List<DataPoint> dataPoints;
+  final ForecastEntity? forecast;
+  final String yAxisLabel;
+  final Color color;
+  final double? minY;
+  final double? maxY;
 
   @override
   Widget build(BuildContext context) {
@@ -122,7 +122,6 @@ class TrendChartWidget extends StatelessWidget {
     final forecastSpots = <FlSpot>[];
     if (forecast != null && forecast!.isAchievable) {
       final lastDataIndex = spots.length - 1;
-      final lastDataValue = spots.last.y;
 
       // Add 30 days of forecast
       for (int i = 1; i <= 30; i++) {
@@ -232,8 +231,8 @@ class TrendChartWidget extends StatelessWidget {
             show: true,
             gradient: LinearGradient(
               colors: [
-                color.withOpacity(0.3),
-                color.withOpacity(0.0),
+                color.withValues(alpha: 0.3),
+                color.withValues(alpha: 0.0),
               ],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
@@ -245,7 +244,7 @@ class TrendChartWidget extends StatelessWidget {
           LineChartBarData(
             spots: [spots.last, ...forecastSpots],
             isCurved: true,
-            color: color.withOpacity(0.5),
+            color: color.withValues(alpha: 0.5),
             barWidth: 2,
             isStrokeCapRound: true,
             dashArray: [8, 4],

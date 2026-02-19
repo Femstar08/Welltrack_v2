@@ -1,17 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:welltrack/features/health/data/health_repository_impl.dart';
-import 'package:welltrack/features/health/domain/baseline_entity.dart';
-import 'package:welltrack/features/health/domain/health_metric_entity.dart';
+import 'health_repository_impl.dart';
+import '../domain/baseline_entity.dart';
+import '../domain/health_metric_entity.dart';
+import '../../../shared/core/logging/app_logger.dart';
+
+final _logger = AppLogger();
 
 /// Progress information for a specific metric's baseline calibration
 class CalibrationProgress {
-  final int daysCaptured;
-  final int dataPointsCount;
-  final bool isReady;
-  final double? baselineValue;
-  final DateTime? captureStart;
-  final DateTime? captureEnd;
 
   const CalibrationProgress({
     required this.daysCaptured,
@@ -21,6 +18,12 @@ class CalibrationProgress {
     this.captureStart,
     this.captureEnd,
   });
+  final int daysCaptured;
+  final int dataPointsCount;
+  final bool isReady;
+  final double? baselineValue;
+  final DateTime? captureStart;
+  final DateTime? captureEnd;
 
   Map<String, dynamic> toJson() {
     return {
@@ -37,14 +40,14 @@ class CalibrationProgress {
 /// Service responsible for computing and managing baseline calibrations
 /// for health metrics. Implements metric-specific computation strategies.
 class BaselineCalibration {
-  final HealthRepositoryImpl _healthRepo;
-  final SupabaseClient _supabase;
 
   BaselineCalibration({
     HealthRepositoryImpl? healthRepository,
     SupabaseClient? supabase,
   })  : _healthRepo = healthRepository ?? HealthRepositoryImpl(),
         _supabase = supabase ?? Supabase.instance.client;
+  final HealthRepositoryImpl _healthRepo;
+  final SupabaseClient _supabase;
 
   /// Computes baseline for a specific metric type
   ///
@@ -77,13 +80,13 @@ class BaselineCalibration {
       );
 
       if (metrics.isEmpty) {
-        print('No metrics found for $metricType in profile $profileId');
+        _logger.warning('No metrics found for $metricType in profile $profileId');
         return null;
       }
 
       // Check if we have sufficient data points
       if (metrics.length < 10) {
-        print('Insufficient data points for $metricType: ${metrics.length} < 10');
+        _logger.warning('Insufficient data points for $metricType: ${metrics.length} < 10');
         return null;
       }
 
@@ -97,7 +100,7 @@ class BaselineCalibration {
 
       // Check if we have sufficient time span
       if (daysDuration < 14) {
-        print('Insufficient time span for $metricType: $daysDuration days < 14');
+        _logger.warning('Insufficient time span for $metricType: $daysDuration days < 14');
         return null;
       }
 
@@ -108,7 +111,7 @@ class BaselineCalibration {
           .toList();
 
       if (values.isEmpty) {
-        print('No valid numeric values for $metricType');
+        _logger.warning('No valid numeric values for $metricType');
         return null;
       }
 
@@ -116,7 +119,7 @@ class BaselineCalibration {
       final baselineValue = _computeBaselineValue(metricType, values);
 
       if (baselineValue == null) {
-        print('Failed to compute baseline value for $metricType');
+        _logger.error('Failed to compute baseline value for $metricType');
         return null;
       }
 
@@ -136,10 +139,10 @@ class BaselineCalibration {
       // Upsert to database
       await _upsertBaseline(baseline);
 
-      print('Baseline computed for $metricType: $baselineValue');
+      _logger.debug('Baseline computed for $metricType: $baselineValue');
       return baseline;
     } catch (e) {
-      print('Error computing baseline for $metricType: $e');
+      _logger.error('Error computing baseline for $metricType: $e');
       return null;
     }
   }
@@ -235,7 +238,7 @@ class BaselineCalibration {
 
       return result;
     } catch (e) {
-      print('Error checking calibration status: $e');
+      _logger.error('Error checking calibration status: $e');
       return {};
     }
   }
@@ -289,7 +292,7 @@ class BaselineCalibration {
         captureEnd: timeRange.last,
       );
     } catch (e) {
-      print('Error getting metric progress for $metricType: $e');
+      _logger.error('Error getting metric progress for $metricType: $e');
       return const CalibrationProgress(
         daysCaptured: 0,
         dataPointsCount: 0,
@@ -315,7 +318,7 @@ class BaselineCalibration {
 
       return BaselineEntity.fromSupabaseJson(response);
     } catch (e) {
-      print('Error getting existing baseline: $e');
+      _logger.error('Error getting existing baseline: $e');
       return null;
     }
   }
@@ -327,7 +330,7 @@ class BaselineCalibration {
     MetricType metricType,
   ) async {
     try {
-      print('Triggering recalibration for $metricType in profile $profileId');
+      _logger.info('Triggering recalibration for $metricType in profile $profileId');
 
       // Delete existing baseline to force recomputation
       await _supabase
@@ -339,7 +342,7 @@ class BaselineCalibration {
       // Compute new baseline
       return await computeBaseline(profileId, metricType);
     } catch (e) {
-      print('Error triggering recalibration for $metricType: $e');
+      _logger.error('Error triggering recalibration for $metricType: $e');
       return null;
     }
   }
@@ -351,7 +354,7 @@ class BaselineCalibration {
     String profileId,
   ) async {
     try {
-      print('Computing all baselines for profile $profileId');
+      _logger.info('Computing all baselines for profile $profileId');
 
       final result = <MetricType, BaselineEntity>{};
 
@@ -371,10 +374,10 @@ class BaselineCalibration {
         }
       }
 
-      print('Computed ${result.length} baselines for profile $profileId');
+      _logger.info('Computed ${result.length} baselines for profile $profileId');
       return result;
     } catch (e) {
-      print('Error computing all baselines: $e');
+      _logger.error('Error computing all baselines: $e');
       return {};
     }
   }
@@ -404,9 +407,9 @@ class BaselineCalibration {
         await _supabase.from('wt_baselines').insert(json);
       }
 
-      print('Upserted baseline for ${baseline.metricType}');
+      _logger.debug('Upserted baseline for ${baseline.metricType}');
     } catch (e) {
-      print('Error upserting baseline: $e');
+      _logger.error('Error upserting baseline: $e');
       rethrow;
     }
   }
@@ -417,7 +420,7 @@ class BaselineCalibration {
       final status = await checkCalibrationStatus(profileId);
       return status.values.every((progress) => progress.isReady);
     } catch (e) {
-      print('Error checking if all baselines complete: $e');
+      _logger.error('Error checking if all baselines complete: $e');
       return false;
     }
   }
@@ -432,7 +435,7 @@ class BaselineCalibration {
           .map((entry) => entry.key)
           .toList();
     } catch (e) {
-      print('Error getting incomplete baselines: $e');
+      _logger.error('Error getting incomplete baselines: $e');
       return [];
     }
   }

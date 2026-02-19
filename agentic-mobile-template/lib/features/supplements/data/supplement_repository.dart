@@ -3,19 +3,19 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
-import 'package:welltrack/features/supplements/domain/supplement_entity.dart';
-import 'package:welltrack/features/supplements/domain/supplement_protocol_entity.dart';
-import 'package:welltrack/features/supplements/domain/supplement_log_entity.dart';
+import '../domain/supplement_entity.dart';
+import '../domain/supplement_protocol_entity.dart';
+import '../domain/supplement_log_entity.dart';
 
 final supplementRepositoryProvider = Provider<SupplementRepository>((ref) {
   return SupplementRepository(Supabase.instance.client);
 });
 
 class SupplementRepository {
-  final SupabaseClient _supabase;
-  final _uuid = const Uuid();
 
   SupplementRepository(this._supabase);
+  final SupabaseClient _supabase;
+  final _uuid = const Uuid();
 
   // CRUD for supplements
   Future<List<SupplementEntity>> getSupplements(String profileId) async {

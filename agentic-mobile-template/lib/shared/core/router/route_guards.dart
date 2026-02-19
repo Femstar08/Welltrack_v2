@@ -1,10 +1,6 @@
-import 'package:flutter/material.dart';
 
 /// Route guard result
 class RouteGuardResult {
-  final bool canNavigate;
-  final String? redirectTo;
-  final String? message;
 
   const RouteGuardResult({
     required this.canNavigate,
@@ -21,6 +17,9 @@ class RouteGuardResult {
       message: message,
     );
   }
+  final bool canNavigate;
+  final String? redirectTo;
+  final String? message;
 }
 
 /// Authentication guard

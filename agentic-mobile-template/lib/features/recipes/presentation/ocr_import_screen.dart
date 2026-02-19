@@ -16,8 +16,6 @@ class OcrImportScreen extends ConsumerStatefulWidget {
 
 class _OcrImportScreenState extends ConsumerState<OcrImportScreen> {
   final ImagePicker _imagePicker = ImagePicker();
-  XFile? _selectedImage;
-  bool _isProcessing = false;
 
   Future<void> _captureFromCamera() async {
     final image = await _imagePicker.pickImage(
@@ -28,9 +26,6 @@ class _OcrImportScreenState extends ConsumerState<OcrImportScreen> {
     );
 
     if (image != null) {
-      setState(() {
-        _selectedImage = image;
-      });
       _showComingSoonDialog();
     }
   }
@@ -44,9 +39,6 @@ class _OcrImportScreenState extends ConsumerState<OcrImportScreen> {
     );
 
     if (image != null) {
-      setState(() {
-        _selectedImage = image;
-      });
       _showComingSoonDialog();
     }
   }
@@ -91,7 +83,7 @@ class _OcrImportScreenState extends ConsumerState<OcrImportScreen> {
                 Icon(
                   Icons.camera_alt,
                   size: 64,
-                  color: theme.colorScheme.primary.withOpacity(0.5),
+                  color: theme.colorScheme.primary.withValues(alpha: 0.5),
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -103,7 +95,7 @@ class _OcrImportScreenState extends ConsumerState<OcrImportScreen> {
                 Text(
                   'Snap a photo of a recipe or choose one from your gallery',
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -170,7 +162,7 @@ class _OcrImportScreenState extends ConsumerState<OcrImportScreen> {
 
                 // Tips card
                 Card(
-                  color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+                  color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
@@ -226,7 +218,7 @@ class _OcrImportScreenState extends ConsumerState<OcrImportScreen> {
           // Coming soon overlay (semi-transparent)
           Positioned.fill(
             child: Container(
-              color: theme.colorScheme.surface.withOpacity(0.9),
+              color: theme.colorScheme.surface.withValues(alpha: 0.9),
               child: Center(
                 child: Card(
                   margin: const EdgeInsets.all(32),
@@ -305,7 +297,7 @@ class _OcrImportScreenState extends ConsumerState<OcrImportScreen> {
                 Text(
                   description,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
               ],

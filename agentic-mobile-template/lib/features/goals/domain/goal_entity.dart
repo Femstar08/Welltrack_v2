@@ -1,21 +1,6 @@
-import 'package:welltrack/features/insights/domain/forecast_entity.dart';
+import '../../insights/domain/forecast_entity.dart';
 
 class GoalEntity {
-  final String id;
-  final String profileId;
-  final String metricType;
-  final String? goalDescription;
-  final double targetValue;
-  final double currentValue;
-  final String unit;
-  final DateTime? deadline;
-  final int priority;
-  final DateTime? expectedDate;
-  final double? confidenceScore;
-  final bool isActive;
-  final DateTime createdAt;
-  final DateTime updatedAt;
-  final ForecastEntity? forecast;
 
   const GoalEntity({
     required this.id,
@@ -34,6 +19,49 @@ class GoalEntity {
     required this.updatedAt,
     this.forecast,
   });
+
+  factory GoalEntity.fromJson(
+    Map<String, dynamic> json, {
+    ForecastEntity? forecast,
+  }) {
+    return GoalEntity(
+      id: json['id'] as String,
+      profileId: json['profile_id'] as String,
+      metricType: json['metric_type'] as String? ?? '',
+      goalDescription: json['goal_description'] as String?,
+      targetValue: (json['target_value'] as num?)?.toDouble() ?? 0,
+      currentValue: (json['current_value'] as num?)?.toDouble() ?? 0,
+      unit: json['unit'] as String? ?? '',
+      deadline: json['deadline'] != null
+          ? DateTime.parse(json['deadline'] as String)
+          : null,
+      priority: json['priority'] as int? ?? 0,
+      expectedDate: json['expected_date'] != null
+          ? DateTime.parse(json['expected_date'] as String)
+          : null,
+      confidenceScore:
+          (json['confidence_score'] as num?)?.toDouble(),
+      isActive: json['is_active'] as bool? ?? true,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
+      forecast: forecast,
+    );
+  }
+  final String id;
+  final String profileId;
+  final String metricType;
+  final String? goalDescription;
+  final double targetValue;
+  final double currentValue;
+  final String unit;
+  final DateTime? deadline;
+  final int priority;
+  final DateTime? expectedDate;
+  final double? confidenceScore;
+  final bool isActive;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final ForecastEntity? forecast;
 
   double get progressPercentage {
     final range = (targetValue - currentValue).abs();
@@ -159,34 +187,6 @@ class GoalEntity {
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
-  }
-
-  factory GoalEntity.fromJson(
-    Map<String, dynamic> json, {
-    ForecastEntity? forecast,
-  }) {
-    return GoalEntity(
-      id: json['id'] as String,
-      profileId: json['profile_id'] as String,
-      metricType: json['metric_type'] as String? ?? '',
-      goalDescription: json['goal_description'] as String?,
-      targetValue: (json['target_value'] as num?)?.toDouble() ?? 0,
-      currentValue: (json['current_value'] as num?)?.toDouble() ?? 0,
-      unit: json['unit'] as String? ?? '',
-      deadline: json['deadline'] != null
-          ? DateTime.parse(json['deadline'] as String)
-          : null,
-      priority: json['priority'] as int? ?? 0,
-      expectedDate: json['expected_date'] != null
-          ? DateTime.parse(json['expected_date'] as String)
-          : null,
-      confidenceScore:
-          (json['confidence_score'] as num?)?.toDouble(),
-      isActive: json['is_active'] as bool? ?? true,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
-      forecast: forecast,
-    );
   }
 
   GoalEntity copyWith({

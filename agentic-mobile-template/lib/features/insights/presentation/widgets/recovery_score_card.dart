@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:welltrack/features/insights/domain/recovery_score_entity.dart';
+import '../../domain/recovery_score_entity.dart';
 
 /// Recovery Score Card
 /// Large, prominent card displaying recovery score with circular indicator
 class RecoveryScoreCard extends StatefulWidget {
-  final RecoveryScoreEntity score;
-  final RecoveryTrend trend;
 
   const RecoveryScoreCard({
     super.key,
     required this.score,
     required this.trend,
   });
+  final RecoveryScoreEntity score;
+  final RecoveryTrend trend;
 
   @override
   State<RecoveryScoreCard> createState() => _RecoveryScoreCardState();

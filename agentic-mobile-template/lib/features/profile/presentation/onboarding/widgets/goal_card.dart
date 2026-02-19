@@ -1,13 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 
 class GoalCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String sublabel;
-  final bool isSelected;
-  final VoidCallback onTap;
 
   const GoalCard({
     super.key,
@@ -17,6 +14,11 @@ class GoalCard extends StatelessWidget {
     required this.isSelected,
     required this.onTap,
   });
+  final IconData icon;
+  final String label;
+  final String sublabel;
+  final bool isSelected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +26,7 @@ class GoalCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: () {
-        HapticFeedback.lightImpact();
+        unawaited(HapticFeedback.lightImpact());
         onTap();
       },
       child: AnimatedContainer(

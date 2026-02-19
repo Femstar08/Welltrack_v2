@@ -1,7 +1,6 @@
 import 'dart:math' as math;
-import 'package:welltrack/features/insights/domain/recovery_score_entity.dart';
-import 'package:welltrack/features/insights/domain/training_load_entity.dart';
-import 'package:welltrack/features/insights/domain/forecast_entity.dart';
+import '../domain/recovery_score_entity.dart';
+import '../domain/forecast_entity.dart';
 
 /// Performance Engine
 /// Deterministic calculations for recovery scores, training load, and forecasts.

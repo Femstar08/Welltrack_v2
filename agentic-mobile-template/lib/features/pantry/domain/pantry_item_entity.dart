@@ -1,17 +1,4 @@
 class PantryItemEntity {
-  final String id;
-  final String profileId;
-  final String name;
-  final String category; // 'fridge', 'cupboard', 'freezer'
-  final double? quantity;
-  final String? unit;
-  final DateTime? expiryDate;
-  final bool isAvailable;
-  final String? barcode;
-  final double? cost;
-  final String? notes;
-  final DateTime createdAt;
-  final DateTime updatedAt;
 
   const PantryItemEntity({
     required this.id,
@@ -28,6 +15,39 @@ class PantryItemEntity {
     required this.createdAt,
     required this.updatedAt,
   });
+
+  factory PantryItemEntity.fromJson(Map<String, dynamic> json) {
+    return PantryItemEntity(
+      id: json['id'] as String,
+      profileId: json['profile_id'] as String,
+      name: json['name'] as String,
+      category: json['category'] as String,
+      quantity: json['quantity'] != null ? (json['quantity'] as num).toDouble() : null,
+      unit: json['unit'] as String?,
+      expiryDate: json['expiry_date'] != null
+          ? DateTime.parse(json['expiry_date'] as String)
+          : null,
+      isAvailable: json['is_available'] as bool? ?? true,
+      barcode: json['barcode'] as String?,
+      cost: json['cost'] != null ? (json['cost'] as num).toDouble() : null,
+      notes: json['notes'] as String?,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
+    );
+  }
+  final String id;
+  final String profileId;
+  final String name;
+  final String category; // 'fridge', 'cupboard', 'freezer'
+  final double? quantity;
+  final String? unit;
+  final DateTime? expiryDate;
+  final bool isAvailable;
+  final String? barcode;
+  final double? cost;
+  final String? notes;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   PantryItemEntity copyWith({
     String? name,
@@ -73,26 +93,6 @@ class PantryItemEntity {
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
-  }
-
-  factory PantryItemEntity.fromJson(Map<String, dynamic> json) {
-    return PantryItemEntity(
-      id: json['id'] as String,
-      profileId: json['profile_id'] as String,
-      name: json['name'] as String,
-      category: json['category'] as String,
-      quantity: json['quantity'] != null ? (json['quantity'] as num).toDouble() : null,
-      unit: json['unit'] as String?,
-      expiryDate: json['expiry_date'] != null
-          ? DateTime.parse(json['expiry_date'] as String)
-          : null,
-      isAvailable: json['is_available'] as bool? ?? true,
-      barcode: json['barcode'] as String?,
-      cost: json['cost'] != null ? (json['cost'] as num).toDouble() : null,
-      notes: json['notes'] as String?,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
-    );
   }
 
   bool get isExpiringSoon {

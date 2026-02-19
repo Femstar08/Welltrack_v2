@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:welltrack/features/dashboard/presentation/dashboard_home_provider.dart';
+import '../dashboard_home_provider.dart';
 
 /// Section 2: 2x2 grid of metric cards.
 class KeySignalsGrid extends StatelessWidget {
-  final List<KeySignal> signals;
 
   const KeySignalsGrid({super.key, required this.signals});
+  final List<KeySignal> signals;
 
   @override
   Widget build(BuildContext context) {
@@ -27,9 +27,9 @@ class KeySignalsGrid extends StatelessWidget {
 }
 
 class _SignalCard extends StatelessWidget {
-  final KeySignal signal;
 
   const _SignalCard({required this.signal});
+  final KeySignal signal;
 
   @override
   Widget build(BuildContext context) {

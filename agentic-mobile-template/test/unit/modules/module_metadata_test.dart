@@ -50,7 +50,7 @@ void main() {
 
   group('ModuleConfig', () {
     test('should create with default values', () {
-      final config = ModuleConfig(module: WellTrackModule.meals);
+      const config = ModuleConfig(module: WellTrackModule.meals);
       expect(config.module, WellTrackModule.meals);
       expect(config.enabled, true);
       expect(config.tileOrder, 0);
@@ -58,7 +58,7 @@ void main() {
     });
 
     test('should create with custom values', () {
-      final config = ModuleConfig(
+      const config = ModuleConfig(
         module: WellTrackModule.workouts,
         enabled: false,
         tileOrder: 5,
@@ -72,7 +72,7 @@ void main() {
     });
 
     test('should copy with updated values', () {
-      final original = ModuleConfig(
+      const original = ModuleConfig(
         module: WellTrackModule.meals,
         enabled: true,
         tileOrder: 2,
@@ -86,7 +86,7 @@ void main() {
     });
 
     test('should convert to JSON', () {
-      final config = ModuleConfig(
+      const config = ModuleConfig(
         module: WellTrackModule.meals,
         enabled: true,
         tileOrder: 3,
@@ -141,19 +141,19 @@ void main() {
     });
 
     test('should implement equality correctly', () {
-      final config1 = ModuleConfig(
+      const config1 = ModuleConfig(
         module: WellTrackModule.meals,
         enabled: true,
         tileOrder: 2,
       );
 
-      final config2 = ModuleConfig(
+      const config2 = ModuleConfig(
         module: WellTrackModule.meals,
         enabled: true,
         tileOrder: 2,
       );
 
-      final config3 = ModuleConfig(
+      const config3 = ModuleConfig(
         module: WellTrackModule.meals,
         enabled: false,
         tileOrder: 2,

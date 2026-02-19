@@ -2,17 +2,17 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/workouts/presentation/workout_provider.dart';
+import 'workout_provider.dart';
 
 class WorkoutLoggingScreen extends ConsumerStatefulWidget {
-  final String profileId;
-  final String workoutId;
 
   const WorkoutLoggingScreen({
     required this.profileId,
     required this.workoutId,
     super.key,
   });
+  final String profileId;
+  final String workoutId;
 
   @override
   ConsumerState<WorkoutLoggingScreen> createState() =>
@@ -50,12 +50,15 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
       workoutId: widget.workoutId,
     )));
 
-    return WillPopScope(
-      onWillPop: () async {
-        if (state.logs.isNotEmpty) {
-          return await _showExitConfirmation(context);
+    return PopScope(
+      canPop: state.logs.isEmpty,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (!didPop && state.logs.isNotEmpty) {
+          final shouldPop = await _showExitConfirmation(context);
+          if (shouldPop && context.mounted) {
+            Navigator.of(context).pop();
+          }
         }
-        return true;
       },
       child: Scaffold(
         appBar: AppBar(
@@ -164,7 +167,7 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen> {
           Icon(
             Icons.fitness_center_outlined,
             size: 80,
-            color: Theme.of(context).colorScheme.secondary.withOpacity(0.3),
+            color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.3),
           ),
           const SizedBox(height: 16),
           Text(

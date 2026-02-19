@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../network/connectivity_service.dart';
 import '../network/offline_queue.dart';
 import '../network/dio_client.dart';
@@ -16,10 +15,6 @@ enum SyncStatus { idle, syncing, error }
 
 /// Sync state model
 class SyncState {
-  final SyncStatus status;
-  final DateTime? lastSyncAt;
-  final String? lastError;
-  final int pendingCount;
 
   const SyncState({
     this.status = SyncStatus.idle,
@@ -27,6 +22,10 @@ class SyncState {
     this.lastError,
     this.pendingCount = 0,
   });
+  final SyncStatus status;
+  final DateTime? lastSyncAt;
+  final String? lastError;
+  final int pendingCount;
 
   SyncState copyWith({
     SyncStatus? status,
@@ -68,15 +67,6 @@ class SyncState {
 
 /// Sync engine for managing offline data synchronization
 class SyncEngine extends StateNotifier<SyncState> {
-  final ConnectivityService _connectivityService;
-  final OfflineQueue _offlineQueue;
-  final DioClient _dioClient;
-  final ConflictResolver _conflictResolver;
-  final AppLogger _logger = AppLogger();
-
-  StreamSubscription<bool>? _connectivitySubscription;
-  Timer? _periodicSyncTimer;
-  bool _isRunning = false;
 
   SyncEngine({
     required ConnectivityService connectivityService,
@@ -88,6 +78,15 @@ class SyncEngine extends StateNotifier<SyncState> {
         _dioClient = dioClient,
         _conflictResolver = conflictResolver,
         super(const SyncState());
+  final ConnectivityService _connectivityService;
+  final OfflineQueue _offlineQueue;
+  final DioClient _dioClient;
+  final ConflictResolver _conflictResolver;
+  final AppLogger _logger = AppLogger();
+
+  StreamSubscription<bool>? _connectivitySubscription;
+  Timer? _periodicSyncTimer;
+  bool _isRunning = false;
 
   /// Start the sync engine
   Future<void> startSync() async {
@@ -224,7 +223,7 @@ class SyncEngine extends StateNotifier<SyncState> {
       }
 
       // Execute request
-      final response = await _dioClient.instance.request(
+      await _dioClient.instance.request(
         request.url,
         data: request.body,
         options: Options(
@@ -352,15 +351,15 @@ class SyncEngine extends StateNotifier<SyncState> {
 
 /// Result of processing a queue item
 class _ProcessResult {
-  final bool success;
-  final bool isConflict;
-  final String? error;
 
   _ProcessResult({
     required this.success,
     this.isConflict = false,
     this.error,
   });
+  final bool success;
+  final bool isConflict;
+  final String? error;
 }
 
 /// Riverpod provider for ConflictResolver

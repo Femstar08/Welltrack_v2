@@ -5,9 +5,9 @@ import '../logging/app_logger.dart';
 
 /// Service for monitoring network connectivity status
 class ConnectivityService {
+  factory ConnectivityService() => _instance;
   ConnectivityService._internal();
   static final ConnectivityService _instance = ConnectivityService._internal();
-  factory ConnectivityService() => _instance;
 
   final Connectivity _connectivity = Connectivity();
   final AppLogger _logger = AppLogger();

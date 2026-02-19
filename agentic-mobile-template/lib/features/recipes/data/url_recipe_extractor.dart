@@ -1,16 +1,16 @@
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/recipes/domain/recipe_entity.dart';
-import 'package:welltrack/features/recipes/domain/recipe_ingredient.dart';
-import 'package:welltrack/features/recipes/domain/recipe_step.dart';
-import 'package:welltrack/shared/core/ai/ai_orchestrator_service.dart';
+import '../domain/recipe_entity.dart';
+import '../domain/recipe_ingredient.dart';
+import '../domain/recipe_step.dart';
+import '../../../shared/core/ai/ai_orchestrator_service.dart';
 
 /// Service for extracting recipes from URLs via AI orchestrator
 class UrlRecipeExtractor {
-  final AiOrchestratorService _aiService;
 
   UrlRecipeExtractor(this._aiService);
+  final AiOrchestratorService _aiService;
 
   /// Extracts a recipe from a given URL
   ///

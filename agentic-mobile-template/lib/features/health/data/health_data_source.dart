@@ -2,7 +2,10 @@ import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:health/health.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:welltrack/features/health/domain/health_metric_entity.dart';
+import '../domain/health_metric_entity.dart';
+import '../../../shared/core/logging/app_logger.dart';
+
+final _logger = AppLogger();
 
 /// Data source for reading health data from platform APIs
 /// Uses Health Connect on Android and HealthKit on iOS
@@ -60,7 +63,7 @@ class HealthDataSource {
       await _health.configure();
       _configured = true;
     } catch (e) {
-      print('Error configuring health plugin: $e');
+      _logger.error('Error configuring health plugin: $e');
     }
   }
 
@@ -85,7 +88,7 @@ class HealthDataSource {
 
       return granted;
     } catch (e) {
-      print('Error requesting health permissions: $e');
+      _logger.error('Error requesting health permissions: $e');
       return false;
     }
   }
@@ -110,7 +113,7 @@ class HealthDataSource {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getBool(_permissionGrantedKey) ?? false;
     } catch (e) {
-      print('Error checking health permissions: $e');
+      _logger.error('Error checking health permissions: $e');
       // Fall back to cached state on error
       try {
         final prefs = await SharedPreferences.getInstance();
@@ -154,7 +157,7 @@ class HealthDataSource {
 
       return data;
     } catch (e) {
-      print('Error fetching sleep data: $e');
+      _logger.error('Error fetching sleep data: $e');
       return [];
     }
   }
@@ -175,7 +178,7 @@ class HealthDataSource {
 
       return data;
     } catch (e) {
-      print('Error fetching steps data: $e');
+      _logger.error('Error fetching steps data: $e');
       return [];
     }
   }
@@ -196,7 +199,7 @@ class HealthDataSource {
 
       return data;
     } catch (e) {
-      print('Error fetching heart rate data: $e');
+      _logger.error('Error fetching heart rate data: $e');
       return [];
     }
   }
@@ -216,7 +219,7 @@ class HealthDataSource {
       );
       return data;
     } catch (e) {
-      print('Error fetching weight data: $e');
+      _logger.error('Error fetching weight data: $e');
       return [];
     }
   }
@@ -236,7 +239,7 @@ class HealthDataSource {
       );
       return data;
     } catch (e) {
-      print('Error fetching body fat data: $e');
+      _logger.error('Error fetching body fat data: $e');
       return [];
     }
   }
@@ -260,7 +263,7 @@ class HealthDataSource {
       );
       return data;
     } catch (e) {
-      print('Error fetching HRV data: $e');
+      _logger.error('Error fetching HRV data: $e');
       return [];
     }
   }
@@ -280,7 +283,7 @@ class HealthDataSource {
       );
       return data;
     } catch (e) {
-      print('Error fetching active calories data: $e');
+      _logger.error('Error fetching active calories data: $e');
       return [];
     }
   }
@@ -300,7 +303,7 @@ class HealthDataSource {
       );
       return data;
     } catch (e) {
-      print('Error fetching distance data: $e');
+      _logger.error('Error fetching distance data: $e');
       return [];
     }
   }

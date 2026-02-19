@@ -1,14 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/shared/core/modules/module_metadata.dart';
-import 'package:welltrack/shared/core/modules/module_registry.dart';
-import 'package:welltrack/shared/core/logging/app_logger.dart';
+import '../../../shared/core/modules/module_metadata.dart';
+import '../../../shared/core/modules/module_registry.dart';
+import '../../../shared/core/logging/app_logger.dart';
 
 /// Dashboard state containing module tiles and recovery score
 class DashboardState {
-  final List<ModuleConfig> tiles;
-  final double? recoveryScore;
-  final bool isCalibrating;
-  final String? errorMessage;
 
   const DashboardState({
     this.tiles = const [],
@@ -16,6 +12,10 @@ class DashboardState {
     this.isCalibrating = true,
     this.errorMessage,
   });
+  final List<ModuleConfig> tiles;
+  final double? recoveryScore;
+  final bool isCalibrating;
+  final String? errorMessage;
 
   DashboardState copyWith({
     List<ModuleConfig>? tiles,
@@ -34,10 +34,10 @@ class DashboardState {
 
 /// Dashboard state notifier
 class DashboardNotifier extends StateNotifier<DashboardState> {
-  final Ref ref;
-  final AppLogger _logger = AppLogger();
 
   DashboardNotifier(this.ref) : super(const DashboardState());
+  final Ref ref;
+  final AppLogger _logger = AppLogger();
 
   /// Initialize dashboard with profile data
   Future<void> initialize(String profileId) async {

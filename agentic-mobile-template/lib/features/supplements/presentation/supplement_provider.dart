@@ -1,18 +1,13 @@
 // lib/features/supplements/presentation/supplement_provider.dart
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/supplements/data/supplement_repository.dart';
-import 'package:welltrack/features/supplements/domain/supplement_entity.dart';
-import 'package:welltrack/features/supplements/domain/supplement_protocol_entity.dart';
-import 'package:welltrack/features/supplements/domain/supplement_log_entity.dart';
+import '../data/supplement_repository.dart';
+import '../domain/supplement_entity.dart';
+import '../domain/supplement_protocol_entity.dart';
+import '../domain/supplement_log_entity.dart';
 
 // State classes
 class SupplementState {
-  final List<SupplementEntity> supplements;
-  final List<SupplementProtocolEntity> protocols;
-  final List<SupplementLogEntity> todayLogs;
-  final bool isLoading;
-  final String? error;
 
   const SupplementState({
     this.supplements = const [],
@@ -21,6 +16,11 @@ class SupplementState {
     this.isLoading = false,
     this.error,
   });
+  final List<SupplementEntity> supplements;
+  final List<SupplementProtocolEntity> protocols;
+  final List<SupplementLogEntity> todayLogs;
+  final bool isLoading;
+  final String? error;
 
   SupplementState copyWith({
     List<SupplementEntity>? supplements,
@@ -63,11 +63,11 @@ class SupplementState {
 
 // StateNotifier
 class SupplementNotifier extends StateNotifier<SupplementState> {
-  final SupplementRepository _repository;
-  final String _profileId;
 
   SupplementNotifier(this._repository, this._profileId)
       : super(const SupplementState());
+  final SupplementRepository _repository;
+  final String _profileId;
 
   Future<void> loadData() async {
     state = state.copyWith(isLoading: true, error: null);

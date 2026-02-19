@@ -1,17 +1,17 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:welltrack/features/goals/domain/goal_entity.dart';
-import 'package:welltrack/features/insights/domain/forecast_entity.dart';
-import 'package:welltrack/features/insights/data/insights_repository.dart';
+import '../domain/goal_entity.dart';
+import '../../insights/domain/forecast_entity.dart';
+import '../../insights/data/insights_repository.dart';
 
 final goalsRepositoryProvider = Provider<GoalsRepository>((ref) {
   return GoalsRepository(Supabase.instance.client);
 });
 
 class GoalsRepository {
-  final SupabaseClient _client;
 
   GoalsRepository(this._client);
+  final SupabaseClient _client;
 
   Future<List<GoalEntity>> getGoals(String profileId) async {
     try {

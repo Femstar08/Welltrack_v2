@@ -2,16 +2,16 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/workouts/presentation/workout_provider.dart';
-import 'package:welltrack/features/workouts/presentation/workout_logging_screen.dart';
+import 'workout_provider.dart';
+import 'workout_logging_screen.dart';
 
 class WorkoutsScreen extends ConsumerStatefulWidget {
-  final String profileId;
 
   const WorkoutsScreen({
     required this.profileId,
     super.key,
   });
+  final String profileId;
 
   @override
   ConsumerState<WorkoutsScreen> createState() => _WorkoutsScreenState();
@@ -78,7 +78,7 @@ class _WorkoutsScreenState extends ConsumerState<WorkoutsScreen>
             Icon(
               Icons.fitness_center_outlined,
               size: 80,
-              color: Theme.of(context).colorScheme.secondary.withOpacity(0.3),
+              color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 16),
             Text(
@@ -106,7 +106,7 @@ class _WorkoutsScreenState extends ConsumerState<WorkoutsScreen>
                   CircularProgressIndicator(
                     value: state.todayCompletionPercentage / 100,
                     backgroundColor:
-                        Theme.of(context).colorScheme.surfaceVariant,
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -148,7 +148,7 @@ class _WorkoutsScreenState extends ConsumerState<WorkoutsScreen>
             Icon(
               Icons.fitness_center_outlined,
               size: 80,
-              color: Theme.of(context).colorScheme.secondary.withOpacity(0.3),
+              color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 16),
             Text(
@@ -186,7 +186,7 @@ class _WorkoutsScreenState extends ConsumerState<WorkoutsScreen>
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       color: workout.completed
-          ? Theme.of(context).colorScheme.surfaceVariant
+          ? Theme.of(context).colorScheme.surfaceContainerHighest
           : null,
       child: ListTile(
         leading: Icon(

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 class OnboardingProgressDots extends StatelessWidget {
-  final int currentPage;
-  final int totalPages;
 
   const OnboardingProgressDots({
     super.key,
     required this.currentPage,
     this.totalPages = 7,
   });
+  final int currentPage;
+  final int totalPages;
 
   @override
   Widget build(BuildContext context) {

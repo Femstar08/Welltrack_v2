@@ -1,28 +1,30 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:welltrack/features/dashboard/presentation/dashboard_home_provider.dart';
-import 'package:welltrack/features/dashboard/presentation/dashboard_provider.dart';
-import 'package:welltrack/features/dashboard/presentation/widgets/intelligence_insight_card.dart';
-import 'package:welltrack/features/dashboard/presentation/widgets/key_signals_grid.dart';
-import 'package:welltrack/features/dashboard/presentation/widgets/secondary_modules_list.dart';
-import 'package:welltrack/features/dashboard/presentation/widgets/shimmer_loading.dart';
-import 'package:welltrack/features/dashboard/presentation/widgets/today_summary_card.dart';
-import 'package:welltrack/features/dashboard/presentation/widgets/trends_preview_card.dart';
-import 'package:welltrack/features/goals/domain/goal_entity.dart';
-import 'package:welltrack/features/goals/presentation/goals_provider.dart';
+import 'dashboard_home_provider.dart';
+import 'dashboard_provider.dart';
+import 'widgets/intelligence_insight_card.dart';
+import 'widgets/key_signals_grid.dart';
+import 'widgets/secondary_modules_list.dart';
+import 'widgets/shimmer_loading.dart';
+import 'widgets/today_summary_card.dart';
+import 'widgets/trends_preview_card.dart';
+import '../../goals/domain/goal_entity.dart';
+import '../../goals/presentation/goals_provider.dart';
 
 /// Main dashboard screen showing goal-adaptive metrics and module tiles.
 class DashboardScreen extends ConsumerStatefulWidget {
-  final String profileId;
-  final String displayName;
 
   const DashboardScreen({
     super.key,
     required this.profileId,
     required this.displayName,
   });
+  final String profileId;
+  final String displayName;
 
   @override
   ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
@@ -35,13 +37,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(dashboardProvider.notifier).initialize(widget.profileId);
-      ref.read(dashboardHomeProvider.notifier).initialize(widget.profileId);
+      unawaited(ref.read(dashboardProvider.notifier).initialize(widget.profileId));
+      unawaited(ref.read(dashboardHomeProvider.notifier).initialize(widget.profileId));
     });
   }
 
   Future<void> _handleRefresh() async {
-    HapticFeedback.mediumImpact();
+    unawaited(HapticFeedback.mediumImpact());
     await Future.wait([
       ref.read(dashboardProvider.notifier).refresh(widget.profileId),
       ref.read(dashboardHomeProvider.notifier).refresh(widget.profileId),
@@ -167,9 +169,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 }
 
 class _GoalsSummaryCard extends ConsumerWidget {
-  final String profileId;
 
   const _GoalsSummaryCard({required this.profileId});
+  final String profileId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -202,7 +204,7 @@ class _GoalsSummaryCard extends ConsumerWidget {
                         ),
                         Icon(
                           Icons.chevron_right,
-                          color: theme.colorScheme.onSurface.withOpacity(0.4),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                         ),
                       ],
                     ),
@@ -300,7 +302,7 @@ class _GoalsSummaryCard extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
             decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.15),
+              color: statusColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(

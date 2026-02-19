@@ -1,15 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:welltrack/features/meals/domain/meal_entity.dart';
+import '../domain/meal_entity.dart';
 
 final mealRepositoryProvider = Provider<MealRepository>((ref) {
   return MealRepository(Supabase.instance.client);
 });
 
 class MealRepository {
-  final SupabaseClient _client;
 
   MealRepository(this._client);
+  final SupabaseClient _client;
 
   Future<List<MealEntity>> getMeals(String profileId, DateTime date) async {
     try {

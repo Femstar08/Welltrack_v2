@@ -1,16 +1,18 @@
 // lib/features/daily_view/presentation/daily_view_screen.dart
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/daily_view/presentation/daily_view_provider.dart';
+import 'daily_view_provider.dart';
 
 class DailyViewScreen extends ConsumerStatefulWidget {
-  final String profileId;
 
   const DailyViewScreen({
     required this.profileId,
     super.key,
   });
+  final String profileId;
 
   @override
   ConsumerState<DailyViewScreen> createState() => _DailyViewScreenState();
@@ -21,7 +23,7 @@ class _DailyViewScreenState extends ConsumerState<DailyViewScreen> {
   void initState() {
     super.initState();
     Future.microtask(() {
-      ref.read(dailyViewProvider(widget.profileId).notifier).loadDailyData();
+      unawaited(ref.read(dailyViewProvider(widget.profileId).notifier).loadDailyData());
     });
   }
 
@@ -135,7 +137,7 @@ class _DailyViewScreenState extends ConsumerState<DailyViewScreen> {
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: scoreColor.withOpacity(0.1),
+      color: scoreColor.withValues(alpha: 0.1),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
@@ -189,7 +191,7 @@ class _DailyViewScreenState extends ConsumerState<DailyViewScreen> {
                     child: CircularProgressIndicator(
                       value: state.overallCompletionPercentage / 100,
                       strokeWidth: 12,
-                      backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
+                      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                     ),
                   ),
                   Column(
@@ -463,7 +465,7 @@ class _DailyViewScreenState extends ConsumerState<DailyViewScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceVariant,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -501,7 +503,7 @@ class _DailyViewScreenState extends ConsumerState<DailyViewScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
+        color: color.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(

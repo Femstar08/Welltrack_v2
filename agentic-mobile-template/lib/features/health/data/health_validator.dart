@@ -1,4 +1,4 @@
-import 'package:welltrack/features/health/domain/health_metric_entity.dart';
+import '../domain/health_metric_entity.dart';
 
 /// Validates health metric values against safe/expected ranges
 class HealthValidator {
@@ -27,18 +27,16 @@ class HealthValidator {
         return _validateSpO2(value);
       case MetricType.weight:
         return _validateWeight(value);
-      case MetricType.body_fat:
+      case MetricType.bodyFat:
         return _validateBodyFat(value);
       case MetricType.calories:
         return _validateCalories(value);
       case MetricType.distance:
         return _validateDistance(value);
-      case MetricType.active_minutes:
+      case MetricType.activeMinutes:
         return _validateActiveMinutes(value);
-      case MetricType.blood_pressure:
+      case MetricType.bloodPressure:
         return _validateBloodPressure(value);
-      default:
-        return ValidationStatus.validated;
     }
   }
 

@@ -2,9 +2,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:workmanager/workmanager.dart';
-import 'package:welltrack/features/health/data/baseline_calibration.dart';
-import 'package:welltrack/features/health/data/health_repository.dart';
-import 'package:welltrack/features/health/data/health_repository_impl.dart';
+import 'baseline_calibration.dart';
+import 'health_repository.dart';
+import '../../../shared/core/logging/app_logger.dart';
+
+final _logger = AppLogger();
 
 /// Background sync service for health data using Workmanager
 ///
@@ -14,16 +16,16 @@ import 'package:welltrack/features/health/data/health_repository_impl.dart';
 /// - Auto-triggers baseline calibration after sync
 /// - Logs sync timestamps to SharedPreferences
 class HealthBackgroundSync {
+
+  HealthBackgroundSync({
+    required SharedPreferences preferences,
+  }) : _prefs = preferences;
   static const String syncTaskName = 'welltrack_health_sync';
   static const String periodicTaskName = 'welltrack_health_periodic_sync';
   static const String _lastSyncKey = 'health_last_sync_time';
   static const String _lastSyncProfileKey = 'health_last_sync_profile_id';
 
   final SharedPreferences _prefs;
-
-  HealthBackgroundSync({
-    required SharedPreferences preferences,
-  }) : _prefs = preferences;
 
   /// Initialize workmanager and register periodic sync
   ///
@@ -33,11 +35,10 @@ class HealthBackgroundSync {
     try {
       await Workmanager().initialize(
         callbackDispatcher,
-        isInDebugMode: false, // Set to true for debug logging
       );
-      print('HealthBackgroundSync: Workmanager initialized');
+      _logger.info('HealthBackgroundSync: Workmanager initialized');
     } catch (e) {
-      print('HealthBackgroundSync: Failed to initialize workmanager: $e');
+      _logger.error('HealthBackgroundSync: Failed to initialize workmanager: $e');
       // Don't rethrow — workmanager init failure is non-fatal
     }
   }
@@ -60,9 +61,9 @@ class HealthBackgroundSync {
         backoffPolicy: BackoffPolicy.exponential,
         backoffPolicyDelay: const Duration(minutes: 15),
       );
-      print('HealthBackgroundSync: Periodic sync registered (every 6 hours)');
+      _logger.info('HealthBackgroundSync: Periodic sync registered (every 6 hours)');
     } catch (e) {
-      print('HealthBackgroundSync: Failed to register periodic sync: $e');
+      _logger.error('HealthBackgroundSync: Failed to register periodic sync: $e');
       // Don't rethrow — periodic sync registration failure is non-fatal
     }
   }
@@ -71,9 +72,9 @@ class HealthBackgroundSync {
   Future<void> cancelSync() async {
     try {
       await Workmanager().cancelAll();
-      print('HealthBackgroundSync: All sync tasks cancelled');
+      _logger.info('HealthBackgroundSync: All sync tasks cancelled');
     } catch (e) {
-      print('HealthBackgroundSync: Failed to cancel sync tasks: $e');
+      _logger.error('HealthBackgroundSync: Failed to cancel sync tasks: $e');
       rethrow;
     }
   }
@@ -87,12 +88,12 @@ class HealthBackgroundSync {
   /// 4. Update last sync timestamp
   Future<void> syncNow(String profileId) async {
     try {
-      print('HealthBackgroundSync: Starting manual sync for profile $profileId');
+      _logger.info('HealthBackgroundSync: Starting manual sync for profile $profileId');
 
       // Check if user is authenticated
       final userId = Supabase.instance.client.auth.currentUser?.id;
       if (userId == null) {
-        print('HealthBackgroundSync: User not authenticated, skipping sync');
+        _logger.warning('HealthBackgroundSync: User not authenticated, skipping sync');
         return;
       }
 
@@ -102,26 +103,26 @@ class HealthBackgroundSync {
 
       // Sync health data (last 24h)
       final syncResult = await healthRepo.syncHealthData(profileId);
-      print('HealthBackgroundSync: Synced ${syncResult['sleep']} sleep, '
+      _logger.debug('HealthBackgroundSync: Synced ${syncResult['sleep']} sleep, '
           '${syncResult['steps']} steps, ${syncResult['hr']} HR records');
 
       // Check if baselines are complete
       final allComplete = await calibration.hasAllBaselinesComplete(profileId);
 
       if (!allComplete) {
-        print('HealthBackgroundSync: Baselines incomplete, computing...');
+        _logger.info('HealthBackgroundSync: Baselines incomplete, computing...');
         final baselines = await calibration.computeAllBaselines(profileId);
-        print('HealthBackgroundSync: Computed ${baselines.length} baselines');
+        _logger.info('HealthBackgroundSync: Computed ${baselines.length} baselines');
       } else {
-        print('HealthBackgroundSync: All baselines already complete');
+        _logger.info('HealthBackgroundSync: All baselines already complete');
       }
 
       // Update last sync timestamp
       await _updateLastSyncTime(profileId);
 
-      print('HealthBackgroundSync: Manual sync completed successfully');
+      _logger.info('HealthBackgroundSync: Manual sync completed successfully');
     } catch (e) {
-      print('HealthBackgroundSync: Error during manual sync: $e');
+      _logger.error('HealthBackgroundSync: Error during manual sync: $e');
       rethrow;
     }
   }
@@ -133,7 +134,7 @@ class HealthBackgroundSync {
       if (timestamp == null) return null;
       return DateTime.parse(timestamp);
     } catch (e) {
-      print('HealthBackgroundSync: Error getting last sync time: $e');
+      _logger.error('HealthBackgroundSync: Error getting last sync time: $e');
       return null;
     }
   }
@@ -149,9 +150,9 @@ class HealthBackgroundSync {
       final now = DateTime.now();
       await _prefs.setString(_lastSyncKey, now.toIso8601String());
       await _prefs.setString(_lastSyncProfileKey, profileId);
-      print('HealthBackgroundSync: Updated last sync time to $now');
+      _logger.debug('HealthBackgroundSync: Updated last sync time to $now');
     } catch (e) {
-      print('HealthBackgroundSync: Error updating last sync time: $e');
+      _logger.error('HealthBackgroundSync: Error updating last sync time: $e');
     }
   }
 
@@ -173,7 +174,7 @@ class HealthBackgroundSync {
 @pragma('vm:entry-point')
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
-    print('HealthBackgroundSync: Background task started: $task');
+    _logger.info('HealthBackgroundSync: Background task started: $task');
 
     try {
       // Initialize Supabase in the background isolate
@@ -189,14 +190,14 @@ void callbackDispatcher() {
       final profileId = prefs.getString('health_last_sync_profile_id');
 
       if (profileId == null) {
-        print('HealthBackgroundSync: No profile ID found, skipping sync');
+        _logger.warning('HealthBackgroundSync: No profile ID found, skipping sync');
         return Future.value(true);
       }
 
       // Check if user is authenticated
       final userId = Supabase.instance.client.auth.currentUser?.id;
       if (userId == null) {
-        print('HealthBackgroundSync: User not authenticated in background, skipping sync');
+        _logger.warning('HealthBackgroundSync: User not authenticated in background, skipping sync');
         return Future.value(true);
       }
 
@@ -206,16 +207,16 @@ void callbackDispatcher() {
 
       // Sync health data (last 24h)
       final syncResult = await healthRepo.syncHealthData(profileId);
-      print('HealthBackgroundSync: Background synced ${syncResult['sleep']} sleep, '
+      _logger.debug('HealthBackgroundSync: Background synced ${syncResult['sleep']} sleep, '
           '${syncResult['steps']} steps, ${syncResult['hr']} HR records');
 
       // Check if baselines are complete
       final allComplete = await calibration.hasAllBaselinesComplete(profileId);
 
       if (!allComplete) {
-        print('HealthBackgroundSync: Baselines incomplete, computing in background...');
+        _logger.info('HealthBackgroundSync: Baselines incomplete, computing in background...');
         final baselines = await calibration.computeAllBaselines(profileId);
-        print('HealthBackgroundSync: Computed ${baselines.length} baselines in background');
+        _logger.info('HealthBackgroundSync: Computed ${baselines.length} baselines in background');
       }
 
       // Update last sync timestamp
@@ -224,10 +225,10 @@ void callbackDispatcher() {
         DateTime.now().toIso8601String(),
       );
 
-      print('HealthBackgroundSync: Background sync completed successfully');
+      _logger.info('HealthBackgroundSync: Background sync completed successfully');
       return Future.value(true);
     } catch (e) {
-      print('HealthBackgroundSync: Background sync failed: $e');
+      _logger.error('HealthBackgroundSync: Background sync failed: $e');
       // Return false to trigger backoff retry
       return Future.value(false);
     }

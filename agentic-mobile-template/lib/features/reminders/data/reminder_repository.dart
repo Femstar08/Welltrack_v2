@@ -1,12 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:welltrack/features/reminders/domain/reminder_entity.dart';
+import '../domain/reminder_entity.dart';
 
 /// Repository for managing reminders in Supabase
 class ReminderRepository {
-  final SupabaseClient _supabase;
 
   ReminderRepository(this._supabase);
+  final SupabaseClient _supabase;
 
   /// Gets all active reminders for a profile
   Future<List<ReminderEntity>> getActiveReminders(String profileId) async {

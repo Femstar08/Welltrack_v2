@@ -1,17 +1,17 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/shared/core/ai/ai_models.dart';
-import 'package:welltrack/shared/core/constants/api_constants.dart';
-import 'package:welltrack/shared/core/network/connectivity_service.dart';
-import 'package:welltrack/shared/core/network/dio_client.dart';
-import 'package:welltrack/shared/core/logging/app_logger.dart';
+import 'ai_models.dart';
+import '../constants/api_constants.dart';
+import '../network/connectivity_service.dart';
+import '../network/dio_client.dart';
+import '../logging/app_logger.dart';
 
 // --- AI Exception hierarchy ---
 
 /// Base class for AI-specific exceptions
 class AiException implements Exception {
-  final String message;
   const AiException(this.message);
+  final String message;
 
   @override
   String toString() => message;
@@ -25,9 +25,9 @@ class AiOfflineException extends AiException {
 
 /// User has exceeded their AI usage limit (429)
 class AiRateLimitException extends AiException {
-  final AiUsageInfo? usage;
   const AiRateLimitException({this.usage})
       : super('AI usage limit reached. Please upgrade or try again later.');
+  final AiUsageInfo? usage;
 }
 
 /// OpenAI timed out (504 from edge function)
@@ -44,9 +44,9 @@ class AiFallbackException extends AiException {
 
 /// Safety flag blocked the response
 class AiBlockedException extends AiException {
-  final List<AiSafetyFlag> flags;
   const AiBlockedException(this.flags)
       : super('Response was blocked due to safety concerns.');
+  final List<AiSafetyFlag> flags;
 }
 
 // --- Service ---
@@ -54,15 +54,15 @@ class AiBlockedException extends AiException {
 /// Single Dart entry point for all AI orchestrator calls.
 /// Handles connectivity checks, timeouts, and typed error mapping.
 class AiOrchestratorService {
-  final Dio _dio;
-  final ConnectivityService _connectivity;
-  final AppLogger _logger = AppLogger();
 
   AiOrchestratorService({
     required Dio dio,
     required ConnectivityService connectivity,
   })  : _dio = dio,
         _connectivity = connectivity;
+  final Dio _dio;
+  final ConnectivityService _connectivity;
+  final AppLogger _logger = AppLogger();
 
   /// Call the AI orchestrator edge function.
   ///
@@ -114,7 +114,6 @@ class AiOrchestratorService {
     } on DioException catch (e) {
       _logger.error('AI orchestrate DioException', e, e.stackTrace);
       _mapDioException(e);
-      rethrow; // unreachable but satisfies control flow
     }
   }
 

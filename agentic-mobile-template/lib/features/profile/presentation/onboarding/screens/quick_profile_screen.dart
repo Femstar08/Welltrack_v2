@@ -1,13 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/profile/presentation/onboarding/onboarding_state.dart';
+import '../onboarding_state.dart';
 
 
 class QuickProfileScreen extends ConsumerStatefulWidget {
-  final VoidCallback onContinue;
 
   const QuickProfileScreen({super.key, required this.onContinue});
+  final VoidCallback onContinue;
 
   @override
   ConsumerState<QuickProfileScreen> createState() => _QuickProfileScreenState();
@@ -149,7 +151,7 @@ class _QuickProfileScreenState extends ConsumerState<QuickProfileScreen> {
                       padding: const EdgeInsets.only(bottom: 8),
                       child: InkWell(
                         onTap: () {
-                          HapticFeedback.selectionClick();
+                          unawaited(HapticFeedback.selectionClick());
                           ref
                               .read(onboardingDataProvider.notifier)
                               .setActivityLevel(level);

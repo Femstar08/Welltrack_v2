@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/profile/presentation/onboarding/onboarding_state.dart';
+import '../onboarding_state.dart';
 
 
 class FocusIntroductionScreen extends ConsumerWidget {
-  final VoidCallback onContinue;
 
   const FocusIntroductionScreen({super.key, required this.onContinue});
+  final VoidCallback onContinue;
 
   static const _goalDisplayNames = {
     'performance': 'Improve Performance',

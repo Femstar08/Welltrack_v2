@@ -1,17 +1,12 @@
 // lib/features/workouts/presentation/workout_provider.dart
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/workouts/data/workout_repository.dart';
-import 'package:welltrack/features/workouts/domain/workout_entity.dart';
-import 'package:welltrack/features/workouts/domain/workout_log_entity.dart';
+import '../data/workout_repository.dart';
+import '../domain/workout_entity.dart';
+import '../domain/workout_log_entity.dart';
 
 // State classes
 class WorkoutState {
-  final List<WorkoutEntity> workouts;
-  final List<WorkoutEntity> todayWorkouts;
-  final List<Exercise> exercises;
-  final bool isLoading;
-  final String? error;
 
   const WorkoutState({
     this.workouts = const [],
@@ -20,6 +15,11 @@ class WorkoutState {
     this.isLoading = false,
     this.error,
   });
+  final List<WorkoutEntity> workouts;
+  final List<WorkoutEntity> todayWorkouts;
+  final List<Exercise> exercises;
+  final bool isLoading;
+  final String? error;
 
   WorkoutState copyWith({
     List<WorkoutEntity>? workouts,
@@ -49,10 +49,6 @@ class WorkoutState {
 }
 
 class WorkoutDetailState {
-  final WorkoutEntity? workout;
-  final List<WorkoutLogEntity> logs;
-  final bool isLoading;
-  final String? error;
 
   const WorkoutDetailState({
     this.workout,
@@ -60,6 +56,10 @@ class WorkoutDetailState {
     this.isLoading = false,
     this.error,
   });
+  final WorkoutEntity? workout;
+  final List<WorkoutLogEntity> logs;
+  final bool isLoading;
+  final String? error;
 
   WorkoutDetailState copyWith({
     WorkoutEntity? workout,
@@ -84,11 +84,11 @@ class WorkoutDetailState {
 
 // StateNotifier for workout list
 class WorkoutNotifier extends StateNotifier<WorkoutState> {
-  final WorkoutRepository _repository;
-  final String _profileId;
 
   WorkoutNotifier(this._repository, this._profileId)
       : super(const WorkoutState());
+  final WorkoutRepository _repository;
+  final String _profileId;
 
   Future<void> loadWorkouts({DateTime? startDate, DateTime? endDate}) async {
     state = state.copyWith(isLoading: true, error: null);
@@ -224,12 +224,12 @@ class WorkoutNotifier extends StateNotifier<WorkoutState> {
 
 // StateNotifier for workout detail/logging
 class WorkoutDetailNotifier extends StateNotifier<WorkoutDetailState> {
-  final WorkoutRepository _repository;
-  final String _profileId;
-  final String _workoutId;
 
   WorkoutDetailNotifier(this._repository, this._profileId, this._workoutId)
       : super(const WorkoutDetailState());
+  final WorkoutRepository _repository;
+  final String _profileId;
+  final String _workoutId;
 
   Future<void> loadWorkoutDetail() async {
     state = state.copyWith(isLoading: true, error: null);

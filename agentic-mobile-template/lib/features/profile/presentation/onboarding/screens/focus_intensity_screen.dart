@@ -1,13 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/profile/presentation/onboarding/onboarding_state.dart';
+import '../onboarding_state.dart';
 
 
 class FocusIntensityScreen extends ConsumerWidget {
-  final VoidCallback onContinue;
 
   const FocusIntensityScreen({super.key, required this.onContinue});
+  final VoidCallback onContinue;
 
   static const _intensityLabels = ['Low', 'Moderate', 'High', 'Top Priority'];
   static const _intensityDescriptions = [
@@ -89,7 +91,7 @@ class FocusIntensityScreen extends ConsumerWidget {
               max: 3,
               divisions: 3,
               onChanged: (value) {
-                HapticFeedback.selectionClick();
+                unawaited(HapticFeedback.selectionClick());
                 ref
                     .read(onboardingDataProvider.notifier)
                     .setGoalIntensity(

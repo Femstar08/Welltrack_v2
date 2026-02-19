@@ -6,8 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class Vo2maxEntryScreen extends ConsumerStatefulWidget {
-  final String profileId;
   const Vo2maxEntryScreen({super.key, required this.profileId});
+  final String profileId;
 
   @override
   ConsumerState<Vo2maxEntryScreen> createState() => _Vo2maxEntryScreenState();
@@ -153,7 +153,7 @@ class _Vo2maxEntryScreenState extends ConsumerState<Vo2maxEntryScreen> {
         children: [
           Card(
             elevation: 0,
-            color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+            color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(children: [
@@ -210,10 +210,10 @@ class _Vo2maxEntryScreenState extends ConsumerState<Vo2maxEntryScreen> {
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'^\d{0,2}\.?\d{0,1}')),
             ],
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               labelText: 'Precise value',
               suffixText: 'mL/kg/min',
-              border: const OutlineInputBorder(),
+              border: OutlineInputBorder(),
               helperText: 'Range: 10\u201390',
             ),
             onChanged: _onTextChanged,
@@ -241,7 +241,7 @@ class _Vo2maxEntryScreenState extends ConsumerState<Vo2maxEntryScreen> {
           else if (_history.isEmpty)
             Card(
               elevation: 0,
-              color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 32),
                 child: Column(children: [
@@ -268,7 +268,7 @@ class _Vo2maxEntryScreenState extends ConsumerState<Vo2maxEntryScreen> {
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: _getVo2Color(value).withOpacity(0.15),
+          backgroundColor: _getVo2Color(value).withValues(alpha: 0.15),
           child: Text(value.toStringAsFixed(0), style: TextStyle(
             color: _getVo2Color(value), fontWeight: FontWeight.bold, fontSize: 14,
           )),

@@ -1,24 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/insights/domain/recovery_score_entity.dart';
-import 'package:welltrack/features/insights/domain/training_load_entity.dart';
-import 'package:welltrack/features/insights/domain/forecast_entity.dart';
-import 'package:welltrack/features/insights/domain/insight_entity.dart';
-import 'package:welltrack/features/insights/data/insights_repository.dart';
-import 'package:welltrack/shared/core/ai/ai_orchestrator_service.dart';
-import 'package:welltrack/shared/core/ai/ai_providers.dart';
+import '../domain/recovery_score_entity.dart';
+import '../domain/training_load_entity.dart';
+import '../domain/forecast_entity.dart';
+import '../domain/insight_entity.dart';
+import '../data/insights_repository.dart';
+import '../../../shared/core/ai/ai_orchestrator_service.dart';
+import '../../../shared/core/ai/ai_providers.dart';
 
 /// Insights State
 class InsightsState {
-  final PeriodType selectedPeriod;
-  final List<RecoveryScoreEntity> recoveryScores;
-  final List<TrainingLoadEntity> trainingLoads;
-  final List<DailyLoadPoint> dailyLoadPoints;
-  final List<ForecastEntity> forecasts;
-  final List<InsightEntity> insights;
-  final Map<String, List<DataPoint>> metricTrends;
-  final bool isLoading;
-  final bool isGeneratingNarrative;
-  final String? error;
 
   const InsightsState({
     this.selectedPeriod = PeriodType.week,
@@ -32,6 +22,16 @@ class InsightsState {
     this.isGeneratingNarrative = false,
     this.error,
   });
+  final PeriodType selectedPeriod;
+  final List<RecoveryScoreEntity> recoveryScores;
+  final List<TrainingLoadEntity> trainingLoads;
+  final List<DailyLoadPoint> dailyLoadPoints;
+  final List<ForecastEntity> forecasts;
+  final List<InsightEntity> insights;
+  final Map<String, List<DataPoint>> metricTrends;
+  final bool isLoading;
+  final bool isGeneratingNarrative;
+  final String? error;
 
   InsightsState copyWith({
     PeriodType? selectedPeriod,
@@ -105,11 +105,6 @@ class InsightsState {
 
 /// Insights StateNotifier
 class InsightsNotifier extends StateNotifier<InsightsState> {
-  final InsightsRepository _repository;
-  final AiOrchestratorService _aiService;
-  final Ref _ref;
-  final String _profileId;
-  final String _userId;
 
   InsightsNotifier(
     this._repository,
@@ -118,6 +113,11 @@ class InsightsNotifier extends StateNotifier<InsightsState> {
     this._profileId,
     this._userId,
   ) : super(const InsightsState());
+  final InsightsRepository _repository;
+  final AiOrchestratorService _aiService;
+  final Ref _ref;
+  final String _profileId;
+  final String _userId;
 
   /// Initialize insights for profile
   Future<void> initialize() async {
@@ -359,10 +359,10 @@ class InsightsNotifier extends StateNotifier<InsightsState> {
 
 /// Date range helper
 class DateRange {
-  final DateTime start;
-  final DateTime end;
 
   const DateRange({required this.start, required this.end});
+  final DateTime start;
+  final DateTime end;
 }
 
 /// Insights provider factory

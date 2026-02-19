@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/auth/presentation/auth_provider.dart';
-import 'package:welltrack/features/auth/domain/auth_state.dart';
-import 'package:welltrack/features/profile/presentation/profile_provider.dart';
-import 'package:welltrack/features/reminders/data/notification_service.dart';
-import 'package:welltrack/features/reminders/data/reminder_repository.dart';
-import 'package:welltrack/features/reminders/domain/reminder_entity.dart';
+import '../../profile/presentation/profile_provider.dart';
+import '../data/notification_service.dart';
+import '../data/reminder_repository.dart';
+import '../domain/reminder_entity.dart';
 import 'package:intl/intl.dart';
 
 /// Provider for reminders list
@@ -52,7 +50,7 @@ class RemindersScreen extends ConsumerWidget {
               Text('Error loading reminders: $error'),
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: () => ref.refresh(remindersProvider),
+                onPressed: () => ref.invalidate(remindersProvider),
                 child: const Text('Retry'),
               ),
             ],
@@ -75,7 +73,7 @@ class RemindersScreen extends ConsumerWidget {
             Icon(
               Icons.notifications_none,
               size: 64,
-              color: Theme.of(context).colorScheme.secondary.withOpacity(0.5),
+              color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 16),
             Text(
@@ -173,7 +171,7 @@ class RemindersScreen extends ConsumerWidget {
       onDismissed: (direction) async {
         await ref.read(reminderRepositoryProvider).deleteReminder(reminder.id);
         await ref.read(notificationServiceProvider).cancelNotification(reminder.id);
-        ref.refresh(remindersProvider);
+        ref.invalidate(remindersProvider);
 
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -213,7 +211,7 @@ class RemindersScreen extends ConsumerWidget {
                 await ref.read(notificationServiceProvider).cancelNotification(reminder.id);
               }
 
-              ref.refresh(remindersProvider);
+              ref.invalidate(remindersProvider);
             },
           ),
           isThreeLine: true,
@@ -421,7 +419,7 @@ class _AddReminderFormState extends ConsumerState<AddReminderForm> {
     try {
       final saved = await ref.read(reminderRepositoryProvider).createReminder(reminder);
       await ref.read(notificationServiceProvider).scheduleRepeatingNotification(saved);
-      ref.refresh(remindersProvider);
+      ref.invalidate(remindersProvider);
 
       if (mounted) {
         Navigator.of(context).pop();
@@ -465,7 +463,7 @@ class _AddReminderFormState extends ConsumerState<AddReminderForm> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: _selectedModule,
+              initialValue: _selectedModule,
               decoration: const InputDecoration(
                 labelText: 'Category',
                 border: OutlineInputBorder(),
@@ -533,7 +531,7 @@ class _AddReminderFormState extends ConsumerState<AddReminderForm> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: _selectedRepeat,
+              initialValue: _selectedRepeat,
               decoration: const InputDecoration(
                 labelText: 'Repeat',
                 border: OutlineInputBorder(),

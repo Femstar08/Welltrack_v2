@@ -1,22 +1,21 @@
 // lib/features/daily_view/presentation/daily_view_provider.dart
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/supplements/domain/supplement_log_entity.dart';
-import 'package:welltrack/features/supplements/data/supplement_repository.dart';
-import 'package:welltrack/features/workouts/domain/workout_entity.dart';
-import 'package:welltrack/features/workouts/data/workout_repository.dart';
+import '../../supplements/data/supplement_repository.dart';
+import '../../workouts/domain/workout_entity.dart';
+import '../../workouts/data/workout_repository.dart';
 
 // Module data aggregator classes
 class MealsSummary {
-  final int plannedCount;
-  final int loggedCount;
-  final List<String> plannedMeals;
 
   const MealsSummary({
     required this.plannedCount,
     required this.loggedCount,
     required this.plannedMeals,
   });
+  final int plannedCount;
+  final int loggedCount;
+  final List<String> plannedMeals;
 
   double get completionPercentage {
     if (plannedCount == 0) return 0.0;
@@ -25,10 +24,6 @@ class MealsSummary {
 }
 
 class SupplementsSummary {
-  final int totalDue;
-  final int taken;
-  final int skipped;
-  final List<String> pendingSupplements;
 
   const SupplementsSummary({
     required this.totalDue,
@@ -36,6 +31,10 @@ class SupplementsSummary {
     required this.skipped,
     required this.pendingSupplements,
   });
+  final int totalDue;
+  final int taken;
+  final int skipped;
+  final List<String> pendingSupplements;
 
   int get pending => totalDue - taken - skipped;
 
@@ -46,15 +45,15 @@ class SupplementsSummary {
 }
 
 class WorkoutsSummary {
-  final int scheduledCount;
-  final int completedCount;
-  final List<WorkoutEntity> scheduledWorkouts;
 
   const WorkoutsSummary({
     required this.scheduledCount,
     required this.completedCount,
     required this.scheduledWorkouts,
   });
+  final int scheduledCount;
+  final int completedCount;
+  final List<WorkoutEntity> scheduledWorkouts;
 
   double get completionPercentage {
     if (scheduledCount == 0) return 0.0;
@@ -63,10 +62,6 @@ class WorkoutsSummary {
 }
 
 class HealthMetricsSummary {
-  final int? sleepMinutes;
-  final int? steps;
-  final double? heartRate;
-  final double? stressScore;
 
   const HealthMetricsSummary({
     this.sleepMinutes,
@@ -74,6 +69,10 @@ class HealthMetricsSummary {
     this.heartRate,
     this.stressScore,
   });
+  final int? sleepMinutes;
+  final int? steps;
+  final double? heartRate;
+  final double? stressScore;
 
   String get sleepDisplay {
     if (sleepMinutes == null) return 'No data';
@@ -89,15 +88,15 @@ class HealthMetricsSummary {
 }
 
 class RecoveryScoreSummary {
-  final double? score;
-  final bool isCalibrating;
-  final String? message;
 
   const RecoveryScoreSummary({
     this.score,
     this.isCalibrating = false,
     this.message,
   });
+  final double? score;
+  final bool isCalibrating;
+  final String? message;
 
   String get displayMessage {
     if (isCalibrating) {
@@ -120,15 +119,6 @@ class RecoveryScoreSummary {
 
 // Aggregate state
 class DailyViewState {
-  final DateTime selectedDate;
-  final MealsSummary? mealsSummary;
-  final SupplementsSummary? supplementsSummary;
-  final WorkoutsSummary? workoutsSummary;
-  final HealthMetricsSummary? healthMetrics;
-  final RecoveryScoreSummary? recoveryScore;
-  final List<String> reminders;
-  final bool isLoading;
-  final String? error;
 
   const DailyViewState({
     required this.selectedDate,
@@ -141,6 +131,15 @@ class DailyViewState {
     this.isLoading = false,
     this.error,
   });
+  final DateTime selectedDate;
+  final MealsSummary? mealsSummary;
+  final SupplementsSummary? supplementsSummary;
+  final WorkoutsSummary? workoutsSummary;
+  final HealthMetricsSummary? healthMetrics;
+  final RecoveryScoreSummary? recoveryScore;
+  final List<String> reminders;
+  final bool isLoading;
+  final String? error;
 
   DailyViewState copyWith({
     DateTime? selectedDate,
@@ -202,15 +201,15 @@ class DailyViewState {
 
 // StateNotifier
 class DailyViewNotifier extends StateNotifier<DailyViewState> {
-  final SupplementRepository _supplementRepository;
-  final WorkoutRepository _workoutRepository;
-  final String _profileId;
 
   DailyViewNotifier(
     this._supplementRepository,
     this._workoutRepository,
     this._profileId,
   ) : super(DailyViewState(selectedDate: DateTime.now()));
+  final SupplementRepository _supplementRepository;
+  final WorkoutRepository _workoutRepository;
+  final String _profileId;
 
   Future<void> loadDailyData({DateTime? date}) async {
     final selectedDate = date ?? state.selectedDate;

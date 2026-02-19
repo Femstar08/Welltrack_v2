@@ -1,18 +1,18 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/auth/data/auth_repository.dart';
-import 'package:welltrack/features/auth/domain/auth_state.dart';
-import 'package:welltrack/features/auth/domain/user_entity.dart';
+import '../data/auth_repository.dart';
+import '../domain/auth_state.dart';
+import '../domain/user_entity.dart';
 
 /// StateNotifier that manages authentication state
 /// Watches Supabase auth state and provides auth operations
 class AuthNotifier extends StateNotifier<AuthState> {
-  final AuthRepository _repository;
-  StreamSubscription<UserEntity?>? _authStateSubscription;
 
   AuthNotifier(this._repository) : super(const AuthInitial()) {
     _initialize();
   }
+  final AuthRepository _repository;
+  StreamSubscription<UserEntity?>? _authStateSubscription;
 
   /// Initialize auth state by checking current session
   /// and setting up auth state change listener

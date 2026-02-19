@@ -5,16 +5,6 @@ import '../constants/api_constants.dart';
 
 /// Model for storing offline API requests
 class QueuedRequest {
-  final int id;
-  final DateTime createdAt;
-  final String method; // GET, POST, PUT, DELETE, PATCH
-  final String url;
-  final String? body;
-  final String? headers; // JSON encoded Map<String, dynamic>
-  int retryCount;
-  bool isPending;
-  String? errorMessage;
-  DateTime? lastAttemptAt;
 
   QueuedRequest({
     required this.id,
@@ -28,22 +18,6 @@ class QueuedRequest {
     this.errorMessage,
     this.lastAttemptAt,
   });
-
-  /// Serialize to map for Hive storage
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'createdAt': createdAt.toIso8601String(),
-      'method': method,
-      'url': url,
-      'body': body,
-      'headers': headers,
-      'retryCount': retryCount,
-      'isPending': isPending,
-      'errorMessage': errorMessage,
-      'lastAttemptAt': lastAttemptAt?.toIso8601String(),
-    };
-  }
 
   /// Deserialize from Hive map
   factory QueuedRequest.fromMap(Map<dynamic, dynamic> map) {
@@ -62,17 +36,43 @@ class QueuedRequest {
           : null,
     );
   }
+  final int id;
+  final DateTime createdAt;
+  final String method; // GET, POST, PUT, DELETE, PATCH
+  final String url;
+  final String? body;
+  final String? headers; // JSON encoded Map<String, dynamic>
+  int retryCount;
+  bool isPending;
+  String? errorMessage;
+  DateTime? lastAttemptAt;
+
+  /// Serialize to map for Hive storage
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'createdAt': createdAt.toIso8601String(),
+      'method': method,
+      'url': url,
+      'body': body,
+      'headers': headers,
+      'retryCount': retryCount,
+      'isPending': isPending,
+      'errorMessage': errorMessage,
+      'lastAttemptAt': lastAttemptAt?.toIso8601String(),
+    };
+  }
 }
 
 /// Service for managing offline request queue using Hive
 class OfflineQueue {
+
+  OfflineQueue(this._box);
   final Box _box;
   final AppLogger _logger = AppLogger();
 
   /// Box name constant
   static const String boxName = 'offline_queue';
-
-  OfflineQueue(this._box);
 
   /// Auto-incrementing ID counter
   int _nextId() {

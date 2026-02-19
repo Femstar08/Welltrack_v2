@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/profile/data/profile_repository.dart';
-import 'package:welltrack/features/profile/domain/profile_entity.dart';
+import '../data/profile_repository.dart';
+import '../domain/profile_entity.dart';
 
 final activeProfileProvider =
     StateNotifierProvider<ProfileNotifier, AsyncValue<ProfileEntity?>>((ref) {
@@ -8,11 +8,11 @@ final activeProfileProvider =
 });
 
 class ProfileNotifier extends StateNotifier<AsyncValue<ProfileEntity?>> {
-  final ProfileRepository _repository;
 
   ProfileNotifier(this._repository) : super(const AsyncValue.loading()) {
     loadActiveProfile();
   }
+  final ProfileRepository _repository;
 
   Future<void> loadActiveProfile() async {
     state = const AsyncValue.loading();

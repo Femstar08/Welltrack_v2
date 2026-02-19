@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:welltrack/features/auth/domain/user_entity.dart';
+import '../domain/user_entity.dart';
 
 /// Data source that wraps Supabase Auth client
 /// Handles all authentication operations with Supabase backend
 class SupabaseAuthSource {
-  final SupabaseClient _supabase;
 
   SupabaseAuthSource(this._supabase);
+  final SupabaseClient _supabase;
 
   /// Sign up a new user with email and password
   /// After successful signup, the DB trigger auto-creates wt_users + wt_profiles

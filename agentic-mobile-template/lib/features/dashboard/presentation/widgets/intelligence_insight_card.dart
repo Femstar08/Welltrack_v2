@@ -3,9 +3,9 @@ import 'package:go_router/go_router.dart';
 
 /// Section 3: AI insight summary card.
 class IntelligenceInsightCard extends StatelessWidget {
-  final String? insightText;
 
   const IntelligenceInsightCard({super.key, this.insightText});
+  final String? insightText;
 
   @override
   Widget build(BuildContext context) {

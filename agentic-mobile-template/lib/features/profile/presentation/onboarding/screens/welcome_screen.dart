@@ -5,9 +5,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 
 class WelcomeScreen extends ConsumerWidget {
-  final VoidCallback onContinue;
 
   const WelcomeScreen({super.key, required this.onContinue});
+  final VoidCallback onContinue;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

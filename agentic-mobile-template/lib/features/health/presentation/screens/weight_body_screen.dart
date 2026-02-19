@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:welltrack/features/health/data/health_repository.dart';
-import 'package:welltrack/features/health/domain/health_metric_entity.dart';
-import 'package:welltrack/features/health/presentation/widgets/metric_chart.dart';
-import 'package:welltrack/features/insights/domain/forecast_entity.dart';
-import 'package:welltrack/shared/core/theme/app_colors.dart';
+import '../../data/health_repository.dart';
+import '../../domain/health_metric_entity.dart';
+import '../widgets/metric_chart.dart';
+import '../../../insights/domain/forecast_entity.dart';
+import '../../../../shared/core/theme/app_colors.dart';
 
 class WeightBodyScreen extends ConsumerStatefulWidget {
-  final String profileId;
 
   const WeightBodyScreen({super.key, required this.profileId});
+  final String profileId;
 
   @override
   ConsumerState<WeightBodyScreen> createState() => _WeightBodyScreenState();
@@ -46,7 +46,7 @@ class _WeightBodyScreenState extends ConsumerState<WeightBodyScreen> {
           startDate: thirtyDaysAgo,
           endDate: now,
         ),
-        repo.getMetrics(widget.profileId, MetricType.body_fat),
+        repo.getMetrics(widget.profileId, MetricType.bodyFat),
       ]);
 
       if (mounted) {
@@ -122,7 +122,7 @@ class _WeightBodyScreenState extends ConsumerState<WeightBodyScreen> {
                           padding: const EdgeInsets.all(20),
                           child: Column(
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.monitor_weight_outlined,
                                 size: 40,
                                 color: AppColors.secondary,
@@ -183,7 +183,7 @@ class _WeightBodyScreenState extends ConsumerState<WeightBodyScreen> {
                       // Body fat card
                       Card(
                         child: ListTile(
-                          leading: Icon(
+                          leading: const Icon(
                             Icons.percent,
                             color: AppColors.mealsTile,
                           ),

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:welltrack/features/dashboard/presentation/module_tile_widget.dart';
-import 'package:welltrack/shared/core/modules/module_metadata.dart';
+import '../module_tile_widget.dart';
+import '../../../../shared/core/modules/module_metadata.dart';
 
 /// Section 5: Compact module tiles list.
 class SecondaryModulesList extends StatelessWidget {
-  final List<ModuleConfig> tiles;
 
   const SecondaryModulesList({super.key, required this.tiles});
+  final List<ModuleConfig> tiles;
 
   @override
   Widget build(BuildContext context) {

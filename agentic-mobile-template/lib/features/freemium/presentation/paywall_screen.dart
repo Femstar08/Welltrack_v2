@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/freemium/domain/plan_tier.dart';
+import '../domain/plan_tier.dart';
 
 /// Paywall screen for upgrading to Pro
 class PaywallScreen extends ConsumerWidget {
-  final String? featureName;
-  final String? description;
 
   const PaywallScreen({
     super.key,
     this.featureName,
     this.description,
   });
+  final String? featureName;
+  final String? description;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -45,7 +45,7 @@ class PaywallScreen extends ConsumerWidget {
                 Text(
                   description!,
                   style: theme.textTheme.bodyLarge?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -67,7 +67,7 @@ class PaywallScreen extends ConsumerWidget {
               Text(
                 'Get unlimited access to all Pro features',
                 style: theme.textTheme.bodyLarge?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.7),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -121,7 +121,7 @@ class PaywallScreen extends ConsumerWidget {
             Text(
               'Subscription automatically renews unless cancelled. Cancel anytime from your account settings.',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.5),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
               ),
               textAlign: TextAlign.center,
             ),
@@ -278,7 +278,7 @@ class PaywallScreen extends ConsumerWidget {
             Text(
               'per month',
               style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onPrimaryContainer.withOpacity(0.7),
+                color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.7),
               ),
             ),
             const SizedBox(height: 16),

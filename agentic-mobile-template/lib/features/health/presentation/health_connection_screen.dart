@@ -2,16 +2,16 @@ import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/health/presentation/health_provider.dart';
-import 'package:welltrack/features/health/domain/health_metric_entity.dart';
+import 'health_provider.dart';
+import '../domain/health_metric_entity.dart';
 
 class HealthConnectionScreen extends ConsumerWidget {
-  final String profileId;
 
   const HealthConnectionScreen({
-    Key? key,
+    super.key,
     required this.profileId,
-  }) : super(key: key);
+  });
+  final String profileId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

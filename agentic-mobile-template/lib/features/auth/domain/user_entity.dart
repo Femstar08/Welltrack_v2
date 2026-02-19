@@ -1,12 +1,6 @@
 /// Domain entity representing a WellTrack user
 /// This is the core user model used across the app
-class UserEntity {
-  final String id;
-  final String email;
-  final String? displayName;
-  final String? avatarUrl;
-  final bool onboardingCompleted;
-  final String planTier; // 'free' or 'pro'
+class UserEntity { // 'free' or 'pro'
 
   const UserEntity({
     required this.id,
@@ -16,6 +10,12 @@ class UserEntity {
     this.onboardingCompleted = false,
     this.planTier = 'free',
   });
+  final String id;
+  final String email;
+  final String? displayName;
+  final String? avatarUrl;
+  final bool onboardingCompleted;
+  final String planTier;
 
   /// Create a copy of this user with updated fields
   UserEntity copyWith({

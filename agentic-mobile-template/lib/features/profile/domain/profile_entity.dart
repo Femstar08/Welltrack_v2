@@ -1,22 +1,4 @@
 class ProfileEntity {
-  final String id;
-  final String userId;
-  final String profileType; // 'parent' or 'dependent'
-  final String displayName;
-  final DateTime? dateOfBirth;
-  final String? gender;
-  final double? heightCm;
-  final double? weightKg;
-  final String? activityLevel;
-  final String? fitnessGoals;
-  final String? dietaryRestrictions;
-  final String? allergies;
-  final String? primaryGoal;
-  final String? goalIntensity;
-  final bool isPrimary;
-  final String? avatarUrl;
-  final DateTime createdAt;
-  final DateTime updatedAt;
 
   const ProfileEntity({
     required this.id,
@@ -38,6 +20,24 @@ class ProfileEntity {
     required this.createdAt,
     required this.updatedAt,
   });
+  final String id;
+  final String userId;
+  final String profileType; // 'parent' or 'dependent'
+  final String displayName;
+  final DateTime? dateOfBirth;
+  final String? gender;
+  final double? heightCm;
+  final double? weightKg;
+  final String? activityLevel;
+  final String? fitnessGoals;
+  final String? dietaryRestrictions;
+  final String? allergies;
+  final String? primaryGoal;
+  final String? goalIntensity;
+  final bool isPrimary;
+  final String? avatarUrl;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   ProfileEntity copyWith({
     String? displayName,

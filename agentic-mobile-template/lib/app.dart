@@ -1,18 +1,20 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:welltrack/features/auth/data/auth_repository.dart';
-import 'package:welltrack/features/health/data/health_background_sync.dart';
-import 'package:welltrack/features/profile/presentation/profile_provider.dart';
-import 'package:welltrack/shared/core/health/health_service.dart';
-import 'package:welltrack/shared/core/router/app_router.dart';
-import 'package:welltrack/shared/core/theme/app_theme.dart';
-import 'package:welltrack/shared/core/storage/local_storage_service.dart';
-import 'package:welltrack/shared/core/network/connectivity_service.dart';
-import 'package:welltrack/shared/core/sync/sync_engine.dart';
-import 'package:welltrack/shared/core/logging/app_logger.dart';
+import 'features/auth/data/auth_repository.dart';
+import 'features/health/data/health_background_sync.dart';
+import 'features/profile/presentation/profile_provider.dart';
+import 'shared/core/health/health_service.dart';
+import 'shared/core/router/app_router.dart';
+import 'shared/core/theme/app_theme.dart';
+import 'shared/core/storage/local_storage_service.dart';
+import 'shared/core/network/connectivity_service.dart';
+import 'shared/core/sync/sync_engine.dart';
+import 'shared/core/logging/app_logger.dart';
 
 /// Root application widget for WellTrack
 class WellTrackApp extends ConsumerStatefulWidget {
@@ -82,9 +84,9 @@ class _WellTrackAppState extends ConsumerState<WellTrackApp> {
             if (profileId != null && profileId.isNotEmpty) {
               final isDue = await bgSyncInstance.isSyncDue();
               if (isDue) {
-                bgSyncInstance.syncNow(profileId).catchError((e) {
+                unawaited(bgSyncInstance.syncNow(profileId).catchError((e) {
                   _logger.warning('Initial health sync failed: $e');
-                });
+                }));
                 _logger.info('Initial health sync triggered');
               }
             }
@@ -173,13 +175,13 @@ class _WellTrackAppState extends ConsumerState<WellTrackApp> {
   Widget build(BuildContext context) {
     // Show loading screen while initializing
     if (!_isInitialized) {
-      return MaterialApp(
+      return const MaterialApp(
         debugShowCheckedModeBanner: false,
         home: Scaffold(
           body: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
+              children: [
                 CircularProgressIndicator(),
                 SizedBox(height: 24),
                 Text(

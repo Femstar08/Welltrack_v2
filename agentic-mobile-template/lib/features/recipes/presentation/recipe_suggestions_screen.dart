@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/recipes/presentation/recipe_generation_provider.dart';
-import 'package:welltrack/features/recipes/presentation/recipe_detail_screen.dart';
-import 'package:welltrack/features/profile/presentation/profile_provider.dart';
+import 'recipe_generation_provider.dart';
+import 'recipe_detail_screen.dart';
+import '../../profile/presentation/profile_provider.dart';
 
 class RecipeSuggestionsScreen extends ConsumerWidget {
   const RecipeSuggestionsScreen({super.key});
@@ -125,13 +125,13 @@ class RecipeSuggestionsScreen extends ConsumerWidget {
 }
 
 class _RecipeSuggestionCard extends StatelessWidget {
-  final RecipeSuggestion suggestion;
-  final VoidCallback onTap;
 
   const _RecipeSuggestionCard({
     required this.suggestion,
     required this.onTap,
   });
+  final RecipeSuggestion suggestion;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -236,9 +236,9 @@ class _RecipeSuggestionCard extends StatelessWidget {
 }
 
 class _NutritionScoreBadge extends StatelessWidget {
-  final String score;
 
   const _NutritionScoreBadge({required this.score});
+  final String score;
 
   @override
   Widget build(BuildContext context) {
@@ -247,7 +247,7 @@ class _NutritionScoreBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
+        color: color.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: color),
       ),

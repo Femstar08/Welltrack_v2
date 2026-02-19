@@ -1,12 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:welltrack/features/freemium/domain/plan_tier.dart';
+import '../domain/plan_tier.dart';
 
 /// Repository for managing freemium/subscription features
 class FreemiumRepository {
-  final SupabaseClient _supabase;
 
   FreemiumRepository(this._supabase);
+  final SupabaseClient _supabase;
 
   /// Gets the current plan tier for a user
   Future<PlanTier> getCurrentTier(String userId) async {
@@ -83,22 +83,20 @@ class FreemiumRepository {
     int totalCalls = 0;
     int daysWithUsage = 0;
 
-    if (response is List) {
-      totalCalls = response.fold<int>(
-        0,
-        (sum, record) => sum + (record['call_count'] as int? ?? 1),
-      );
+    totalCalls = response.fold<int>(
+      0,
+      (sum, record) => sum + (record['call_count'] as int? ?? 1),
+    );
 
-      // Count unique days
-      final uniqueDays = <String>{};
-      for (final record in response) {
-        final date = DateTime.parse(record['created_at'] as String);
-        final dayKey = '${date.year}-${date.month}-${date.day}';
-        uniqueDays.add(dayKey);
-      }
-      daysWithUsage = uniqueDays.length;
+    // Count unique days
+    final uniqueDays = <String>{};
+    for (final record in response) {
+      final date = DateTime.parse(record['created_at'] as String);
+      final dayKey = '${date.year}-${date.month}-${date.day}';
+      uniqueDays.add(dayKey);
     }
-
+    daysWithUsage = uniqueDays.length;
+  
     return {
       'total_calls': totalCalls,
       'days_with_usage': daysWithUsage,

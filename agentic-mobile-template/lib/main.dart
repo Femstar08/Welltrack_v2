@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:welltrack/app.dart';
-import 'package:welltrack/shared/core/constants/api_constants.dart';
-import 'package:welltrack/shared/core/logging/app_logger.dart';
+import 'app.dart';
+import 'shared/core/constants/api_constants.dart';
+import 'shared/core/logging/app_logger.dart';
 
 /// Main entry point for WellTrack app
 void main() async {

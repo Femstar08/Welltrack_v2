@@ -1,20 +1,6 @@
 // lib/features/workouts/domain/workout_log_entity.dart
 
 class WorkoutLogEntity {
-  final String id;
-  final String profileId;
-  final String workoutId;
-  final String? exerciseId;
-  final String exerciseName;
-  final int? sets;
-  final int? reps;
-  final double? weightKg;
-  final int? durationSeconds;
-  final double? distanceM;
-  final String? notes;
-  final DateTime loggedAt;
-  final DateTime createdAt;
-  final DateTime updatedAt;
 
   const WorkoutLogEntity({
     required this.id,
@@ -55,6 +41,20 @@ class WorkoutLogEntity {
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
   }
+  final String id;
+  final String profileId;
+  final String workoutId;
+  final String? exerciseId;
+  final String exerciseName;
+  final int? sets;
+  final int? reps;
+  final double? weightKg;
+  final int? durationSeconds;
+  final double? distanceM;
+  final String? notes;
+  final DateTime loggedAt;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   Map<String, dynamic> toJson() {
     return {

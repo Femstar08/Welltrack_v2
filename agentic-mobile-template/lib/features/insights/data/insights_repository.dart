@@ -1,17 +1,17 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:welltrack/features/insights/domain/recovery_score_entity.dart';
-import 'package:welltrack/features/insights/domain/training_load_entity.dart';
-import 'package:welltrack/features/insights/domain/forecast_entity.dart';
-import 'package:welltrack/features/insights/domain/insight_entity.dart';
-import 'package:welltrack/features/insights/data/performance_engine.dart';
+import '../domain/recovery_score_entity.dart';
+import '../domain/training_load_entity.dart';
+import '../domain/forecast_entity.dart';
+import '../domain/insight_entity.dart';
+import 'performance_engine.dart';
 
 /// Insights Repository
 /// Handles all insights data operations with Supabase
 class InsightsRepository {
-  final SupabaseClient _supabase;
 
   InsightsRepository(this._supabase);
+  final SupabaseClient _supabase;
 
   // Recovery Scores
 

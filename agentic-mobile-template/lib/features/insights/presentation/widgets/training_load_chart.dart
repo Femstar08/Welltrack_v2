@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:welltrack/features/insights/domain/training_load_entity.dart';
+import '../../domain/training_load_entity.dart';
 
 /// Training Load Chart
 /// 7-day bar chart with recovery ratio overlay
 class TrainingLoadChart extends StatelessWidget {
-  final List<DailyLoadPoint> dailyLoads;
-  final double? loadRatio;
 
   const TrainingLoadChart({
     super.key,
     required this.dailyLoads,
     this.loadRatio,
   });
+  final List<DailyLoadPoint> dailyLoads;
+  final double? loadRatio;
 
   @override
   Widget build(BuildContext context) {

@@ -1,15 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/health/presentation/health_provider.dart';
+import '../../health/presentation/health_provider.dart';
 
 /// State for health settings UI
 class HealthSettingsState {
-  final bool showPermissionDetails;
-  final String? lastError;
 
   const HealthSettingsState({
     this.showPermissionDetails = false,
     this.lastError,
   });
+  final bool showPermissionDetails;
+  final String? lastError;
 
   HealthSettingsState copyWith({
     bool? showPermissionDetails,
@@ -25,11 +25,11 @@ class HealthSettingsState {
 
 /// Notifier for health settings screen state
 class HealthSettingsNotifier extends StateNotifier<HealthSettingsState> {
-  final String _profileId;
-  final Ref _ref;
 
   HealthSettingsNotifier(this._profileId, this._ref)
       : super(const HealthSettingsState());
+  final String _profileId;
+  final Ref _ref;
 
   void togglePermissionDetails() {
     state = state.copyWith(

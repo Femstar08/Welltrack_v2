@@ -1,10 +1,4 @@
 class RecipeIngredient {
-  final String id;
-  final String ingredientName;
-  final double? quantity;
-  final String? unit;
-  final String? notes;
-  final int sortOrder;
 
   const RecipeIngredient({
     required this.id,
@@ -15,17 +9,6 @@ class RecipeIngredient {
     required this.sortOrder,
   });
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'ingredient_name': ingredientName,
-      'quantity': quantity,
-      'unit': unit,
-      'notes': notes,
-      'sort_order': sortOrder,
-    };
-  }
-
   factory RecipeIngredient.fromJson(Map<String, dynamic> json) {
     return RecipeIngredient(
       id: json['id'] as String,
@@ -35,6 +18,23 @@ class RecipeIngredient {
       notes: json['notes'] as String?,
       sortOrder: json['sort_order'] as int,
     );
+  }
+  final String id;
+  final String ingredientName;
+  final double? quantity;
+  final String? unit;
+  final String? notes;
+  final int sortOrder;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'ingredient_name': ingredientName,
+      'quantity': quantity,
+      'unit': unit,
+      'notes': notes,
+      'sort_order': sortOrder,
+    };
   }
 
   RecipeIngredient copyWith({

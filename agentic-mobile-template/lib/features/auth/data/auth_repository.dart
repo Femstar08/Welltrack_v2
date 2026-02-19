@@ -1,15 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:welltrack/features/auth/data/supabase_auth_source.dart';
-import 'package:welltrack/features/auth/domain/user_entity.dart';
+import 'supabase_auth_source.dart';
+import '../domain/user_entity.dart';
 
 /// Repository that handles authentication business logic
 /// Uses SupabaseAuthSource for data operations
 class AuthRepository {
-  final SupabaseAuthSource _authSource;
-  final SupabaseClient _supabase;
 
   AuthRepository(this._authSource, this._supabase);
+  final SupabaseAuthSource _authSource;
+  final SupabaseClient _supabase;
 
   /// Sign up a new user
   Future<UserEntity> signUp({

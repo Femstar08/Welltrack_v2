@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/recipes/data/recipe_repository.dart';
-import 'package:welltrack/features/recipes/domain/recipe_entity.dart';
-import 'package:welltrack/features/recipes/presentation/prep_walkthrough_screen.dart';
+import '../data/recipe_repository.dart';
+import '../domain/recipe_entity.dart';
+import 'prep_walkthrough_screen.dart';
 
 final recipeDetailProvider = FutureProvider.family<RecipeEntity, String>((ref, recipeId) {
   return ref.watch(recipeRepositoryProvider).getRecipe(recipeId);
 });
 
 class RecipeDetailScreen extends ConsumerWidget {
-  final String recipeId;
 
   const RecipeDetailScreen({
     super.key,
     required this.recipeId,
   });
+  final String recipeId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -45,9 +45,9 @@ class RecipeDetailScreen extends ConsumerWidget {
 }
 
 class _RecipeDetailContent extends ConsumerWidget {
-  final RecipeEntity recipe;
 
   const _RecipeDetailContent({required this.recipe});
+  final RecipeEntity recipe;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -267,13 +267,13 @@ class _RecipeDetailContent extends ConsumerWidget {
 }
 
 class _MetadataChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
 
   const _MetadataChip({
     required this.icon,
     required this.label,
   });
+  final IconData icon;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
@@ -286,9 +286,9 @@ class _MetadataChip extends StatelessWidget {
 }
 
 class _NutritionScoreBadge extends StatelessWidget {
-  final String score;
 
   const _NutritionScoreBadge({required this.score});
+  final String score;
 
   @override
   Widget build(BuildContext context) {
@@ -297,7 +297,7 @@ class _NutritionScoreBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
+        color: color.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: color, width: 2),
       ),

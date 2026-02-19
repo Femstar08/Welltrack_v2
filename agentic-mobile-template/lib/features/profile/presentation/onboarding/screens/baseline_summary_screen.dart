@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/profile/presentation/onboarding/onboarding_state.dart';
+import '../onboarding_state.dart';
 
 
 class BaselineSummaryScreen extends ConsumerStatefulWidget {
-  final VoidCallback onComplete;
 
   const BaselineSummaryScreen({super.key, required this.onComplete});
+  final VoidCallback onComplete;
 
   @override
   ConsumerState<BaselineSummaryScreen> createState() =>
@@ -174,10 +174,6 @@ class _BaselineSummaryScreenState extends ConsumerState<BaselineSummaryScreen> {
 }
 
 class _BaselineResult {
-  final String focusPriority;
-  final String keyMetric;
-  final String targetSleep;
-  final String weeklyLoad;
 
   const _BaselineResult({
     required this.focusPriority,
@@ -185,18 +181,22 @@ class _BaselineResult {
     required this.targetSleep,
     required this.weeklyLoad,
   });
+  final String focusPriority;
+  final String keyMetric;
+  final String targetSleep;
+  final String weeklyLoad;
 }
 
 class _BaselineRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
 
   const _BaselineRow({
     required this.icon,
     required this.label,
     required this.value,
   });
+  final IconData icon;
+  final String label;
+  final String value;
 
   @override
   Widget build(BuildContext context) {

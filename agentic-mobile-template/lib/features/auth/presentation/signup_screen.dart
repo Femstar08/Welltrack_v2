@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:welltrack/features/auth/domain/auth_state.dart';
-import 'package:welltrack/features/auth/presentation/auth_provider.dart';
-import 'package:welltrack/shared/core/router/app_router.dart';
-import 'package:welltrack/shared/core/theme/app_colors.dart';
+import '../domain/auth_state.dart';
+import 'auth_provider.dart';
+import '../../../shared/core/router/app_router.dart';
+import '../../../shared/core/theme/app_colors.dart';
 
 /// Sign up screen for WellTrack
 /// Handles new user registration with email and password
@@ -139,7 +139,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // WellTrack Logo/Branding
-                  Icon(
+                  const Icon(
                     Icons.fitness_center,
                     size: 64,
                     color: AppColors.primary,
@@ -268,7 +268,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                         Expanded(
                           child: LinearProgressIndicator(
                             value: passwordStrength / 4,
-                            backgroundColor: AppColors.textSecondaryLight.withOpacity(0.2),
+                            backgroundColor: AppColors.textSecondaryLight.withValues(alpha: 0.2),
                             valueColor: AlwaysStoppedAnimation<Color>(
                               _getPasswordStrengthColor(passwordStrength),
                             ),

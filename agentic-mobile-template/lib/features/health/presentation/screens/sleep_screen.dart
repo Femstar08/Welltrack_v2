@@ -2,14 +2,14 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:welltrack/features/health/data/health_repository.dart';
-import 'package:welltrack/features/health/domain/health_metric_entity.dart';
-import 'package:welltrack/shared/core/theme/app_colors.dart';
+import '../../data/health_repository.dart';
+import '../../domain/health_metric_entity.dart';
+import '../../../../shared/core/theme/app_colors.dart';
 
 class SleepScreen extends ConsumerStatefulWidget {
-  final String profileId;
 
   const SleepScreen({super.key, required this.profileId});
+  final String profileId;
 
   @override
   ConsumerState<SleepScreen> createState() => _SleepScreenState();
@@ -145,7 +145,7 @@ class _SleepScreenState extends ConsumerState<SleepScreen> {
                           padding: const EdgeInsets.all(20),
                           child: Column(
                             children: [
-                              Icon(Icons.bedtime_outlined, size: 40, color: AppColors.sleepTile),
+                              const Icon(Icons.bedtime_outlined, size: 40, color: AppColors.sleepTile),
                               const SizedBox(height: 8),
                               Text(
                                 _formatMinutes(_nightlyAverage),
@@ -436,12 +436,6 @@ class _SleepScreenState extends ConsumerState<SleepScreen> {
 }
 
 class _NightData {
-  final DateTime date;
-  final double totalMinutes;
-  final double deepMinutes;
-  final double lightMinutes;
-  final double remMinutes;
-  final double awakeMinutes;
 
   const _NightData({
     required this.date,
@@ -451,4 +445,10 @@ class _NightData {
     required this.remMinutes,
     required this.awakeMinutes,
   });
+  final DateTime date;
+  final double totalMinutes;
+  final double deepMinutes;
+  final double lightMinutes;
+  final double remMinutes;
+  final double awakeMinutes;
 }

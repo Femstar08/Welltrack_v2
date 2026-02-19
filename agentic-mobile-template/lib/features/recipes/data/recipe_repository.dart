@@ -1,17 +1,17 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:welltrack/features/recipes/domain/recipe_entity.dart';
-import 'package:welltrack/features/recipes/domain/recipe_ingredient.dart';
-import 'package:welltrack/features/recipes/domain/recipe_step.dart';
+import '../domain/recipe_entity.dart';
+import '../domain/recipe_ingredient.dart';
+import '../domain/recipe_step.dart';
 
 final recipeRepositoryProvider = Provider<RecipeRepository>((ref) {
   return RecipeRepository(Supabase.instance.client);
 });
 
 class RecipeRepository {
-  final SupabaseClient _client;
 
   RecipeRepository(this._client);
+  final SupabaseClient _client;
 
   Future<List<RecipeEntity>> getRecipes(String profileId) async {
     try {

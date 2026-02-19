@@ -2,16 +2,6 @@ import 'health_metric_entity.dart';
 
 /// Represents a baseline calibration record for a health metric
 class BaselineEntity {
-  final String? id;
-  final String profileId;
-  final MetricType metricType;
-  final double? baselineValue;
-  final int dataPointsCount;
-  final DateTime captureStart;
-  final DateTime? captureEnd;
-  final bool isComplete;
-  final CalibrationStatus calibrationStatus;
-  final String? notes;
 
   const BaselineEntity({
     this.id,
@@ -25,6 +15,38 @@ class BaselineEntity {
     this.calibrationStatus = CalibrationStatus.pending,
     this.notes,
   });
+
+  factory BaselineEntity.fromSupabaseJson(Map<String, dynamic> json) {
+    return BaselineEntity(
+      id: json['id'] as String?,
+      profileId: json['profile_id'] as String,
+      metricType: MetricType.values.firstWhere(
+        (e) => e.name == json['metric_type'],
+      ),
+      baselineValue: (json['baseline_value'] as num?)?.toDouble(),
+      dataPointsCount: json['data_points_count'] as int? ?? 0,
+      captureStart: DateTime.parse(json['capture_start'] as String),
+      captureEnd: json['capture_end'] != null
+          ? DateTime.parse(json['capture_end'] as String)
+          : null,
+      isComplete: json['is_complete'] as bool? ?? false,
+      calibrationStatus: CalibrationStatus.values.firstWhere(
+        (e) => e.name == (json['calibration_status'] ?? 'pending'),
+        orElse: () => CalibrationStatus.pending,
+      ),
+      notes: json['notes'] as String?,
+    );
+  }
+  final String? id;
+  final String profileId;
+  final MetricType metricType;
+  final double? baselineValue;
+  final int dataPointsCount;
+  final DateTime captureStart;
+  final DateTime? captureEnd;
+  final bool isComplete;
+  final CalibrationStatus calibrationStatus;
+  final String? notes;
 
   /// Check if baseline calibration has sufficient data
   /// Requires: 14-day span + at least 10 data points
@@ -48,28 +70,6 @@ class BaselineEntity {
       'calibration_status': calibrationStatus.name,
       'notes': notes,
     };
-  }
-
-  factory BaselineEntity.fromSupabaseJson(Map<String, dynamic> json) {
-    return BaselineEntity(
-      id: json['id'] as String?,
-      profileId: json['profile_id'] as String,
-      metricType: MetricType.values.firstWhere(
-        (e) => e.name == json['metric_type'],
-      ),
-      baselineValue: (json['baseline_value'] as num?)?.toDouble(),
-      dataPointsCount: json['data_points_count'] as int? ?? 0,
-      captureStart: DateTime.parse(json['capture_start'] as String),
-      captureEnd: json['capture_end'] != null
-          ? DateTime.parse(json['capture_end'] as String)
-          : null,
-      isComplete: json['is_complete'] as bool? ?? false,
-      calibrationStatus: CalibrationStatus.values.firstWhere(
-        (e) => e.name == (json['calibration_status'] ?? 'pending'),
-        orElse: () => CalibrationStatus.pending,
-      ),
-      notes: json['notes'] as String?,
-    );
   }
 
   BaselineEntity copyWith({

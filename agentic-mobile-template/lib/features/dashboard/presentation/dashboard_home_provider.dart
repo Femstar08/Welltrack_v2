@@ -1,22 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/health/data/health_repository.dart';
-import 'package:welltrack/features/health/domain/health_metric_entity.dart';
-import 'package:welltrack/features/health/presentation/health_provider.dart';
-import 'package:welltrack/features/insights/domain/forecast_entity.dart';
-import 'package:welltrack/features/profile/presentation/profile_provider.dart';
-import 'package:welltrack/shared/core/logging/app_logger.dart';
+import '../../health/data/health_repository.dart';
+import '../../health/domain/health_metric_entity.dart';
+import '../../health/presentation/health_provider.dart';
+import '../../insights/domain/forecast_entity.dart';
+import '../../profile/presentation/profile_provider.dart';
+import '../../../shared/core/logging/app_logger.dart';
 
 // --- Enums & Data Classes ---
 
 enum TrendDirection { up, down, stable }
 
 class PrimaryMetricData {
-  final String label;
-  final String value;
-  final String unit;
-  final IconData icon;
-  final TrendDirection trend;
 
   const PrimaryMetricData({
     required this.label,
@@ -25,14 +20,14 @@ class PrimaryMetricData {
     required this.icon,
     this.trend = TrendDirection.stable,
   });
-}
-
-class KeySignal {
   final String label;
   final String value;
   final String unit;
   final IconData icon;
-  final Color color;
+  final TrendDirection trend;
+}
+
+class KeySignal {
 
   const KeySignal({
     required this.label,
@@ -41,20 +36,16 @@ class KeySignal {
     required this.icon,
     required this.color,
   });
+  final String label;
+  final String value;
+  final String unit;
+  final IconData icon;
+  final Color color;
 }
 
 // --- State ---
 
 class DashboardHomeState {
-  final String? primaryGoal;
-  final String? goalIntensity;
-  final PrimaryMetricData? primaryMetric;
-  final List<KeySignal> keySignals;
-  final String? insightText;
-  final List<DataPoint> trendData;
-  final String trendLabel;
-  final TrendDirection trendDirection;
-  final bool isLoading;
 
   const DashboardHomeState({
     this.primaryGoal,
@@ -67,6 +58,15 @@ class DashboardHomeState {
     this.trendDirection = TrendDirection.stable,
     this.isLoading = true,
   });
+  final String? primaryGoal;
+  final String? goalIntensity;
+  final PrimaryMetricData? primaryMetric;
+  final List<KeySignal> keySignals;
+  final String? insightText;
+  final List<DataPoint> trendData;
+  final String trendLabel;
+  final TrendDirection trendDirection;
+  final bool isLoading;
 
   DashboardHomeState copyWith({
     String? primaryGoal,
@@ -96,10 +96,10 @@ class DashboardHomeState {
 // --- Notifier ---
 
 class DashboardHomeNotifier extends StateNotifier<DashboardHomeState> {
-  final Ref ref;
-  final AppLogger _logger = AppLogger();
 
   DashboardHomeNotifier(this.ref) : super(const DashboardHomeState());
+  final Ref ref;
+  final AppLogger _logger = AppLogger();
 
   Future<void> initialize(String profileId) async {
     try {
@@ -237,45 +237,45 @@ class DashboardHomeNotifier extends StateNotifier<DashboardHomeState> {
     switch (goal) {
       case 'performance':
         defs = [
-          _SignalDef('Recovery', MetricType.hr, '', Icons.favorite_outline, const Color(0xFF4CAF50)),
-          _SignalDef('Sleep', MetricType.sleep, 'hrs', Icons.bedtime_outlined, const Color(0xFF5C6BC0)),
-          _SignalDef('Steps', MetricType.steps, '', Icons.directions_walk, const Color(0xFFFF9800)),
-          _SignalDef('Heart Rate', MetricType.hr, 'bpm', Icons.monitor_heart_outlined, const Color(0xFFEF5350)),
+          const _SignalDef('Recovery', MetricType.hr, '', Icons.favorite_outline, Color(0xFF4CAF50)),
+          const _SignalDef('Sleep', MetricType.sleep, 'hrs', Icons.bedtime_outlined, Color(0xFF5C6BC0)),
+          const _SignalDef('Steps', MetricType.steps, '', Icons.directions_walk, Color(0xFFFF9800)),
+          const _SignalDef('Heart Rate', MetricType.hr, 'bpm', Icons.monitor_heart_outlined, Color(0xFFEF5350)),
         ];
       case 'stress':
         defs = [
-          _SignalDef('Sleep', MetricType.sleep, 'hrs', Icons.bedtime_outlined, const Color(0xFF5C6BC0)),
-          _SignalDef('Recovery', MetricType.hr, '', Icons.favorite_outline, const Color(0xFF4CAF50)),
-          _SignalDef('Steps', MetricType.steps, '', Icons.directions_walk, const Color(0xFFFF9800)),
-          _SignalDef('Heart Rate', MetricType.hr, 'bpm', Icons.monitor_heart_outlined, const Color(0xFFEF5350)),
+          const _SignalDef('Sleep', MetricType.sleep, 'hrs', Icons.bedtime_outlined, Color(0xFF5C6BC0)),
+          const _SignalDef('Recovery', MetricType.hr, '', Icons.favorite_outline, Color(0xFF4CAF50)),
+          const _SignalDef('Steps', MetricType.steps, '', Icons.directions_walk, Color(0xFFFF9800)),
+          const _SignalDef('Heart Rate', MetricType.hr, 'bpm', Icons.monitor_heart_outlined, Color(0xFFEF5350)),
         ];
       case 'sleep':
         defs = [
-          _SignalDef('Sleep Hours', MetricType.sleep, 'hrs', Icons.schedule, const Color(0xFF5C6BC0)),
-          _SignalDef('Heart Rate', MetricType.hr, 'bpm', Icons.monitor_heart_outlined, const Color(0xFFEF5350)),
-          _SignalDef('Steps', MetricType.steps, '', Icons.directions_walk, const Color(0xFFFF9800)),
-          _SignalDef('Stress', MetricType.stress, '', Icons.self_improvement, const Color(0xFF7E57C2)),
+          const _SignalDef('Sleep Hours', MetricType.sleep, 'hrs', Icons.schedule, Color(0xFF5C6BC0)),
+          const _SignalDef('Heart Rate', MetricType.hr, 'bpm', Icons.monitor_heart_outlined, Color(0xFFEF5350)),
+          const _SignalDef('Steps', MetricType.steps, '', Icons.directions_walk, Color(0xFFFF9800)),
+          const _SignalDef('Stress', MetricType.stress, '', Icons.self_improvement, Color(0xFF7E57C2)),
         ];
       case 'strength':
         defs = [
-          _SignalDef('Recovery', MetricType.hr, '', Icons.favorite_outline, const Color(0xFF4CAF50)),
-          _SignalDef('Sleep', MetricType.sleep, 'hrs', Icons.bedtime_outlined, const Color(0xFF5C6BC0)),
-          _SignalDef('Steps', MetricType.steps, '', Icons.directions_walk, const Color(0xFFFF9800)),
-          _SignalDef('Heart Rate', MetricType.hr, 'bpm', Icons.monitor_heart_outlined, const Color(0xFFEF5350)),
+          const _SignalDef('Recovery', MetricType.hr, '', Icons.favorite_outline, Color(0xFF4CAF50)),
+          const _SignalDef('Sleep', MetricType.sleep, 'hrs', Icons.bedtime_outlined, Color(0xFF5C6BC0)),
+          const _SignalDef('Steps', MetricType.steps, '', Icons.directions_walk, Color(0xFFFF9800)),
+          const _SignalDef('Heart Rate', MetricType.hr, 'bpm', Icons.monitor_heart_outlined, Color(0xFFEF5350)),
         ];
       case 'fat_loss':
         defs = [
-          _SignalDef('Steps', MetricType.steps, '', Icons.directions_walk, const Color(0xFFFF9800)),
-          _SignalDef('Sleep', MetricType.sleep, 'hrs', Icons.bedtime_outlined, const Color(0xFF5C6BC0)),
-          _SignalDef('Heart Rate', MetricType.hr, 'bpm', Icons.monitor_heart_outlined, const Color(0xFFEF5350)),
-          _SignalDef('Recovery', MetricType.hr, '', Icons.favorite_outline, const Color(0xFF4CAF50)),
+          const _SignalDef('Steps', MetricType.steps, '', Icons.directions_walk, Color(0xFFFF9800)),
+          const _SignalDef('Sleep', MetricType.sleep, 'hrs', Icons.bedtime_outlined, Color(0xFF5C6BC0)),
+          const _SignalDef('Heart Rate', MetricType.hr, 'bpm', Icons.monitor_heart_outlined, Color(0xFFEF5350)),
+          const _SignalDef('Recovery', MetricType.hr, '', Icons.favorite_outline, Color(0xFF4CAF50)),
         ];
       default: // wellness
         defs = [
-          _SignalDef('Sleep', MetricType.sleep, 'hrs', Icons.bedtime_outlined, const Color(0xFF5C6BC0)),
-          _SignalDef('Steps', MetricType.steps, '', Icons.directions_walk, const Color(0xFFFF9800)),
-          _SignalDef('Heart Rate', MetricType.hr, 'bpm', Icons.monitor_heart_outlined, const Color(0xFFEF5350)),
-          _SignalDef('Stress', MetricType.stress, '', Icons.self_improvement, const Color(0xFF7E57C2)),
+          const _SignalDef('Sleep', MetricType.sleep, 'hrs', Icons.bedtime_outlined, Color(0xFF5C6BC0)),
+          const _SignalDef('Steps', MetricType.steps, '', Icons.directions_walk, Color(0xFFFF9800)),
+          const _SignalDef('Heart Rate', MetricType.hr, 'bpm', Icons.monitor_heart_outlined, Color(0xFFEF5350)),
+          const _SignalDef('Stress', MetricType.stress, '', Icons.self_improvement, Color(0xFF7E57C2)),
         ];
     }
 
@@ -395,13 +395,13 @@ class DashboardHomeNotifier extends StateNotifier<DashboardHomeState> {
 }
 
 class _SignalDef {
+
+  const _SignalDef(this.label, this.metricType, this.unit, this.icon, this.color);
   final String label;
   final MetricType metricType;
   final String unit;
   final IconData icon;
   final Color color;
-
-  const _SignalDef(this.label, this.metricType, this.unit, this.icon, this.color);
 }
 
 // --- Provider ---

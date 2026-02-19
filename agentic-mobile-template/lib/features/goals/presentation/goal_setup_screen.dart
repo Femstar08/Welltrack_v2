@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:welltrack/features/goals/domain/goal_entity.dart';
-import 'package:welltrack/features/goals/presentation/goals_provider.dart';
+import '../domain/goal_entity.dart';
+import 'goals_provider.dart';
 
 class GoalSetupScreen extends ConsumerStatefulWidget {
-  final String profileId;
-  final GoalEntity? existingGoal;
 
   const GoalSetupScreen({
     super.key,
     required this.profileId,
     this.existingGoal,
   });
+  final String profileId;
+  final GoalEntity? existingGoal;
 
   @override
   ConsumerState<GoalSetupScreen> createState() => _GoalSetupScreenState();
@@ -160,7 +160,7 @@ class _GoalSetupScreenState extends ConsumerState<GoalSetupScreen> {
           children: [
             // Metric type dropdown
             DropdownButtonFormField<String>(
-              value: _selectedMetricType,
+              initialValue: _selectedMetricType,
               decoration: const InputDecoration(
                 labelText: 'Metric',
                 border: OutlineInputBorder(),
@@ -240,7 +240,7 @@ class _GoalSetupScreenState extends ConsumerState<GoalSetupScreen> {
 
             // Priority
             DropdownButtonFormField<int>(
-              value: _priority,
+              initialValue: _priority,
               decoration: const InputDecoration(
                 labelText: 'Priority',
                 border: OutlineInputBorder(),

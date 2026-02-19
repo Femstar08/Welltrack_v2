@@ -3,19 +3,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
-import 'package:welltrack/features/workouts/domain/workout_entity.dart';
-import 'package:welltrack/features/workouts/domain/workout_log_entity.dart';
+import '../domain/workout_entity.dart';
+import '../domain/workout_log_entity.dart';
 
 final workoutRepositoryProvider = Provider<WorkoutRepository>((ref) {
   return WorkoutRepository(Supabase.instance.client);
 });
 
 class Exercise {
-  final String id;
-  final String name;
-  final String category;
-  final String? description;
-  final List<String> muscleGroups;
 
   const Exercise({
     required this.id,
@@ -34,13 +29,18 @@ class Exercise {
       muscleGroups: (json['muscle_groups'] as List?)?.cast<String>() ?? [],
     );
   }
+  final String id;
+  final String name;
+  final String category;
+  final String? description;
+  final List<String> muscleGroups;
 }
 
 class WorkoutRepository {
-  final SupabaseClient _supabase;
-  final _uuid = const Uuid();
 
   WorkoutRepository(this._supabase);
+  final SupabaseClient _supabase;
+  final _uuid = const Uuid();
 
   // CRUD for workouts
   Future<List<WorkoutEntity>> getWorkouts(

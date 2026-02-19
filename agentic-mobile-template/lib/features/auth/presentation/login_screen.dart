@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:welltrack/features/auth/domain/auth_state.dart';
-import 'package:welltrack/features/auth/domain/user_entity.dart';
-import 'package:welltrack/features/auth/presentation/auth_provider.dart';
-import 'package:welltrack/features/profile/presentation/profile_provider.dart';
-import 'package:welltrack/shared/core/router/app_router.dart';
-import 'package:welltrack/shared/core/theme/app_colors.dart';
+import '../domain/auth_state.dart';
+import '../domain/user_entity.dart';
+import 'auth_provider.dart';
+import '../../profile/presentation/profile_provider.dart';
+import '../../../shared/core/router/app_router.dart';
+import '../../../shared/core/theme/app_colors.dart';
+import '../../../shared/core/logging/app_logger.dart';
+
+final _logger = AppLogger();
 
 /// Login screen for WellTrack
 /// Handles user authentication with email and password
@@ -59,7 +62,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               profile.displayName;
         }
       } catch (e) {
-        print('LoginScreen: Error loading profile after login: $e');
+        _logger.warning('LoginScreen: Error loading profile after login: $e');
       }
       if (mounted) context.go('/');
     } else {
@@ -105,7 +108,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // WellTrack Logo/Branding
-                  Icon(
+                  const Icon(
                     Icons.fitness_center,
                     size: 80,
                     color: AppColors.primary,

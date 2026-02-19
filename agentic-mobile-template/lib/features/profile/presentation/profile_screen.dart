@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:welltrack/features/profile/domain/profile_entity.dart';
-import 'package:welltrack/features/profile/presentation/profile_provider.dart';
+import '../domain/profile_entity.dart';
+import 'profile_provider.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -424,7 +424,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
-          value: _editActivityLevel,
+          initialValue: _editActivityLevel,
           decoration: const InputDecoration(
             labelText: 'Activity Level',
             border: OutlineInputBorder(),

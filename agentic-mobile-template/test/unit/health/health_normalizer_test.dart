@@ -5,8 +5,8 @@ import 'package:welltrack/features/health/domain/health_metric_entity.dart';
 void main() {
   group('HealthNormalizer.resolveConflict', () {
     final baseTime = DateTime(2024, 1, 15, 10, 0);
-    final userId = 'test-user-123';
-    final profileId = 'test-profile-456';
+    const userId = 'test-user-123';
+    const profileId = 'test-profile-456';
 
     group('Source Priority', () {
       test('should prefer Garmin over all other sources', () {

@@ -1,18 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/freemium/data/freemium_repository.dart';
-import 'package:welltrack/features/freemium/presentation/paywall_screen.dart';
-import 'package:welltrack/shared/core/constants/feature_flags.dart';
+import '../data/freemium_repository.dart';
+import 'paywall_screen.dart';
+import '../../../shared/core/constants/feature_flags.dart';
 
 /// Widget that gates Pro-only features behind a paywall
 ///
 /// Shows the child widget if the user has Pro access,
 /// otherwise shows an upgrade prompt
 class FreemiumGate extends ConsumerWidget {
-  final Widget child;
-  final String featureName;
-  final String? description;
-  final bool showUpgradeButton;
 
   const FreemiumGate({
     super.key,
@@ -21,6 +17,10 @@ class FreemiumGate extends ConsumerWidget {
     this.description,
     this.showUpgradeButton = true,
   });
+  final Widget child;
+  final String featureName;
+  final String? description;
+  final bool showUpgradeButton;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -67,7 +67,7 @@ class FreemiumGate extends ConsumerWidget {
             Text(
               description ?? FeatureFlags.getFeatureDescription(featureName),
               style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.7),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
               ),
               textAlign: TextAlign.center,
             ),
@@ -104,9 +104,6 @@ class FreemiumGate extends ConsumerWidget {
 
 /// Inline variant that shows a compact upgrade prompt
 class FreemiumGateInline extends ConsumerWidget {
-  final Widget child;
-  final String featureName;
-  final VoidCallback? onUpgrade;
 
   const FreemiumGateInline({
     super.key,
@@ -114,6 +111,9 @@ class FreemiumGateInline extends ConsumerWidget {
     required this.featureName,
     this.onUpgrade,
   });
+  final Widget child;
+  final String featureName;
+  final VoidCallback? onUpgrade;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -140,10 +140,10 @@ class FreemiumGateInline extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: theme.colorScheme.primary.withOpacity(0.3),
+          color: theme.colorScheme.primary.withValues(alpha: 0.3),
         ),
       ),
       child: Row(
@@ -195,10 +195,6 @@ class FreemiumGateInline extends ConsumerWidget {
 
 /// Button that checks feature availability before executing action
 class FreemiumGatedButton extends ConsumerWidget {
-  final String featureName;
-  final VoidCallback onPressed;
-  final Widget child;
-  final ButtonStyle? style;
 
   const FreemiumGatedButton({
     super.key,
@@ -207,6 +203,10 @@ class FreemiumGatedButton extends ConsumerWidget {
     required this.child,
     this.style,
   });
+  final String featureName;
+  final VoidCallback onPressed;
+  final Widget child;
+  final ButtonStyle? style;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/meals/data/meal_repository.dart';
-import 'package:welltrack/features/profile/presentation/profile_provider.dart';
-import 'package:welltrack/features/recipes/domain/recipe_entity.dart';
+import '../data/meal_repository.dart';
+import '../../profile/presentation/profile_provider.dart';
+import '../../recipes/domain/recipe_entity.dart';
 
 class LogMealScreen extends ConsumerStatefulWidget {
-  final RecipeEntity? recipe;
 
   const LogMealScreen({
     super.key,
     this.recipe,
   });
+  final RecipeEntity? recipe;
 
   @override
   ConsumerState<LogMealScreen> createState() => _LogMealScreenState();
@@ -205,7 +205,7 @@ class _LogMealScreenState extends ConsumerState<LogMealScreen> {
 
             // Meal type selector
             DropdownButtonFormField<String>(
-              value: _mealType,
+              initialValue: _mealType,
               decoration: const InputDecoration(
                 labelText: 'Meal Type',
                 prefixIcon: Icon(Icons.category),

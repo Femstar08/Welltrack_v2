@@ -4,10 +4,10 @@ import '../logging/app_logger.dart';
 
 /// Interceptor that adds authentication token to requests
 class ApiInterceptor extends Interceptor {
-  final SupabaseService _supabaseService;
-  final AppLogger _logger = AppLogger();
 
   ApiInterceptor(this._supabaseService);
+  final SupabaseService _supabaseService;
+  final AppLogger _logger = AppLogger();
 
   @override
   void onRequest(

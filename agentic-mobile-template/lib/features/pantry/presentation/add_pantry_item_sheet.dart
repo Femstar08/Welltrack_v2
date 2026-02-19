@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/pantry/presentation/pantry_provider.dart';
+import 'pantry_provider.dart';
 
 class AddPantryItemSheet extends ConsumerStatefulWidget {
-  final String profileId;
-  final String initialCategory;
 
   const AddPantryItemSheet({
     super.key,
     required this.profileId,
     required this.initialCategory,
   });
+  final String profileId;
+  final String initialCategory;
 
   @override
   ConsumerState<AddPantryItemSheet> createState() => _AddPantryItemSheetState();
@@ -175,7 +175,7 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
 
             // Category selector
             DropdownButtonFormField<String>(
-              value: _selectedCategory,
+              initialValue: _selectedCategory,
               decoration: const InputDecoration(
                 labelText: 'Category',
                 prefixIcon: Icon(Icons.category),

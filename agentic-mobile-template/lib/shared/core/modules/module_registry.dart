@@ -1,14 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/shared/core/modules/module_metadata.dart';
-import 'package:welltrack/shared/core/auth/supabase_service.dart';
-import 'package:welltrack/shared/core/logging/app_logger.dart';
+import 'module_metadata.dart';
+import '../auth/supabase_service.dart';
+import '../logging/app_logger.dart';
 
 /// Repository for managing module configurations
 class ModuleRegistry {
-  final SupabaseService _supabaseService;
-  final AppLogger _logger = AppLogger();
 
   ModuleRegistry(this._supabaseService);
+  final SupabaseService _supabaseService;
+  final AppLogger _logger = AppLogger();
 
   /// Fetch module configurations for a specific profile
   /// Falls back to defaults if no records exist
@@ -27,7 +27,7 @@ class ModuleRegistry {
           .eq('profile_id', profileId)
           .order('tile_order', ascending: true);
 
-      if (response == null || (response as List).isEmpty) {
+      if ((response as List).isEmpty) {
         _logger.info('No module configs found, returning defaults');
         return _getDefaultConfigs();
       }

@@ -1,7 +1,7 @@
 import 'package:health/health.dart';
 import 'package:crypto/crypto.dart';
 import 'dart:convert';
-import 'package:welltrack/features/health/domain/health_metric_entity.dart';
+import '../domain/health_metric_entity.dart';
 
 /// Normalizes raw health data into standardized HealthMetricEntity objects
 class HealthNormalizer {
@@ -285,7 +285,7 @@ class HealthNormalizer {
         userId: userId,
         profileId: profileId,
         source: source,
-        metricType: MetricType.body_fat,
+        metricType: MetricType.bodyFat,
         valueNum: value,
         unit: '%',
         startTime: point.dateFrom,

@@ -1,13 +1,13 @@
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/pantry/domain/pantry_item_entity.dart';
-import 'package:welltrack/features/recipes/data/recipe_repository.dart';
-import 'package:welltrack/features/recipes/domain/recipe_entity.dart';
-import 'package:welltrack/features/recipes/domain/recipe_ingredient.dart';
-import 'package:welltrack/features/recipes/domain/recipe_step.dart';
-import 'package:welltrack/shared/core/ai/ai_orchestrator_service.dart';
-import 'package:welltrack/shared/core/ai/ai_providers.dart';
+import '../../pantry/domain/pantry_item_entity.dart';
+import '../data/recipe_repository.dart';
+import '../domain/recipe_entity.dart';
+import '../domain/recipe_ingredient.dart';
+import '../domain/recipe_step.dart';
+import '../../../shared/core/ai/ai_orchestrator_service.dart';
+import '../../../shared/core/ai/ai_providers.dart';
 
 enum RecipeGenerationState {
   idle,
@@ -20,11 +20,6 @@ enum RecipeGenerationState {
 }
 
 class RecipeGenerationData {
-  final RecipeGenerationState state;
-  final List<RecipeSuggestion> suggestions;
-  final RecipeSuggestion? selectedSuggestion;
-  final RecipeEntity? generatedRecipe;
-  final String? errorMessage;
 
   const RecipeGenerationData({
     required this.state,
@@ -33,6 +28,11 @@ class RecipeGenerationData {
     this.generatedRecipe,
     this.errorMessage,
   });
+  final RecipeGenerationState state;
+  final List<RecipeSuggestion> suggestions;
+  final RecipeSuggestion? selectedSuggestion;
+  final RecipeEntity? generatedRecipe;
+  final String? errorMessage;
 
   RecipeGenerationData copyWith({
     RecipeGenerationState? state,
@@ -52,13 +52,6 @@ class RecipeGenerationData {
 }
 
 class RecipeSuggestion {
-  final String title;
-  final String description;
-  final int estimatedTimeMin;
-  final String difficulty;
-  final String nutritionScore;
-  final List<String> tags;
-  final int servings;
 
   const RecipeSuggestion({
     required this.title,
@@ -83,6 +76,13 @@ class RecipeSuggestion {
       servings: json['servings'] as int? ?? 2,
     );
   }
+  final String title;
+  final String description;
+  final int estimatedTimeMin;
+  final String difficulty;
+  final String nutritionScore;
+  final List<String> tags;
+  final int servings;
 }
 
 final recipeGenerationProvider =
@@ -95,12 +95,12 @@ final recipeGenerationProvider =
 });
 
 class RecipeGenerationNotifier extends StateNotifier<RecipeGenerationData> {
-  final RecipeRepository _repository;
-  final AiOrchestratorService _aiService;
-  final Ref _ref;
 
   RecipeGenerationNotifier(this._repository, this._aiService, this._ref)
       : super(const RecipeGenerationData(state: RecipeGenerationState.idle));
+  final RecipeRepository _repository;
+  final AiOrchestratorService _aiService;
+  final Ref _ref;
 
   Future<void> generateRecipeSuggestions(
     String userId,

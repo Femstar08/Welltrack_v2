@@ -1,22 +1,24 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/insights/presentation/insights_provider.dart';
-import 'package:welltrack/features/insights/presentation/widgets/recovery_score_card.dart';
-import 'package:welltrack/features/insights/presentation/widgets/training_load_chart.dart';
-import 'package:welltrack/features/insights/presentation/widgets/trend_chart_widget.dart';
-import 'package:welltrack/features/insights/domain/insight_entity.dart';
-import 'package:welltrack/features/insights/domain/forecast_entity.dart';
-import 'package:welltrack/shared/core/auth/session_manager.dart';
+import 'insights_provider.dart';
+import 'widgets/recovery_score_card.dart';
+import 'widgets/training_load_chart.dart';
+import 'widgets/trend_chart_widget.dart';
+import '../domain/insight_entity.dart';
+import '../domain/forecast_entity.dart';
+import '../../../shared/core/auth/session_manager.dart';
 
 /// Insights Dashboard Screen
 /// Main performance intelligence dashboard
 class InsightsDashboardScreen extends ConsumerStatefulWidget {
-  final String profileId;
 
   const InsightsDashboardScreen({
     super.key,
     required this.profileId,
   });
+  final String profileId;
 
   @override
   ConsumerState<InsightsDashboardScreen> createState() =>
@@ -35,7 +37,7 @@ class _InsightsDashboardScreenState
     super.initState();
     // Initialize insights data
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(insightsProvider(_params).notifier).initialize();
+      unawaited(ref.read(insightsProvider(_params).notifier).initialize());
     });
   }
 
@@ -51,7 +53,7 @@ class _InsightsDashboardScreenState
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () => notifier.initialize(),
+            onPressed: () => unawaited(notifier.initialize()),
             tooltip: 'Refresh',
           ),
         ],
@@ -301,29 +303,29 @@ class _InsightsDashboardScreenState
   }
 
   Widget _buildBaselineComparison(InsightsState state) {
-    return Card(
+    return const Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Baseline Comparison',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
               ),
             ),
-            const SizedBox(height: 12),
-            const Text(
+            SizedBox(height: 12),
+            Text(
               'vs your first 14 days',
               style: TextStyle(
                 color: Colors.grey,
                 fontSize: 12,
               ),
             ),
-            const SizedBox(height: 8),
-            const Text(
+            SizedBox(height: 8),
+            Text(
               'Baseline comparison data will be displayed here.',
               style: TextStyle(fontSize: 14),
             ),
@@ -353,7 +355,9 @@ class _InsightsDashboardScreenState
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
-                ref.read(insightsProvider(params).notifier).initialize();
+                unawaited(
+                  ref.read(insightsProvider(params).notifier).initialize(),
+                );
               },
               child: const Text('Retry'),
             ),

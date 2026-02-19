@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:welltrack/features/dashboard/presentation/dashboard_home_provider.dart';
+import '../dashboard_home_provider.dart';
 
 /// Section 1: Greeting + Primary Metric hero card.
 class TodaySummaryCard extends StatelessWidget {
-  final String displayName;
-  final PrimaryMetricData? primaryMetric;
 
   const TodaySummaryCard({
     super.key,
     required this.displayName,
     this.primaryMetric,
   });
+  final String displayName;
+  final PrimaryMetricData? primaryMetric;
 
   @override
   Widget build(BuildContext context) {

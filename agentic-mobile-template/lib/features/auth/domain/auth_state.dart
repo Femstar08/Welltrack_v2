@@ -1,4 +1,4 @@
-import 'package:welltrack/features/auth/domain/user_entity.dart';
+import 'user_entity.dart';
 
 /// Authentication state for the entire app
 /// Uses sealed classes for exhaustive pattern matching
@@ -18,9 +18,9 @@ class AuthLoading extends AuthState {
 
 /// User is authenticated with a valid session
 class AuthAuthenticated extends AuthState {
-  final UserEntity user;
 
   const AuthAuthenticated(this.user);
+  final UserEntity user;
 
   @override
   bool operator ==(Object other) =>
@@ -40,9 +40,9 @@ class AuthUnauthenticated extends AuthState {
 
 /// Authentication error occurred
 class AuthError extends AuthState {
-  final String message;
 
   const AuthError(this.message);
+  final String message;
 
   @override
   bool operator ==(Object other) =>

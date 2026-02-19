@@ -14,10 +14,6 @@ enum ConflictResolutionStrategy {
 
 /// Result of a conflict resolution
 class ConflictResolution {
-  final bool localWins;
-  final String reason;
-  final DateTime? localTimestamp;
-  final DateTime? serverTimestamp;
 
   const ConflictResolution({
     required this.localWins,
@@ -25,6 +21,10 @@ class ConflictResolution {
     this.localTimestamp,
     this.serverTimestamp,
   });
+  final bool localWins;
+  final String reason;
+  final DateTime? localTimestamp;
+  final DateTime? serverTimestamp;
 
   @override
   String toString() {

@@ -1,13 +1,9 @@
 /// AI Orchestrator request/response models
 /// Dart equivalents of supabase/functions/_shared/types.ts
+library;
 
 /// Request sent to the ai-orchestrate edge function
 class AiOrchestrateRequest {
-  final String userId;
-  final String profileId;
-  final String? message;
-  final String? workflowType;
-  final Map<String, dynamic>? contextOverride;
 
   const AiOrchestrateRequest({
     required this.userId,
@@ -16,6 +12,11 @@ class AiOrchestrateRequest {
     this.workflowType,
     this.contextOverride,
   });
+  final String userId;
+  final String profileId;
+  final String? message;
+  final String? workflowType;
+  final Map<String, dynamic>? contextOverride;
 
   Map<String, dynamic> toJson() => {
         'user_id': userId,
@@ -28,12 +29,6 @@ class AiOrchestrateRequest {
 
 /// Response from the ai-orchestrate edge function
 class AiOrchestrateResponse {
-  final String assistantMessage;
-  final List<AiSuggestedAction> suggestedActions;
-  final List<AiDbWrite> dbWrites;
-  final AiForecastUpdate? updatedForecast;
-  final List<AiSafetyFlag> safetyFlags;
-  final AiUsageInfo usage;
 
   const AiOrchestrateResponse({
     required this.assistantMessage,
@@ -69,6 +64,12 @@ class AiOrchestrateResponse {
           json['usage'] as Map<String, dynamic>? ?? {}),
     );
   }
+  final String assistantMessage;
+  final List<AiSuggestedAction> suggestedActions;
+  final List<AiDbWrite> dbWrites;
+  final AiForecastUpdate? updatedForecast;
+  final List<AiSafetyFlag> safetyFlags;
+  final AiUsageInfo usage;
 
   /// Whether any safety flag blocks the response
   bool get isBlocked => safetyFlags.any((f) => f.blocked);
@@ -76,9 +77,6 @@ class AiOrchestrateResponse {
 
 /// An action the AI suggests the user can take
 class AiSuggestedAction {
-  final String actionType;
-  final String label;
-  final Map<String, dynamic> payload;
 
   const AiSuggestedAction({
     required this.actionType,
@@ -93,14 +91,13 @@ class AiSuggestedAction {
       payload: (json['payload'] as Map<String, dynamic>?) ?? {},
     );
   }
+  final String actionType;
+  final String label;
+  final Map<String, dynamic> payload;
 }
 
 /// A database write the AI wants to execute
 class AiDbWrite {
-  final String table;
-  final String operation;
-  final Map<String, dynamic> data;
-  final bool dryRun;
 
   const AiDbWrite({
     required this.table,
@@ -117,14 +114,14 @@ class AiDbWrite {
       dryRun: json['dry_run'] as bool? ?? true,
     );
   }
+  final String table;
+  final String operation;
+  final Map<String, dynamic> data;
+  final bool dryRun;
 }
 
 /// A forecast update from the AI
 class AiForecastUpdate {
-  final String goalId;
-  final String newExpectedDate;
-  final double confidence;
-  final String explanation;
 
   const AiForecastUpdate({
     required this.goalId,
@@ -141,13 +138,14 @@ class AiForecastUpdate {
       explanation: json['explanation'] as String? ?? '',
     );
   }
+  final String goalId;
+  final String newExpectedDate;
+  final double confidence;
+  final String explanation;
 }
 
 /// A safety flag from the AI validation layer
 class AiSafetyFlag {
-  final String type;
-  final String message;
-  final bool blocked;
 
   const AiSafetyFlag({
     required this.type,
@@ -162,14 +160,13 @@ class AiSafetyFlag {
       blocked: json['blocked'] as bool? ?? false,
     );
   }
+  final String type;
+  final String message;
+  final bool blocked;
 }
 
 /// AI usage metering info returned with every response
 class AiUsageInfo {
-  final int callsUsed;
-  final int callsLimit;
-  final int tokensUsed;
-  final int tokensLimit;
 
   const AiUsageInfo({
     required this.callsUsed,
@@ -186,6 +183,10 @@ class AiUsageInfo {
       tokensLimit: json['tokens_limit'] as int? ?? 0,
     );
   }
+  final int callsUsed;
+  final int callsLimit;
+  final int tokensUsed;
+  final int tokensLimit;
 
   /// Whether the user is close to their limit (>80% calls used)
   bool get isNearLimit =>

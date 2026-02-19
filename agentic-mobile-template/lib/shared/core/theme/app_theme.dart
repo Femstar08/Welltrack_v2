@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:welltrack/shared/core/theme/app_colors.dart';
-import 'package:welltrack/shared/core/theme/app_typography.dart';
+import 'app_colors.dart';
+import 'app_typography.dart';
 
 /// App theme configuration for Material 3 light and dark modes
 class AppTheme {
@@ -17,7 +17,6 @@ class AppTheme {
       secondary: AppColors.secondary,
       error: AppColors.error,
       surface: AppColors.surfaceLight,
-      background: AppColors.backgroundLight,
     );
 
     return ThemeData(
@@ -58,11 +57,11 @@ class AppTheme {
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: AppColors.textSecondaryLight.withOpacity(0.3)),
+          borderSide: BorderSide(color: AppColors.textSecondaryLight.withValues(alpha: 0.3)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: AppColors.textSecondaryLight.withOpacity(0.3)),
+          borderSide: BorderSide(color: AppColors.textSecondaryLight.withValues(alpha: 0.3)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
@@ -76,7 +75,7 @@ class AppTheme {
           color: AppColors.textSecondaryLight,
         ),
         hintStyle: AppTypography.bodyMedium.copyWith(
-          color: AppColors.textSecondaryLight.withOpacity(0.6),
+          color: AppColors.textSecondaryLight.withValues(alpha: 0.6),
         ),
       ),
 
@@ -104,7 +103,7 @@ class AppTheme {
       ),
 
       // Bottom navigation bar theme
-      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: AppColors.surfaceLight,
         selectedItemColor: AppColors.primary,
         unselectedItemColor: AppColors.textSecondaryLight,
@@ -146,7 +145,6 @@ class AppTheme {
       secondary: AppColors.secondaryLight,
       error: AppColors.error,
       surface: AppColors.surfaceDark,
-      background: AppColors.backgroundDark,
     );
 
     return ThemeData(
@@ -187,11 +185,11 @@ class AppTheme {
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: AppColors.textSecondaryDark.withOpacity(0.3)),
+          borderSide: BorderSide(color: AppColors.textSecondaryDark.withValues(alpha: 0.3)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: AppColors.textSecondaryDark.withOpacity(0.3)),
+          borderSide: BorderSide(color: AppColors.textSecondaryDark.withValues(alpha: 0.3)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
@@ -205,7 +203,7 @@ class AppTheme {
           color: AppColors.textSecondaryDark,
         ),
         hintStyle: AppTypography.bodyMedium.copyWith(
-          color: AppColors.textSecondaryDark.withOpacity(0.6),
+          color: AppColors.textSecondaryDark.withValues(alpha: 0.6),
         ),
       ),
 
@@ -233,7 +231,7 @@ class AppTheme {
       ),
 
       // Bottom navigation bar theme
-      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: AppColors.surfaceDark,
         selectedItemColor: AppColors.primaryLight,
         unselectedItemColor: AppColors.textSecondaryDark,
@@ -269,11 +267,11 @@ class AppTheme {
 
 /// Theme mode notifier for persisting user preference
 class ThemeModeNotifier extends StateNotifier<ThemeMode> {
-  static const String _themeModeKey = 'theme_mode';
 
   ThemeModeNotifier() : super(ThemeMode.system) {
     _loadThemeMode();
   }
+  static const String _themeModeKey = 'theme_mode';
 
   Future<void> _loadThemeMode() async {
     try {

@@ -1,18 +1,13 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:welltrack/features/insights/domain/forecast_entity.dart';
+import '../../../insights/domain/forecast_entity.dart';
 
 enum ChartMode { bar, line }
 
 /// Reusable chart widget for health metric screens.
 /// Supports bar (steps, sleep) and line (HR, weight) modes.
 class MetricChart extends StatelessWidget {
-  final List<DataPoint> data;
-  final String label;
-  final Color color;
-  final ChartMode mode;
-  final double? goalValue;
 
   const MetricChart({
     super.key,
@@ -22,6 +17,11 @@ class MetricChart extends StatelessWidget {
     this.mode = ChartMode.bar,
     this.goalValue,
   });
+  final List<DataPoint> data;
+  final String label;
+  final Color color;
+  final ChartMode mode;
+  final double? goalValue;
 
   @override
   Widget build(BuildContext context) {

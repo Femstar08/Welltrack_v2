@@ -11,10 +11,6 @@ import 'connectivity_service.dart';
 
 /// Configured Dio client for API requests
 class DioClient {
-  final Dio _dio;
-  final OfflineQueue _offlineQueue;
-  final ConnectivityService _connectivityService;
-  final AppLogger _logger = AppLogger();
 
   DioClient({
     required SupabaseService supabaseService,
@@ -38,6 +34,10 @@ class DioClient {
       _logger,
     ));
   }
+  final Dio _dio;
+  final OfflineQueue _offlineQueue;
+  final ConnectivityService _connectivityService;
+  final AppLogger _logger = AppLogger();
 
   Dio get instance => _dio;
 
@@ -82,9 +82,9 @@ class DioClient {
 
 /// Retry interceptor for handling transient failures
 class _RetryInterceptor extends Interceptor {
-  final AppLogger _logger;
 
   _RetryInterceptor(this._logger);
+  final AppLogger _logger;
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
@@ -125,15 +125,15 @@ class _RetryInterceptor extends Interceptor {
 
 /// Offline interceptor for queueing requests when offline
 class _OfflineInterceptor extends Interceptor {
-  final OfflineQueue _offlineQueue;
-  final ConnectivityService _connectivityService;
-  final AppLogger _logger;
 
   _OfflineInterceptor(
     this._offlineQueue,
     this._connectivityService,
     this._logger,
   );
+  final OfflineQueue _offlineQueue;
+  final ConnectivityService _connectivityService;
+  final AppLogger _logger;
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {

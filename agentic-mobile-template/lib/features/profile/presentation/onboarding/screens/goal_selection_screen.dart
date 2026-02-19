@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/profile/presentation/onboarding/onboarding_state.dart';
-import 'package:welltrack/features/profile/presentation/onboarding/widgets/goal_card.dart';
+import '../onboarding_state.dart';
+import '../widgets/goal_card.dart';
 
 
 class GoalSelectionScreen extends ConsumerWidget {
-  final VoidCallback onContinue;
 
   const GoalSelectionScreen({super.key, required this.onContinue});
+  final VoidCallback onContinue;
 
   static const _goals = [
     _GoalOption(
@@ -126,10 +126,6 @@ class GoalSelectionScreen extends ConsumerWidget {
 }
 
 class _GoalOption {
-  final String id;
-  final String label;
-  final String sublabel;
-  final IconData icon;
 
   const _GoalOption({
     required this.id,
@@ -137,4 +133,8 @@ class _GoalOption {
     required this.sublabel,
     required this.icon,
   });
+  final String id;
+  final String label;
+  final String sublabel;
+  final IconData icon;
 }

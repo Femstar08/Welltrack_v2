@@ -2,17 +2,17 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:welltrack/features/supplements/domain/supplement_protocol_entity.dart';
-import 'package:welltrack/features/supplements/domain/supplement_log_entity.dart';
-import 'package:welltrack/features/supplements/presentation/supplement_provider.dart';
+import '../domain/supplement_protocol_entity.dart';
+import '../domain/supplement_log_entity.dart';
+import 'supplement_provider.dart';
 
 class SupplementsScreen extends ConsumerStatefulWidget {
-  final String profileId;
 
   const SupplementsScreen({
     required this.profileId,
     super.key,
   });
+  final String profileId;
 
   @override
   ConsumerState<SupplementsScreen> createState() => _SupplementsScreenState();
@@ -81,7 +81,7 @@ class _SupplementsScreenState extends ConsumerState<SupplementsScreen>
             Icon(
               Icons.medication_outlined,
               size: 80,
-              color: Theme.of(context).colorScheme.secondary.withOpacity(0.3),
+              color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 16),
             Text(
@@ -112,7 +112,7 @@ class _SupplementsScreenState extends ConsumerState<SupplementsScreen>
                 children: [
                   CircularProgressIndicator(
                     value: state.completionPercentage / 100,
-                    backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
+                    backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -209,9 +209,7 @@ class _SupplementsScreenState extends ConsumerState<SupplementsScreen>
                 ],
               )
             : Text(
-                log.takenAt.hour.toString().padLeft(2, '0') +
-                    ':' +
-                    log.takenAt.minute.toString().padLeft(2, '0'),
+                '${log.takenAt.hour.toString().padLeft(2, '0')}:${log.takenAt.minute.toString().padLeft(2, '0')}',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
       ),
@@ -227,7 +225,7 @@ class _SupplementsScreenState extends ConsumerState<SupplementsScreen>
             Icon(
               Icons.medication_outlined,
               size: 80,
-              color: Theme.of(context).colorScheme.secondary.withOpacity(0.3),
+              color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 16),
             Text(

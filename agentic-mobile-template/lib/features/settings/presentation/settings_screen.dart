@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:welltrack/shared/core/theme/theme_provider.dart';
+import '../../../shared/core/theme/theme_provider.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -181,13 +181,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           // AI Usage Section
           _buildSectionHeader('AI Usage'),
-          Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          const Card(
+            margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: ListTile(
-              leading: const Icon(Icons.auto_awesome_outlined),
-              title: const Text('AI Calls Remaining'),
-              subtitle: const Text('Freemium plan'),
-              trailing: const Text(
+              leading: Icon(Icons.auto_awesome_outlined),
+              title: Text('AI Calls Remaining'),
+              subtitle: Text('Freemium plan'),
+              trailing: Text(
                 '10 / 10',
                 style: TextStyle(
                   fontSize: 16,

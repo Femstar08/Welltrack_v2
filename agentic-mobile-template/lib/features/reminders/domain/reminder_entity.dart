@@ -1,16 +1,5 @@
 /// Entity representing a reminder/notification
 class ReminderEntity {
-  final String id;
-  final String profileId;
-  final String module; // 'supplements', 'meals', 'workouts', 'custom'
-  final String title;
-  final String body;
-  final DateTime remindAt;
-  final String? repeatRule; // 'once', 'daily', 'weekly', 'monthly'
-  final bool isActive;
-  final DateTime? lastTriggeredAt;
-  final DateTime createdAt;
-  final DateTime updatedAt;
 
   const ReminderEntity({
     required this.id,
@@ -25,6 +14,36 @@ class ReminderEntity {
     required this.createdAt,
     required this.updatedAt,
   });
+
+  /// Creates from JSON (Supabase response)
+  factory ReminderEntity.fromJson(Map<String, dynamic> json) {
+    return ReminderEntity(
+      id: json['id'] as String,
+      profileId: json['profile_id'] as String,
+      module: json['module'] as String,
+      title: json['title'] as String,
+      body: json['body'] as String,
+      remindAt: DateTime.parse(json['remind_at'] as String),
+      repeatRule: json['repeat_rule'] as String?,
+      isActive: json['is_active'] as bool? ?? true,
+      lastTriggeredAt: json['last_triggered_at'] != null
+          ? DateTime.parse(json['last_triggered_at'] as String)
+          : null,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
+    );
+  }
+  final String id;
+  final String profileId;
+  final String module; // 'supplements', 'meals', 'workouts', 'custom'
+  final String title;
+  final String body;
+  final DateTime remindAt;
+  final String? repeatRule; // 'once', 'daily', 'weekly', 'monthly'
+  final bool isActive;
+  final DateTime? lastTriggeredAt;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   /// Creates a copy with modified fields
   ReminderEntity copyWith({
@@ -52,25 +71,6 @@ class ReminderEntity {
       lastTriggeredAt: lastTriggeredAt ?? this.lastTriggeredAt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-    );
-  }
-
-  /// Creates from JSON (Supabase response)
-  factory ReminderEntity.fromJson(Map<String, dynamic> json) {
-    return ReminderEntity(
-      id: json['id'] as String,
-      profileId: json['profile_id'] as String,
-      module: json['module'] as String,
-      title: json['title'] as String,
-      body: json['body'] as String,
-      remindAt: DateTime.parse(json['remind_at'] as String),
-      repeatRule: json['repeat_rule'] as String?,
-      isActive: json['is_active'] as bool? ?? true,
-      lastTriggeredAt: json['last_triggered_at'] != null
-          ? DateTime.parse(json['last_triggered_at'] as String)
-          : null,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
     );
   }
 

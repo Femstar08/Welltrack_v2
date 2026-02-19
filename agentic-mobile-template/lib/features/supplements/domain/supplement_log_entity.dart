@@ -1,6 +1,6 @@
 // lib/features/supplements/domain/supplement_log_entity.dart
 
-import 'package:welltrack/features/supplements/domain/supplement_protocol_entity.dart';
+import 'supplement_protocol_entity.dart';
 
 enum SupplementLogStatus {
   taken,
@@ -44,18 +44,6 @@ enum SupplementLogStatus {
 }
 
 class SupplementLogEntity {
-  final String id;
-  final String profileId;
-  final String supplementId;
-  final String supplementName;
-  final DateTime takenAt;
-  final ProtocolTimeOfDay protocolTime;
-  final double dosageTaken;
-  final String unit;
-  final SupplementLogStatus status;
-  final String? notes;
-  final DateTime createdAt;
-  final DateTime updatedAt;
 
   const SupplementLogEntity({
     required this.id,
@@ -88,6 +76,18 @@ class SupplementLogEntity {
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
   }
+  final String id;
+  final String profileId;
+  final String supplementId;
+  final String supplementName;
+  final DateTime takenAt;
+  final ProtocolTimeOfDay protocolTime;
+  final double dosageTaken;
+  final String unit;
+  final SupplementLogStatus status;
+  final String? notes;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   Map<String, dynamic> toJson() {
     return {

@@ -4,8 +4,6 @@ import '../logging/app_logger.dart';
 
 /// Service for secure storage operations using flutter_secure_storage
 class SecureStorageService {
-  final FlutterSecureStorage _storage;
-  final AppLogger _logger = AppLogger();
 
   SecureStorageService({FlutterSecureStorage? storage})
       : _storage = storage ??
@@ -17,6 +15,8 @@ class SecureStorageService {
                 accessibility: KeychainAccessibility.first_unlock,
               ),
             );
+  final FlutterSecureStorage _storage;
+  final AppLogger _logger = AppLogger();
 
   /// Write a value to secure storage
   Future<void> write({required String key, required String value}) async {

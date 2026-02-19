@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:welltrack/features/health/data/health_repository.dart';
-import 'package:welltrack/features/health/domain/health_metric_entity.dart';
-import 'package:welltrack/features/health/presentation/widgets/metric_chart.dart';
-import 'package:welltrack/features/insights/domain/forecast_entity.dart';
-import 'package:welltrack/shared/core/theme/app_colors.dart';
+import '../../data/health_repository.dart';
+import '../../domain/health_metric_entity.dart';
+import '../widgets/metric_chart.dart';
+import '../../../insights/domain/forecast_entity.dart';
+import '../../../../shared/core/theme/app_colors.dart';
 
 class HeartCardioScreen extends ConsumerStatefulWidget {
-  final String profileId;
 
   const HeartCardioScreen({super.key, required this.profileId});
+  final String profileId;
 
   @override
   ConsumerState<HeartCardioScreen> createState() => _HeartCardioScreenState();
@@ -132,7 +132,7 @@ class _HeartCardioScreenState extends ConsumerState<HeartCardioScreen> {
                       if (_latestHrv != null)
                         Card(
                           child: ListTile(
-                            leading: Icon(Icons.timeline, color: AppColors.primary),
+                            leading: const Icon(Icons.timeline, color: AppColors.primary),
                             title: const Text('Heart Rate Variability'),
                             subtitle: const Text('Latest reading'),
                             trailing: Text(

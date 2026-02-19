@@ -1,16 +1,16 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:welltrack/features/profile/data/profile_model.dart';
-import 'package:welltrack/features/profile/domain/profile_entity.dart';
+import 'profile_model.dart';
+import '../domain/profile_entity.dart';
 
 final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
   return ProfileRepository(Supabase.instance.client);
 });
 
 class ProfileRepository {
-  final SupabaseClient _client;
 
   ProfileRepository(this._client);
+  final SupabaseClient _client;
 
   Future<ProfileEntity> getProfile(String profileId) async {
     try {
