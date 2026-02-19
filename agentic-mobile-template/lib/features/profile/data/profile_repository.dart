@@ -31,31 +31,18 @@ class ProfileRepository {
       final userId = _client.auth.currentUser?.id;
       if (userId == null) return null;
 
-      // Try to find the primary profile first
-      var response = await _client
+      // Get the oldest primary profile (handles duplicates gracefully)
+      final response = await _client
           .from('wt_profiles')
           .select()
           .eq('user_id', userId)
-          .eq('is_primary', true)
-          .maybeSingle();
+          .order('is_primary', ascending: false)
+          .order('created_at')
+          .limit(1);
 
-      // Fallback: if no primary profile, get any profile for this user
-      if (response == null) {
-        final fallback = await _client
-            .from('wt_profiles')
-            .select()
-            .eq('user_id', userId)
-            .order('created_at')
-            .limit(1);
+      if (response.isEmpty) return null;
 
-        if (fallback is List && fallback.isNotEmpty) {
-          response = fallback.first;
-        }
-      }
-
-      if (response == null) return null;
-
-      return ProfileModel.fromJson(response).toEntity();
+      return ProfileModel.fromJson(response.first).toEntity();
     } catch (e) {
       throw Exception('Failed to fetch active profile: $e');
     }
@@ -149,6 +136,14 @@ class ProfileRepository {
     } catch (e) {
       throw Exception('Failed to create profile: $e');
     }
+  }
+
+  Future<void> ensureUserExists(String userId, {String? displayName}) async {
+    await _client.from('wt_users').upsert({
+      'id': userId,
+      'display_name': displayName,
+      'onboarding_completed': false,
+    }, onConflict: 'id');
   }
 
   Future<void> markOnboardingComplete(String userId) async {

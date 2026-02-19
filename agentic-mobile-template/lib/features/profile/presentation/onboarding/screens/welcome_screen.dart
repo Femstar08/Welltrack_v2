@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 
-class WelcomeScreen extends StatelessWidget {
+class WelcomeScreen extends ConsumerWidget {
   final VoidCallback onContinue;
 
   const WelcomeScreen({super.key, required this.onContinue});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
 
     return Padding(
@@ -45,7 +47,14 @@ class WelcomeScreen extends StatelessWidget {
             width: double.infinity,
             height: 52,
             child: FilledButton(
-              onPressed: onContinue,
+              onPressed: () {
+                final user = Supabase.instance.client.auth.currentUser;
+                if (user == null) {
+                  context.go('/signup');
+                } else {
+                  onContinue();
+                }
+              },
               style: FilledButton.styleFrom(
                 backgroundColor: theme.colorScheme.primary,
                 shape: RoundedRectangleBorder(

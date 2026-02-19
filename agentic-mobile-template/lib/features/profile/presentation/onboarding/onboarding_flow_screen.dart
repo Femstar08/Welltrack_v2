@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:welltrack/features/profile/data/profile_repository.dart';
 import 'package:welltrack/features/profile/presentation/onboarding/onboarding_state.dart';
 import 'package:welltrack/features/profile/presentation/onboarding/screens/welcome_screen.dart';
 import 'package:welltrack/features/profile/presentation/onboarding/screens/goal_selection_screen.dart';
@@ -36,6 +37,12 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
   }
 
   Future<void> _loadProfileId() async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) {
+      if (mounted) context.go('/login');
+      return;
+    }
+
     try {
       await ref.read(activeProfileProvider.notifier).loadActiveProfile();
       final profile = ref.read(activeProfileProvider).valueOrNull;
@@ -71,8 +78,12 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
     try {
       final userId = Supabase.instance.client.auth.currentUser?.id;
       if (userId == null) throw Exception('No authenticated user');
+      print('Onboarding _complete: userId=$userId');
 
       final data = ref.read(onboardingDataProvider);
+      // Use repository directly so exceptions propagate (the notifier
+      // swallows errors internally and sets AsyncValue.error instead).
+      final repository = ref.read(profileRepositoryProvider);
 
       // Build update fields from collected data
       final updateFields = <String, dynamic>{
@@ -87,41 +98,49 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
               .split('T')
               .first,
       };
+      print('Onboarding _complete: updateFields=$updateFields');
 
-      // Load existing profile and update, or create new one
-      await ref.read(activeProfileProvider.notifier).loadActiveProfile();
-      final existingProfile = ref.read(activeProfileProvider).valueOrNull;
+      // Ensure wt_users row exists before any profile operations
+      final email = Supabase.instance.client.auth.currentUser?.email;
+      final fallbackName = email?.split('@').first ?? 'User';
+      await repository.ensureUserExists(userId, displayName: fallbackName);
+
+      // Load existing profile (trigger should have created one on signup)
+      print('Onboarding _complete: loading active profile...');
+      final existingProfile = await repository.getActiveProfile();
+      print('Onboarding _complete: existingProfile=${existingProfile?.id}');
 
       if (existingProfile != null) {
-        await ref
-            .read(activeProfileProvider.notifier)
-            .updateProfile(existingProfile.id, updateFields);
+        print('Onboarding _complete: updating profile ${existingProfile.id}');
+        await repository.updateProfile(existingProfile.id, updateFields);
+        print('Onboarding _complete: profile updated');
       } else {
-        // No profile exists — create one
-        final email = Supabase.instance.client.auth.currentUser?.email;
-        final fallbackName = email?.split('@').first ?? 'User';
-        await ref.read(activeProfileProvider.notifier).createProfile(
-              userId: userId,
-              profileType: 'self',
-              displayName: fallbackName,
-              dateOfBirth: data.estimatedDateOfBirth,
-              heightCm: data.heightCm,
-              weightKg: data.weightKg,
-              activityLevel: data.activityLevel,
-              primaryGoal: data.primaryGoal,
-              goalIntensity: data.goalIntensity,
-              isPrimary: true,
-            );
+        // No profile exists — create one (use 'parent' to match DB enum)
+        print('Onboarding _complete: creating new profile for $fallbackName');
+        await repository.createProfile(
+          userId: userId,
+          profileType: 'parent',
+          displayName: fallbackName,
+          dateOfBirth: data.estimatedDateOfBirth,
+          heightCm: data.heightCm,
+          weightKg: data.weightKg,
+          activityLevel: data.activityLevel,
+          primaryGoal: data.primaryGoal,
+          goalIntensity: data.goalIntensity,
+          isPrimary: true,
+        );
+        print('Onboarding _complete: profile created');
       }
 
-      await ref
-          .read(activeProfileProvider.notifier)
-          .markOnboardingComplete(userId);
+      print('Onboarding _complete: marking onboarding complete...');
+      await repository.markOnboardingComplete(userId);
+      print('Onboarding _complete: onboarding marked complete');
 
       if (mounted) {
         ref.read(onboardingCompleteProvider.notifier).state = true;
 
-        // Set profile ID and display name for dashboard
+        // Reload the profile into the notifier for the rest of the app
+        await ref.read(activeProfileProvider.notifier).loadActiveProfile();
         final updatedProfile = ref.read(activeProfileProvider).valueOrNull;
         if (updatedProfile != null) {
           ref.read(activeProfileIdProvider.notifier).state = updatedProfile.id;
@@ -131,10 +150,15 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
 
         context.go('/');
       }
-    } catch (e) {
+    } catch (e, stack) {
+      print('Onboarding _complete ERROR: $e');
+      print('Onboarding _complete STACK: $stack');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(
+            content: Text('$e'),
+            duration: const Duration(seconds: 8),
+          ),
         );
         setState(() => _isCompleting = false);
       }

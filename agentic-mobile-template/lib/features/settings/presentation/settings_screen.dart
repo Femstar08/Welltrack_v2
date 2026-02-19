@@ -147,7 +147,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   title: const Text('Health Data'),
                   subtitle: const Text('Sleep, steps, and heart rate'),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () => context.go('/settings/health'),
+                  onTap: () => context.push('/settings/health'),
                 ),
                 const Divider(height: 1),
                 ListTile(
