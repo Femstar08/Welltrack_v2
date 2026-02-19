@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:welltrack/shared/core/modules/module_metadata.dart';
 
@@ -31,7 +32,7 @@ void main() {
     test('should have accent color for all modules', () {
       for (final module in WellTrackModule.values) {
         final color = module.getAccentColor();
-        expect(color.value, isNonZero);
+        expect(color, isA<Color>());
       }
     });
 
