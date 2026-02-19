@@ -61,6 +61,15 @@ import '../../../features/health/presentation/screens/vo2max_entry_screen.dart'
 import '../../../features/insights/presentation/insights_dashboard_screen.dart'
     as insights_screen;
 
+// Goals
+import '../../../features/goals/domain/goal_entity.dart';
+import '../../../features/goals/presentation/goals_list_screen.dart'
+    as goals_list;
+import '../../../features/goals/presentation/goal_setup_screen.dart'
+    as goal_setup;
+import '../../../features/goals/presentation/goal_detail_screen.dart'
+    as goal_detail;
+
 // Supplements & workouts
 import '../../../features/supplements/presentation/supplements_screen.dart'
     as supplements_screen;
@@ -145,7 +154,8 @@ class AppRouter {
             requestedPath.startsWith('/health/') ||
             requestedPath == '/insights' ||
             requestedPath == '/supplements' ||
-            requestedPath == '/workouts';
+            requestedPath == '/workouts' ||
+            requestedPath.startsWith('/goals');
         if (needsProfile &&
             (profileId == null || profileId.isEmpty) &&
             isAuthenticated) {
@@ -322,6 +332,36 @@ class AppRouter {
             return insights_screen.InsightsDashboardScreen(
               profileId: profileId,
             );
+          },
+        ),
+
+        // ── Goals ─────────────────────────────────────────
+        GoRoute(
+          path: '/goals',
+          name: 'goals',
+          builder: (context, state) {
+            final profileId = ref.read(activeProfileIdProvider) ?? '';
+            return goals_list.GoalsListScreen(profileId: profileId);
+          },
+        ),
+        GoRoute(
+          path: '/goals/create',
+          name: 'goalCreate',
+          builder: (context, state) {
+            final profileId = ref.read(activeProfileIdProvider) ?? '';
+            final existingGoal = state.extra as GoalEntity?;
+            return goal_setup.GoalSetupScreen(
+              profileId: profileId,
+              existingGoal: existingGoal,
+            );
+          },
+        ),
+        GoRoute(
+          path: '/goals/:goalId',
+          name: 'goalDetail',
+          builder: (context, state) {
+            final goalId = state.pathParameters['goalId']!;
+            return goal_detail.GoalDetailScreen(goalId: goalId);
           },
         ),
 
