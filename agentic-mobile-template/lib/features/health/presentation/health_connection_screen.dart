@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:welltrack/features/health/presentation/health_provider.dart';
@@ -73,8 +74,8 @@ class HealthConnectionScreen extends ConsumerWidget {
     AsyncValue<Map<MetricType, dynamic>> baselineStatus,
     AsyncValue<Map<MetricType, double>> calibrationProgress,
   ) {
-    final platformName = Platform.isAndroid ? 'Health Connect' : 'HealthKit';
-    final platformIcon = Platform.isAndroid ? Icons.favorite : Icons.health_and_safety;
+    final platformName = (!kIsWeb && Platform.isAndroid) ? 'Health Connect' : 'HealthKit';
+    final platformIcon = (!kIsWeb && Platform.isAndroid) ? Icons.favorite : Icons.health_and_safety;
 
     return Card(
       elevation: 2,

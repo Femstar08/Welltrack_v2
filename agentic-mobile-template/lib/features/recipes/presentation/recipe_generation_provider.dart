@@ -1,9 +1,13 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:welltrack/features/pantry/domain/pantry_item_entity.dart';
 import 'package:welltrack/features/recipes/data/recipe_repository.dart';
 import 'package:welltrack/features/recipes/domain/recipe_entity.dart';
 import 'package:welltrack/features/recipes/domain/recipe_ingredient.dart';
 import 'package:welltrack/features/recipes/domain/recipe_step.dart';
+import 'package:welltrack/shared/core/ai/ai_orchestrator_service.dart';
+import 'package:welltrack/shared/core/ai/ai_providers.dart';
 
 enum RecipeGenerationState {
   idle,
@@ -68,12 +72,14 @@ class RecipeSuggestion {
 
   factory RecipeSuggestion.fromJson(Map<String, dynamic> json) {
     return RecipeSuggestion(
-      title: json['title'] as String,
-      description: json['description'] as String,
-      estimatedTimeMin: json['estimated_time_min'] as int,
-      difficulty: json['difficulty'] as String,
-      nutritionScore: json['nutrition_score'] as String,
-      tags: List<String>.from(json['tags'] as List),
+      title: json['title'] as String? ?? json['name'] as String? ?? 'Recipe',
+      description: json['description'] as String? ?? '',
+      estimatedTimeMin: json['estimated_time_min'] as int? ??
+          json['prep_time'] as int? ??
+          30,
+      difficulty: json['difficulty'] as String? ?? 'Medium',
+      nutritionScore: json['nutrition_score'] as String? ?? 'B',
+      tags: (json['tags'] as List?)?.map((t) => t.toString()).toList() ?? [],
       servings: json['servings'] as int? ?? 2,
     );
   }
@@ -81,41 +87,106 @@ class RecipeSuggestion {
 
 final recipeGenerationProvider =
     StateNotifierProvider<RecipeGenerationNotifier, RecipeGenerationData>((ref) {
-  return RecipeGenerationNotifier(ref.watch(recipeRepositoryProvider));
+  return RecipeGenerationNotifier(
+    ref.watch(recipeRepositoryProvider),
+    ref.watch(aiOrchestratorServiceProvider),
+    ref,
+  );
 });
 
 class RecipeGenerationNotifier extends StateNotifier<RecipeGenerationData> {
   final RecipeRepository _repository;
+  final AiOrchestratorService _aiService;
+  final Ref _ref;
 
-  RecipeGenerationNotifier(this._repository)
+  RecipeGenerationNotifier(this._repository, this._aiService, this._ref)
       : super(const RecipeGenerationData(state: RecipeGenerationState.idle));
 
   Future<void> generateRecipeSuggestions(
+    String userId,
     String profileId,
     List<PantryItemEntity> pantryItems,
   ) async {
     state = state.copyWith(state: RecipeGenerationState.generating);
 
     try {
-      // TODO: Call AI orchestrator Edge Function
-      // For now, return mock data
-      await Future.delayed(const Duration(seconds: 2));
+      final itemNames = pantryItems.map((e) => e.name).toList();
 
-      final mockSuggestions = _generateMockSuggestions(pantryItems);
+      final response = await _aiService.orchestrate(
+        userId: userId,
+        profileId: profileId,
+        workflowType: 'generate_pantry_recipes',
+        message:
+            'Generate recipe suggestions using these pantry items: ${itemNames.join(", ")}',
+        contextOverride: {'pantry_items': itemNames},
+      );
 
+      // Update global usage state
+      _ref.read(aiUsageProvider.notifier).state = response.usage;
+
+      // Parse suggestions from suggested_actions (action_type == 'view_recipe')
+      final suggestions = response.suggestedActions
+          .where((a) => a.actionType == 'view_recipe')
+          .map((a) => RecipeSuggestion.fromJson(a.payload))
+          .toList();
+
+      if (suggestions.isEmpty) {
+        // Try parsing from assistant_message JSON blocks as fallback
+        final parsed = _parseJsonFromMessage(response.assistantMessage);
+        if (parsed != null && parsed is List) {
+          suggestions.addAll(
+            parsed.map((r) =>
+                RecipeSuggestion.fromJson(r as Map<String, dynamic>)),
+          );
+        }
+      }
+
+      if (suggestions.isEmpty) {
+        // AI returned nothing useful — use fallback
+        state = state.copyWith(
+          state: RecipeGenerationState.suggestions,
+          suggestions: _fallbackSuggestions(pantryItems),
+        );
+      } else {
+        state = state.copyWith(
+          state: RecipeGenerationState.suggestions,
+          suggestions: suggestions,
+        );
+      }
+    } on AiOfflineException {
       state = state.copyWith(
         state: RecipeGenerationState.suggestions,
-        suggestions: mockSuggestions,
+        suggestions: _fallbackSuggestions(pantryItems),
+        errorMessage:
+            'You\'re offline. Showing sample suggestions — connect to get AI recipes.',
+      );
+    } on AiRateLimitException catch (e) {
+      if (e.usage != null) {
+        _ref.read(aiUsageProvider.notifier).state = e.usage;
+      }
+      state = state.copyWith(
+        state: RecipeGenerationState.suggestions,
+        suggestions: _fallbackSuggestions(pantryItems),
+        errorMessage:
+            'AI limit reached (${e.usage?.callsUsed ?? "?"}/${e.usage?.callsLimit ?? "?"} calls). Showing sample suggestions.',
+      );
+    } on AiTimeoutException {
+      state = state.copyWith(
+        state: RecipeGenerationState.suggestions,
+        suggestions: _fallbackSuggestions(pantryItems),
+        errorMessage: 'AI timed out. Showing sample suggestions.',
       );
     } catch (e) {
       state = state.copyWith(
-        state: RecipeGenerationState.error,
-        errorMessage: 'Failed to generate recipes: $e',
+        state: RecipeGenerationState.suggestions,
+        suggestions: _fallbackSuggestions(pantryItems),
+        errorMessage: 'AI unavailable. Showing sample suggestions.',
       );
     }
   }
 
   Future<void> selectSuggestion(
+    String userId,
     String profileId,
     RecipeSuggestion suggestion,
   ) async {
@@ -124,15 +195,44 @@ class RecipeGenerationNotifier extends StateNotifier<RecipeGenerationData> {
       selectedSuggestion: suggestion,
     );
 
+    List<RecipeStep> steps;
+    List<RecipeIngredient> ingredients;
+
     try {
-      // TODO: Call AI orchestrator to generate detailed steps
-      await Future.delayed(const Duration(seconds: 2));
+      final response = await _aiService.orchestrate(
+        userId: userId,
+        profileId: profileId,
+        workflowType: 'generate_recipe_steps',
+        message:
+            'Generate detailed steps and ingredients for: ${suggestion.title}',
+        contextOverride: {
+          'recipe_name': suggestion.title,
+          'description': suggestion.description,
+          'servings': suggestion.servings,
+        },
+      );
 
-      final mockSteps = _generateMockSteps(suggestion);
-      final mockIngredients = _generateMockIngredients();
+      // Update global usage state
+      _ref.read(aiUsageProvider.notifier).state = response.usage;
 
-      state = state.copyWith(state: RecipeGenerationState.saving);
+      // Parse steps and ingredients from assistant_message JSON blocks
+      final parsed = _parseJsonFromMessage(response.assistantMessage);
+      if (parsed != null && parsed is Map<String, dynamic>) {
+        steps = _parseSteps(parsed);
+        ingredients = _parseIngredients(parsed);
+      } else {
+        steps = _fallbackSteps(suggestion);
+        ingredients = _fallbackIngredients();
+      }
+    } on AiException {
+      // Any AI failure: fall back to mock data (never a blank screen)
+      steps = _fallbackSteps(suggestion);
+      ingredients = _fallbackIngredients();
+    }
 
+    state = state.copyWith(state: RecipeGenerationState.saving);
+
+    try {
       // Save to database
       final recipe = await _repository.saveRecipe(
         profileId: profileId,
@@ -144,8 +244,8 @@ class RecipeGenerationNotifier extends StateNotifier<RecipeGenerationData> {
         sourceType: 'ai',
         nutritionScore: suggestion.nutritionScore,
         tags: suggestion.tags,
-        steps: mockSteps,
-        ingredients: mockIngredients,
+        steps: steps,
+        ingredients: ingredients,
       );
 
       state = state.copyWith(
@@ -155,7 +255,7 @@ class RecipeGenerationNotifier extends StateNotifier<RecipeGenerationData> {
     } catch (e) {
       state = state.copyWith(
         state: RecipeGenerationState.error,
-        errorMessage: 'Failed to generate recipe details: $e',
+        errorMessage: 'Failed to save recipe: $e',
       );
     }
   }
@@ -164,22 +264,80 @@ class RecipeGenerationNotifier extends StateNotifier<RecipeGenerationData> {
     state = const RecipeGenerationData(state: RecipeGenerationState.idle);
   }
 
-  // Mock data generators (to be replaced with actual AI calls)
+  // --- JSON parsing helpers ---
 
-  List<RecipeSuggestion> _generateMockSuggestions(List<PantryItemEntity> items) {
+  dynamic _parseJsonFromMessage(String message) {
+    final regex = RegExp(r'```json\n([\s\S]*?)\n```');
+    final match = regex.firstMatch(message);
+    if (match == null) return null;
+    try {
+      return jsonDecode(match.group(1)!);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  List<RecipeStep> _parseSteps(Map<String, dynamic> data) {
+    final raw = data['steps'] as List?;
+    if (raw == null || raw.isEmpty) return _fallbackSteps(null);
+
+    return raw.asMap().entries.map((entry) {
+      final item = entry.value;
+      return RecipeStep(
+        id: '',
+        stepNumber: entry.key + 1,
+        instruction: item is Map
+            ? (item['instruction'] ?? item['step'] ?? item.toString())
+                .toString()
+            : item.toString(),
+        durationMinutes:
+            item is Map ? item['duration_minutes'] as int? : null,
+      );
+    }).toList();
+  }
+
+  List<RecipeIngredient> _parseIngredients(Map<String, dynamic> data) {
+    final raw = data['ingredients'] as List?;
+    if (raw == null || raw.isEmpty) return _fallbackIngredients();
+
+    return raw.asMap().entries.map((entry) {
+      final item = entry.value;
+      if (item is Map) {
+        return RecipeIngredient(
+          id: '',
+          ingredientName:
+              (item['name'] ?? item['ingredient_name'] ?? '').toString(),
+          quantity: (item['quantity'] as num?)?.toDouble(),
+          unit: item['unit']?.toString(),
+          notes: item['notes']?.toString(),
+          sortOrder: entry.key,
+        );
+      }
+      return RecipeIngredient(
+        id: '',
+        ingredientName: item.toString(),
+        sortOrder: entry.key,
+      );
+    }).toList();
+  }
+
+  // --- Fallback data (offline / AI failure — "never a blank screen") ---
+
+  List<RecipeSuggestion> _fallbackSuggestions(List<PantryItemEntity> items) {
     final itemNames = items.map((e) => e.name).take(3).join(', ');
 
     return [
       RecipeSuggestion(
         title: 'Quick Stir-Fry with $itemNames',
-        description: 'A fast and healthy stir-fry using your available ingredients',
+        description:
+            'A fast and healthy stir-fry using your available ingredients',
         estimatedTimeMin: 20,
         difficulty: 'Easy',
         nutritionScore: 'A',
-        tags: ['Quick', 'Healthy', 'Asian'],
+        tags: const ['Quick', 'Healthy', 'Asian'],
         servings: 2,
       ),
-      RecipeSuggestion(
+      const RecipeSuggestion(
         title: 'Hearty Soup',
         description: 'A comforting soup perfect for using up pantry items',
         estimatedTimeMin: 45,
@@ -188,7 +346,7 @@ class RecipeGenerationNotifier extends StateNotifier<RecipeGenerationData> {
         tags: ['Comfort Food', 'One-Pot'],
         servings: 4,
       ),
-      RecipeSuggestion(
+      const RecipeSuggestion(
         title: 'Simple Pasta Dish',
         description: 'Easy pasta with what you have on hand',
         estimatedTimeMin: 25,
@@ -197,60 +355,44 @@ class RecipeGenerationNotifier extends StateNotifier<RecipeGenerationData> {
         tags: ['Quick', 'Italian', 'Family-Friendly'],
         servings: 3,
       ),
-      RecipeSuggestion(
-        title: 'Grilled Protein Bowl',
-        description: 'Balanced bowl with grains and vegetables',
-        estimatedTimeMin: 30,
-        difficulty: 'Medium',
-        nutritionScore: 'A',
-        tags: ['Healthy', 'Protein-Rich', 'Meal Prep'],
-        servings: 2,
-      ),
-      RecipeSuggestion(
-        title: 'Veggie Stir-Fry Rice',
-        description: 'Colorful fried rice with fresh vegetables',
-        estimatedTimeMin: 15,
-        difficulty: 'Easy',
-        nutritionScore: 'A',
-        tags: ['Quick', 'Vegetarian', 'Budget-Friendly'],
-        servings: 2,
-      ),
     ];
   }
 
-  List<RecipeStep> _generateMockSteps(RecipeSuggestion suggestion) {
-    return [
-      const RecipeStep(
+  List<RecipeStep> _fallbackSteps(RecipeSuggestion? suggestion) {
+    return const [
+      RecipeStep(
         id: '1',
         stepNumber: 1,
-        instruction: 'Prepare all ingredients by washing and chopping vegetables',
+        instruction:
+            'Prepare all ingredients by washing and chopping vegetables',
         durationMinutes: 5,
       ),
-      const RecipeStep(
+      RecipeStep(
         id: '2',
         stepNumber: 2,
-        instruction: 'Heat oil in a large pan or wok over medium-high heat',
+        instruction:
+            'Heat oil in a large pan or wok over medium-high heat',
         durationMinutes: 2,
       ),
-      const RecipeStep(
+      RecipeStep(
         id: '3',
         stepNumber: 3,
         instruction: 'Add protein and cook until browned on all sides',
         durationMinutes: 5,
       ),
-      const RecipeStep(
+      RecipeStep(
         id: '4',
         stepNumber: 4,
         instruction: 'Add vegetables and stir-fry until tender-crisp',
         durationMinutes: 5,
       ),
-      const RecipeStep(
+      RecipeStep(
         id: '5',
         stepNumber: 5,
         instruction: 'Season with sauce and toss everything together',
         durationMinutes: 2,
       ),
-      const RecipeStep(
+      RecipeStep(
         id: '6',
         stepNumber: 6,
         instruction: 'Serve hot, garnished with fresh herbs',
@@ -258,7 +400,7 @@ class RecipeGenerationNotifier extends StateNotifier<RecipeGenerationData> {
     ];
   }
 
-  List<RecipeIngredient> _generateMockIngredients() {
+  List<RecipeIngredient> _fallbackIngredients() {
     return const [
       RecipeIngredient(
         id: '1',

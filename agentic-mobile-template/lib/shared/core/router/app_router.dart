@@ -46,6 +46,16 @@ import '../../../features/meals/presentation/log_meal_screen.dart'
 // Health
 import '../../../features/health/presentation/health_connection_screen.dart'
     as health_connection;
+import '../../../features/health/presentation/screens/steps_screen.dart'
+    as steps_screen;
+import '../../../features/health/presentation/screens/sleep_screen.dart'
+    as sleep_screen;
+import '../../../features/health/presentation/screens/heart_cardio_screen.dart'
+    as heart_cardio;
+import '../../../features/health/presentation/screens/weight_body_screen.dart'
+    as weight_body;
+import '../../../features/health/presentation/screens/vo2max_entry_screen.dart'
+    as vo2max_entry;
 
 // Insights
 import '../../../features/insights/presentation/insights_dashboard_screen.dart'
@@ -132,7 +142,7 @@ class AppRouter {
         final profileId = ref.read(activeProfileIdProvider);
         final needsProfile = requestedPath == '/' ||
             requestedPath == '/daily-view' ||
-            requestedPath == '/health/connections' ||
+            requestedPath.startsWith('/health/') ||
             requestedPath == '/insights' ||
             requestedPath == '/supplements' ||
             requestedPath == '/workouts';
@@ -260,6 +270,46 @@ class AppRouter {
             return health_connection.HealthConnectionScreen(
               profileId: profileId,
             );
+          },
+        ),
+        GoRoute(
+          path: '/health/steps',
+          name: 'healthSteps',
+          builder: (context, state) {
+            final profileId = ref.read(activeProfileIdProvider) ?? '';
+            return steps_screen.StepsScreen(profileId: profileId);
+          },
+        ),
+        GoRoute(
+          path: '/health/sleep',
+          name: 'healthSleep',
+          builder: (context, state) {
+            final profileId = ref.read(activeProfileIdProvider) ?? '';
+            return sleep_screen.SleepScreen(profileId: profileId);
+          },
+        ),
+        GoRoute(
+          path: '/health/heart',
+          name: 'healthHeart',
+          builder: (context, state) {
+            final profileId = ref.read(activeProfileIdProvider) ?? '';
+            return heart_cardio.HeartCardioScreen(profileId: profileId);
+          },
+        ),
+        GoRoute(
+          path: '/health/weight',
+          name: 'healthWeight',
+          builder: (context, state) {
+            final profileId = ref.read(activeProfileIdProvider) ?? '';
+            return weight_body.WeightBodyScreen(profileId: profileId);
+          },
+        ),
+        GoRoute(
+          path: '/health/vo2max-entry',
+          name: 'vo2maxEntry',
+          builder: (context, state) {
+            final profileId = ref.read(activeProfileIdProvider) ?? '';
+            return vo2max_entry.Vo2maxEntryScreen(profileId: profileId);
           },
         ),
 

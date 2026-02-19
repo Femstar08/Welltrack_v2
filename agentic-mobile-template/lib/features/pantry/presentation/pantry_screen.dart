@@ -201,7 +201,7 @@ class _PantryScreenState extends ConsumerState<PantryScreen>
                   // Trigger recipe generation
                   await ref
                       .read(recipeGenerationProvider.notifier)
-                      .generateRecipeSuggestions(profile.id, availableItems);
+                      .generateRecipeSuggestions(profile.userId, profile.id, availableItems);
 
                   // Navigate to suggestions screen
                   if (context.mounted) {

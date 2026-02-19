@@ -216,6 +216,207 @@ class HealthNormalizer {
     return normalized;
   }
 
+  /// Normalize weight data into daily records
+  List<HealthMetricEntity> normalizeWeightData(
+    List<HealthDataPoint> rawData,
+    String userId,
+    String profileId,
+    HealthSource source,
+  ) {
+    if (rawData.isEmpty) return [];
+
+    // Take latest reading per day
+    final Map<DateTime, HealthDataPoint> dailyWeight = {};
+    for (final point in rawData) {
+      final day = DateTime(point.dateFrom.year, point.dateFrom.month, point.dateFrom.day);
+      if (!dailyWeight.containsKey(day) || point.dateFrom.isAfter(dailyWeight[day]!.dateFrom)) {
+        dailyWeight[day] = point;
+      }
+    }
+
+    return dailyWeight.entries.map((entry) {
+      final date = entry.key;
+      final point = entry.value;
+      final weight = (point.value as NumericHealthValue).numericValue.toDouble();
+      final dedupeString = '$userId-$profileId-${source.name}-weight-${date.toIso8601String()}';
+      final dedupeHash = md5.convert(utf8.encode(dedupeString)).toString();
+
+      return HealthMetricEntity(
+        userId: userId,
+        profileId: profileId,
+        source: source,
+        metricType: MetricType.weight,
+        valueNum: weight,
+        unit: 'kg',
+        startTime: point.dateFrom,
+        recordedAt: DateTime.now(),
+        dedupeHash: dedupeHash,
+        validationStatus: ValidationStatus.raw,
+        processingStatus: ProcessingStatus.pending,
+      );
+    }).toList();
+  }
+
+  /// Normalize body fat percentage data
+  List<HealthMetricEntity> normalizeBodyFatData(
+    List<HealthDataPoint> rawData,
+    String userId,
+    String profileId,
+    HealthSource source,
+  ) {
+    if (rawData.isEmpty) return [];
+
+    final Map<DateTime, HealthDataPoint> daily = {};
+    for (final point in rawData) {
+      final day = DateTime(point.dateFrom.year, point.dateFrom.month, point.dateFrom.day);
+      if (!daily.containsKey(day) || point.dateFrom.isAfter(daily[day]!.dateFrom)) {
+        daily[day] = point;
+      }
+    }
+
+    return daily.entries.map((entry) {
+      final date = entry.key;
+      final point = entry.value;
+      final value = (point.value as NumericHealthValue).numericValue.toDouble();
+      final dedupeString = '$userId-$profileId-${source.name}-body_fat-${date.toIso8601String()}';
+      final dedupeHash = md5.convert(utf8.encode(dedupeString)).toString();
+
+      return HealthMetricEntity(
+        userId: userId,
+        profileId: profileId,
+        source: source,
+        metricType: MetricType.body_fat,
+        valueNum: value,
+        unit: '%',
+        startTime: point.dateFrom,
+        recordedAt: DateTime.now(),
+        dedupeHash: dedupeHash,
+        validationStatus: ValidationStatus.raw,
+        processingStatus: ProcessingStatus.pending,
+      );
+    }).toList();
+  }
+
+  /// Normalize HRV (SDNN) data into daily values
+  List<HealthMetricEntity> normalizeHRVData(
+    List<HealthDataPoint> rawData,
+    String userId,
+    String profileId,
+    HealthSource source,
+  ) {
+    if (rawData.isEmpty) return [];
+
+    // Group by day, take average
+    final Map<DateTime, List<double>> dailyHRV = {};
+    for (final point in rawData) {
+      final day = DateTime(point.dateFrom.year, point.dateFrom.month, point.dateFrom.day);
+      final value = (point.value as NumericHealthValue).numericValue.toDouble();
+      dailyHRV.putIfAbsent(day, () => []).add(value);
+    }
+
+    return dailyHRV.entries.map((entry) {
+      final date = entry.key;
+      final values = entry.value;
+      final avg = values.reduce((a, b) => a + b) / values.length;
+      final dedupeString = '$userId-$profileId-${source.name}-hrv-${date.toIso8601String()}';
+      final dedupeHash = md5.convert(utf8.encode(dedupeString)).toString();
+
+      return HealthMetricEntity(
+        userId: userId,
+        profileId: profileId,
+        source: source,
+        metricType: MetricType.hrv,
+        valueNum: avg,
+        unit: 'ms',
+        startTime: date,
+        endTime: date.add(const Duration(days: 1)),
+        recordedAt: DateTime.now(),
+        rawPayload: {'readings_count': values.length},
+        dedupeHash: dedupeHash,
+        validationStatus: ValidationStatus.raw,
+        processingStatus: ProcessingStatus.pending,
+      );
+    }).toList();
+  }
+
+  /// Normalize active calories burned into daily totals
+  List<HealthMetricEntity> normalizeActiveCaloriesData(
+    List<HealthDataPoint> rawData,
+    String userId,
+    String profileId,
+    HealthSource source,
+  ) {
+    if (rawData.isEmpty) return [];
+
+    final Map<DateTime, double> dailyCals = {};
+    for (final point in rawData) {
+      final day = DateTime(point.dateFrom.year, point.dateFrom.month, point.dateFrom.day);
+      final value = (point.value as NumericHealthValue).numericValue.toDouble();
+      dailyCals[day] = (dailyCals[day] ?? 0) + value;
+    }
+
+    return dailyCals.entries.map((entry) {
+      final date = entry.key;
+      final totalCals = entry.value;
+      final dedupeString = '$userId-$profileId-${source.name}-calories-${date.toIso8601String()}';
+      final dedupeHash = md5.convert(utf8.encode(dedupeString)).toString();
+
+      return HealthMetricEntity(
+        userId: userId,
+        profileId: profileId,
+        source: source,
+        metricType: MetricType.calories,
+        valueNum: totalCals,
+        unit: 'kcal',
+        startTime: date,
+        endTime: date.add(const Duration(days: 1)),
+        recordedAt: DateTime.now(),
+        dedupeHash: dedupeHash,
+        validationStatus: ValidationStatus.raw,
+        processingStatus: ProcessingStatus.pending,
+      );
+    }).toList();
+  }
+
+  /// Normalize distance data into daily totals (meters)
+  List<HealthMetricEntity> normalizeDistanceData(
+    List<HealthDataPoint> rawData,
+    String userId,
+    String profileId,
+    HealthSource source,
+  ) {
+    if (rawData.isEmpty) return [];
+
+    final Map<DateTime, double> dailyDist = {};
+    for (final point in rawData) {
+      final day = DateTime(point.dateFrom.year, point.dateFrom.month, point.dateFrom.day);
+      final value = (point.value as NumericHealthValue).numericValue.toDouble();
+      dailyDist[day] = (dailyDist[day] ?? 0) + value;
+    }
+
+    return dailyDist.entries.map((entry) {
+      final date = entry.key;
+      final totalDist = entry.value;
+      final dedupeString = '$userId-$profileId-${source.name}-distance-${date.toIso8601String()}';
+      final dedupeHash = md5.convert(utf8.encode(dedupeString)).toString();
+
+      return HealthMetricEntity(
+        userId: userId,
+        profileId: profileId,
+        source: source,
+        metricType: MetricType.distance,
+        valueNum: totalDist,
+        unit: 'm',
+        startTime: date,
+        endTime: date.add(const Duration(days: 1)),
+        recordedAt: DateTime.now(),
+        dedupeHash: dedupeHash,
+        validationStatus: ValidationStatus.raw,
+        processingStatus: ProcessingStatus.pending,
+      );
+    }).toList();
+  }
+
   /// Resolve conflict when two metrics have overlapping time ranges.
   ///
   /// Priority rules:

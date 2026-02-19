@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:welltrack/features/health/presentation/health_provider.dart';
@@ -18,9 +19,9 @@ class ConnectDevicesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final accent = theme.colorScheme.primary;
-    final platformName = Platform.isAndroid ? 'Health Connect' : 'HealthKit';
+    final platformName = (!kIsWeb && Platform.isAndroid) ? 'Health Connect' : 'HealthKit';
     final platformIcon =
-        Platform.isAndroid ? Icons.favorite : Icons.health_and_safety;
+        (!kIsWeb && Platform.isAndroid) ? Icons.favorite : Icons.health_and_safety;
 
     HealthConnectionState? connectionState;
     if (profileId != null && profileId!.isNotEmpty) {

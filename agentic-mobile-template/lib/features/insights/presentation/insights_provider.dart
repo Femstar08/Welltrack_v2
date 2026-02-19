@@ -4,6 +4,8 @@ import 'package:welltrack/features/insights/domain/training_load_entity.dart';
 import 'package:welltrack/features/insights/domain/forecast_entity.dart';
 import 'package:welltrack/features/insights/domain/insight_entity.dart';
 import 'package:welltrack/features/insights/data/insights_repository.dart';
+import 'package:welltrack/shared/core/ai/ai_orchestrator_service.dart';
+import 'package:welltrack/shared/core/ai/ai_providers.dart';
 
 /// Insights State
 class InsightsState {
@@ -15,6 +17,7 @@ class InsightsState {
   final List<InsightEntity> insights;
   final Map<String, List<DataPoint>> metricTrends;
   final bool isLoading;
+  final bool isGeneratingNarrative;
   final String? error;
 
   const InsightsState({
@@ -26,6 +29,7 @@ class InsightsState {
     this.insights = const [],
     this.metricTrends = const {},
     this.isLoading = false,
+    this.isGeneratingNarrative = false,
     this.error,
   });
 
@@ -38,6 +42,7 @@ class InsightsState {
     List<InsightEntity>? insights,
     Map<String, List<DataPoint>>? metricTrends,
     bool? isLoading,
+    bool? isGeneratingNarrative,
     String? error,
   }) {
     return InsightsState(
@@ -49,6 +54,7 @@ class InsightsState {
       insights: insights ?? this.insights,
       metricTrends: metricTrends ?? this.metricTrends,
       isLoading: isLoading ?? this.isLoading,
+      isGeneratingNarrative: isGeneratingNarrative ?? this.isGeneratingNarrative,
       error: error,
     );
   }
@@ -100,10 +106,18 @@ class InsightsState {
 /// Insights StateNotifier
 class InsightsNotifier extends StateNotifier<InsightsState> {
   final InsightsRepository _repository;
+  final AiOrchestratorService _aiService;
+  final Ref _ref;
   final String _profileId;
+  final String _userId;
 
-  InsightsNotifier(this._repository, this._profileId)
-      : super(const InsightsState());
+  InsightsNotifier(
+    this._repository,
+    this._aiService,
+    this._ref,
+    this._profileId,
+    this._userId,
+  ) : super(const InsightsState());
 
   /// Initialize insights for profile
   Future<void> initialize() async {
@@ -171,6 +185,53 @@ class InsightsNotifier extends StateNotifier<InsightsState> {
     state = state.copyWith(selectedPeriod: period, isLoading: true);
     await loadData();
     state = state.copyWith(isLoading: false);
+  }
+
+  /// Generate AI narrative insight for the current period.
+  /// This is additive — deterministic data (recovery scores, training loads,
+  /// forecasts) already loads without AI. The narrative is optional.
+  Future<void> generateInsightNarrative() async {
+    state = state.copyWith(isGeneratingNarrative: true);
+
+    try {
+      final periodLabel = state.selectedPeriod.name;
+
+      final response = await _aiService.orchestrate(
+        userId: _userId,
+        profileId: _profileId,
+        workflowType: 'summarize_insights',
+        message: 'Summarize my wellness for the $periodLabel',
+      );
+
+      // Update global AI usage
+      _ref.read(aiUsageProvider.notifier).state = response.usage;
+
+      final now = DateTime.now();
+      final dateRange = _getDateRangeForPeriod(state.selectedPeriod);
+
+      // Save the AI insight to the database
+      final insight = await _repository.saveInsight(InsightEntity(
+        id: '',
+        profileId: _profileId,
+        periodType: state.selectedPeriod,
+        periodStart: dateRange.start,
+        periodEnd: dateRange.end,
+        summaryText: response.assistantMessage,
+        aiModel: 'gpt-4o-mini',
+        createdAt: now,
+      ));
+
+      // Prepend to current insights list
+      final updatedInsights = [insight, ...state.insights];
+      state = state.copyWith(
+        insights: updatedInsights,
+        isGeneratingNarrative: false,
+      );
+    } catch (_) {
+      // Failure is silent — deterministic data already loaded.
+      // AI narrative is optional ("math generates, AI explains").
+      state = state.copyWith(isGeneratingNarrative: false);
+    }
   }
 
   /// Calculate and save today's recovery score
@@ -305,9 +366,17 @@ class DateRange {
 }
 
 /// Insights provider factory
-final insightsProvider = StateNotifierProvider.family<InsightsNotifier, InsightsState, String>(
-  (ref, profileId) {
+final insightsProvider =
+    StateNotifierProvider.family<InsightsNotifier, InsightsState, ({String profileId, String userId})>(
+  (ref, params) {
     final repository = ref.watch(insightsRepositoryProvider);
-    return InsightsNotifier(repository, profileId);
+    final aiService = ref.watch(aiOrchestratorServiceProvider);
+    return InsightsNotifier(
+      repository,
+      aiService,
+      ref,
+      params.profileId,
+      params.userId,
+    );
   },
 );

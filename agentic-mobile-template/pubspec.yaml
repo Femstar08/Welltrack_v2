@@ -43,7 +43,7 @@ dependencies:
   cached_network_image: ^3.3.0
 
   # Health Data
-  health: ^11.0.0
+  health: ^13.0.0
   crypto: ^3.0.3
   permission_handler: ^11.0.0
 

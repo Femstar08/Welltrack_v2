@@ -6,6 +6,7 @@ import 'package:welltrack/features/insights/presentation/widgets/training_load_c
 import 'package:welltrack/features/insights/presentation/widgets/trend_chart_widget.dart';
 import 'package:welltrack/features/insights/domain/insight_entity.dart';
 import 'package:welltrack/features/insights/domain/forecast_entity.dart';
+import 'package:welltrack/shared/core/auth/session_manager.dart';
 
 /// Insights Dashboard Screen
 /// Main performance intelligence dashboard
@@ -24,19 +25,25 @@ class InsightsDashboardScreen extends ConsumerStatefulWidget {
 
 class _InsightsDashboardScreenState
     extends ConsumerState<InsightsDashboardScreen> {
+  ({String profileId, String userId}) get _params => (
+        profileId: widget.profileId,
+        userId: ref.read(currentUserIdProvider) ?? '',
+      );
+
   @override
   void initState() {
     super.initState();
     // Initialize insights data
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(insightsProvider(widget.profileId).notifier).initialize();
+      ref.read(insightsProvider(_params).notifier).initialize();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(insightsProvider(widget.profileId));
-    final notifier = ref.read(insightsProvider(widget.profileId).notifier);
+    final params = _params;
+    final state = ref.watch(insightsProvider(params));
+    final notifier = ref.read(insightsProvider(params).notifier);
 
     return Scaffold(
       appBar: AppBar(
@@ -52,7 +59,7 @@ class _InsightsDashboardScreenState
       body: state.isLoading
           ? const Center(child: CircularProgressIndicator())
           : state.error != null
-              ? _buildError(state.error!)
+              ? _buildError(state.error!, params)
               : RefreshIndicator(
                   onRefresh: () => notifier.initialize(),
                   child: SingleChildScrollView(
@@ -109,12 +116,30 @@ class _InsightsDashboardScreenState
                         const SizedBox(height: 24),
 
                         // AI weekly summary
-                        if (state.currentInsight != null) ...[
-                          _buildSectionHeader('AI Weekly Summary'),
-                          const SizedBox(height: 12),
+                        _buildSectionHeader('AI Weekly Summary'),
+                        const SizedBox(height: 12),
+                        if (state.currentInsight != null)
                           _buildAISummaryCard(state.currentInsight!),
-                          const SizedBox(height: 24),
-                        ],
+                        if (state.currentInsight == null &&
+                            !state.isGeneratingNarrative)
+                          _buildGenerateNarrativeButton(notifier),
+                        if (state.isGeneratingNarrative)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 16),
+                            child: Center(
+                              child: Column(
+                                children: [
+                                  CircularProgressIndicator(),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    'Generating AI insight...',
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        const SizedBox(height: 24),
 
                         // Baseline comparison
                         _buildBaselineComparison(state),
@@ -267,6 +292,14 @@ class _InsightsDashboardScreenState
     );
   }
 
+  Widget _buildGenerateNarrativeButton(InsightsNotifier notifier) {
+    return OutlinedButton.icon(
+      onPressed: () => notifier.generateInsightNarrative(),
+      icon: const Icon(Icons.auto_awesome),
+      label: const Text('Generate AI Summary'),
+    );
+  }
+
   Widget _buildBaselineComparison(InsightsState state) {
     return Card(
       child: Padding(
@@ -300,7 +333,10 @@ class _InsightsDashboardScreenState
     );
   }
 
-  Widget _buildError(String error) {
+  Widget _buildError(
+    String error,
+    ({String profileId, String userId}) params,
+  ) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -317,7 +353,7 @@ class _InsightsDashboardScreenState
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
-                ref.read(insightsProvider(widget.profileId).notifier).initialize();
+                ref.read(insightsProvider(params).notifier).initialize();
               },
               child: const Text('Retry'),
             ),

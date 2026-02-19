@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:welltrack/features/health/presentation/health_provider.dart';
@@ -95,9 +96,9 @@ class HealthSettingsScreen extends ConsumerWidget {
     ColorScheme colorScheme,
     bool isDark,
   ) {
-    final platformName = Platform.isAndroid ? 'Health Connect' : 'HealthKit';
+    final platformName = (!kIsWeb && Platform.isAndroid) ? 'Health Connect' : 'HealthKit';
     final platformIcon =
-        Platform.isAndroid ? Icons.favorite : Icons.health_and_safety;
+        (!kIsWeb && Platform.isAndroid) ? Icons.favorite : Icons.health_and_safety;
 
     Color statusColor;
     String statusText;
@@ -470,7 +471,7 @@ class HealthSettingsScreen extends ConsumerWidget {
             const SizedBox(height: 12),
             // Info text
             Text(
-              Platform.isAndroid
+              (!kIsWeb && Platform.isAndroid)
                   ? 'Health Connect is Android\'s secure health data platform. Your data never leaves your device without permission.'
                   : 'HealthKit is Apple\'s secure health data platform. Your data is encrypted and private to your device.',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(

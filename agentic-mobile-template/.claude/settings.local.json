@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx supabase:*)",
+      "Bash(SUPABASE_ACCESS_TOKEN=sbp_c1ad00ce5444cfe8ff7d9255186b7baacf181261 npx supabase:*)",
+      "Bash(grep:*)",
+      "Bash(flutter --version:*)",
+      "Bash(flutter.bat --version:*)",
+      "Bash(/mnt/c/src/flutter/bin/flutter.bat:*)",
+      "Bash(flutter analyze:*)",
+      "Bash(ls:*)",
+      "Bash(/mnt/c/src/flutter/bin/flutter analyze:*)",
+      "Bash(supabase:*)",
+      "Bash(curl:*)",
+      "Bash(sh)",
+      "Bash(npm install:*)",
+      "Bash(SUPABASE_ACCESS_TOKEN=sbp_92d1899f037be577b80051ffa625165e390aa513 npx supabase link:*)",
+      "Bash(SUPABASE_ACCESS_TOKEN=sbp_92d1899f037be577b80051ffa625165e390aa513 npx supabase migration:*)",
+      "Bash(SUPABASE_ACCESS_TOKEN=sbp_92d1899f037be577b80051ffa625165e390aa513 npx supabase db push:*)",
+      "Bash(SUPABASE_ACCESS_TOKEN=sbp_92d1899f037be577b80051ffa625165e390aa513 npx supabase:*)",
+      "Bash(find:*)",
+      "Bash(dart --version:*)"
+    ]
+  }
+}

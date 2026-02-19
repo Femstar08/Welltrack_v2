@@ -51,19 +51,35 @@ class HealthConnectionNotifier extends StateNotifier<HealthConnectionState> {
   }
 
   Future<void> _checkInitialPermissions() async {
-    final hasPermissions = await _dataSource.hasPermissions();
-    state = state.copyWith(isConnected: hasPermissions);
+    try {
+      final hasPermissions = await _dataSource.hasPermissions();
+      state = state.copyWith(isConnected: hasPermissions);
+    } catch (e) {
+      // Non-fatal — leave as disconnected
+      print('Error checking initial health permissions: $e');
+    }
   }
 
   /// Request health data permissions
   Future<bool> requestPermissions() async {
     try {
-      state = state.copyWith(error: null);
+      state = state.copyWith(error: null, isSyncing: true);
       final granted = await _dataSource.requestPermissions();
-      state = state.copyWith(isConnected: granted);
+      state = state.copyWith(isConnected: granted, isSyncing: false);
+
+      if (!granted) {
+        state = state.copyWith(
+          error: 'Health Connect permissions were not granted. '
+              'Please allow access when prompted.',
+        );
+      }
+
       return granted;
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = state.copyWith(
+        error: 'Could not connect to Health Connect: ${e.toString()}',
+        isSyncing: false,
+      );
       return false;
     }
   }

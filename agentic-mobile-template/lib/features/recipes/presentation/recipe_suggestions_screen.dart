@@ -109,7 +109,7 @@ class RecipeSuggestionsScreen extends ConsumerWidget {
                 onTap: () {
                   ref
                       .read(recipeGenerationProvider.notifier)
-                      .selectSuggestion(profile.id, suggestion);
+                      .selectSuggestion(profile.userId, profile.id, suggestion);
                 },
               );
             },

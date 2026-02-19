@@ -38,7 +38,7 @@ class HealthBackgroundSync {
       print('HealthBackgroundSync: Workmanager initialized');
     } catch (e) {
       print('HealthBackgroundSync: Failed to initialize workmanager: $e');
-      rethrow;
+      // Don't rethrow — workmanager init failure is non-fatal
     }
   }
 
@@ -56,14 +56,14 @@ class HealthBackgroundSync {
         constraints: Constraints(
           networkType: NetworkType.connected,
         ),
-        existingWorkPolicy: ExistingWorkPolicy.keep,
+        existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
         backoffPolicy: BackoffPolicy.exponential,
         backoffPolicyDelay: const Duration(minutes: 15),
       );
       print('HealthBackgroundSync: Periodic sync registered (every 6 hours)');
     } catch (e) {
       print('HealthBackgroundSync: Failed to register periodic sync: $e');
-      rethrow;
+      // Don't rethrow — periodic sync registration failure is non-fatal
     }
   }
 
@@ -234,27 +234,39 @@ void callbackDispatcher() {
   });
 }
 
+/// Override state provider — set during app init with SharedPreferences instance
+final healthBackgroundSyncOverrideProvider =
+    StateProvider<HealthBackgroundSync?>((ref) => null);
+
 /// Riverpod provider for HealthBackgroundSync
+/// Reads from the override; returns null-safe instance
 final healthBackgroundSyncProvider = Provider<HealthBackgroundSync>((ref) {
-  throw UnimplementedError(
-    'healthBackgroundSyncProvider must be overridden with SharedPreferences instance',
-  );
+  final override = ref.watch(healthBackgroundSyncOverrideProvider);
+  if (override == null) {
+    throw StateError(
+      'healthBackgroundSyncProvider accessed before SharedPreferences init',
+    );
+  }
+  return override;
 });
 
 /// Provider for last sync time
 final lastSyncTimeProvider = FutureProvider<DateTime?>((ref) async {
-  final sync = ref.watch(healthBackgroundSyncProvider);
-  return await sync.getLastSyncTime();
+  final override = ref.watch(healthBackgroundSyncOverrideProvider);
+  if (override == null) return null;
+  return await override.getLastSyncTime();
 });
 
 /// Provider to check if sync is due
 final isSyncDueProvider = FutureProvider<bool>((ref) async {
-  final sync = ref.watch(healthBackgroundSyncProvider);
-  return await sync.isSyncDue();
+  final override = ref.watch(healthBackgroundSyncOverrideProvider);
+  if (override == null) return true;
+  return await override.isSyncDue();
 });
 
 /// Provider for last synced profile ID
 final lastSyncProfileIdProvider = FutureProvider<String?>((ref) async {
-  final sync = ref.watch(healthBackgroundSyncProvider);
-  return await sync.getLastSyncProfileId();
+  final override = ref.watch(healthBackgroundSyncOverrideProvider);
+  if (override == null) return null;
+  return await override.getLastSyncProfileId();
 });

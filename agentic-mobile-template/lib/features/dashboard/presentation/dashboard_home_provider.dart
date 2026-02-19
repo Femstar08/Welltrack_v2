@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:welltrack/features/health/data/health_repository.dart';
 import 'package:welltrack/features/health/domain/health_metric_entity.dart';
 import 'package:welltrack/features/health/presentation/health_provider.dart';
 import 'package:welltrack/features/insights/domain/forecast_entity.dart';
@@ -127,9 +128,12 @@ class DashboardHomeNotifier extends StateNotifier<DashboardHomeState> {
       const insightText =
           'Connect a device and log a few days of data to see personalized insights here.';
 
-      // 5. Generate 7-day dummy trend data
+      // 5. Build real 7-day trend data from health metrics
       final trendLabel = _trendLabelForGoal(goal);
-      final trendData = _generateDummyTrend();
+      final trendData = await _buildTrendData(profileId, goal);
+
+      // Compute trend direction from data
+      final trendDirection = _computeTrendDirection(trendData);
 
       state = DashboardHomeState(
         primaryGoal: goal,
@@ -139,7 +143,7 @@ class DashboardHomeNotifier extends StateNotifier<DashboardHomeState> {
         insightText: insightText,
         trendData: trendData,
         trendLabel: '$trendLabel — 7 Days',
-        trendDirection: TrendDirection.stable,
+        trendDirection: trendDirection,
         isLoading: false,
       );
     } catch (e, stack) {
@@ -309,14 +313,84 @@ class DashboardHomeNotifier extends StateNotifier<DashboardHomeState> {
     }
   }
 
-  List<DataPoint> _generateDummyTrend() {
-    final now = DateTime.now();
-    return List.generate(7, (i) {
-      return DataPoint(
-        date: now.subtract(Duration(days: 6 - i)),
-        value: 50 + (i * 2.5) + (i.isEven ? 3 : -2),
+  /// Build real 7-day trend data from health metrics
+  Future<List<DataPoint>> _buildTrendData(String profileId, String goal) async {
+    try {
+      final repository = ref.read(healthRepositoryProvider);
+      final now = DateTime.now();
+      final sevenDaysAgo = now.subtract(const Duration(days: 7));
+
+      // Map goal to the metric type to query
+      final metricType = _metricTypeForGoal(goal);
+      if (metricType == null) return [];
+
+      final metrics = await repository.getMetrics(
+        profileId,
+        metricType,
+        startDate: sevenDaysAgo,
+        endDate: now,
       );
-    });
+
+      if (metrics.isEmpty) return [];
+
+      // Group by day, taking latest value per day
+      final Map<String, DataPoint> dailyMap = {};
+      for (final metric in metrics) {
+        final dayKey =
+            '${metric.startTime.year}-${metric.startTime.month}-${metric.startTime.day}';
+        if (!dailyMap.containsKey(dayKey) && metric.valueNum != null) {
+          // Convert sleep from minutes to hours for display
+          final displayValue = metricType == MetricType.sleep
+              ? metric.valueNum! / 60.0
+              : metric.valueNum!;
+          dailyMap[dayKey] = DataPoint(
+            date: DateTime(
+              metric.startTime.year,
+              metric.startTime.month,
+              metric.startTime.day,
+            ),
+            value: displayValue,
+          );
+        }
+      }
+
+      final sorted = dailyMap.values.toList()
+        ..sort((a, b) => a.date.compareTo(b.date));
+      return sorted;
+    } catch (e) {
+      _logger.warning('Failed to build trend data: $e');
+      return [];
+    }
+  }
+
+  TrendDirection _computeTrendDirection(List<DataPoint> data) {
+    if (data.length < 2) return TrendDirection.stable;
+    final firstHalf = data.sublist(0, data.length ~/ 2);
+    final secondHalf = data.sublist(data.length ~/ 2);
+    final firstAvg =
+        firstHalf.map((d) => d.value).reduce((a, b) => a + b) / firstHalf.length;
+    final secondAvg =
+        secondHalf.map((d) => d.value).reduce((a, b) => a + b) / secondHalf.length;
+    final diff = secondAvg - firstAvg;
+    if (diff.abs() < firstAvg * 0.02) return TrendDirection.stable;
+    return diff > 0 ? TrendDirection.up : TrendDirection.down;
+  }
+
+  MetricType? _metricTypeForGoal(String goal) {
+    switch (goal) {
+      case 'performance':
+        return MetricType.vo2max;
+      case 'stress':
+        return MetricType.stress;
+      case 'sleep':
+        return MetricType.sleep;
+      case 'strength':
+        return MetricType.steps; // proxy until training load exists
+      case 'fat_loss':
+        return MetricType.steps;
+      default:
+        return MetricType.hr;
+    }
   }
 }
 

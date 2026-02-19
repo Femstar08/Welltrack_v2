@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:health/health.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../logging/app_logger.dart';
 
 /// Health platform connection status
@@ -62,12 +64,29 @@ class HealthService {
   final Health _health = Health();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
   final AppLogger _logger = AppLogger();
+  bool _configured = false;
 
   static const String _permissionsCacheKey = 'health_permissions_granted';
   static const String _lastSyncTimeKey = 'health_last_sync_time';
 
-  /// Health data types we need permissions for
-  static final List<HealthDataType> _types = [
+  /// Health data types for Android Health Connect
+  /// SLEEP_IN_BED and HRV_SDNN are not available on Health Connect
+  static final List<HealthDataType> _androidTypes = [
+    HealthDataType.SLEEP_ASLEEP,
+    HealthDataType.SLEEP_AWAKE,
+    HealthDataType.SLEEP_DEEP,
+    HealthDataType.SLEEP_LIGHT,
+    HealthDataType.SLEEP_REM,
+    HealthDataType.STEPS,
+    HealthDataType.HEART_RATE,
+    HealthDataType.WEIGHT,
+    HealthDataType.BODY_FAT_PERCENTAGE,
+    HealthDataType.ACTIVE_ENERGY_BURNED,
+    HealthDataType.DISTANCE_DELTA,
+  ];
+
+  /// Health data types for iOS HealthKit (all types supported)
+  static final List<HealthDataType> _iosTypes = [
     HealthDataType.SLEEP_ASLEEP,
     HealthDataType.SLEEP_AWAKE,
     HealthDataType.SLEEP_IN_BED,
@@ -76,21 +95,38 @@ class HealthService {
     HealthDataType.SLEEP_REM,
     HealthDataType.STEPS,
     HealthDataType.HEART_RATE,
+    HealthDataType.WEIGHT,
+    HealthDataType.BODY_FAT_PERCENTAGE,
+    HealthDataType.HEART_RATE_VARIABILITY_SDNN,
+    HealthDataType.ACTIVE_ENERGY_BURNED,
+    HealthDataType.DISTANCE_DELTA,
   ];
+
+  /// Get platform-appropriate types
+  List<HealthDataType> get _types {
+    if (kIsWeb) return _androidTypes;
+    if (Platform.isIOS) return _iosTypes;
+    return _androidTypes;
+  }
 
   /// Initialize health platform
   Future<void> initialize() async {
     try {
       _logger.info('Initializing health service');
 
-      // Check platform support
+      // Check platform support — dart:io Platform is unavailable on web
+      if (kIsWeb) {
+        _logger.warning('Health data not supported on web');
+        return;
+      }
       if (!Platform.isAndroid && !Platform.isIOS) {
         _logger.warning('Health data not supported on this platform');
         return;
       }
 
       // Configure health package
-      await _health.configure(useHealthConnectIfAvailable: true);
+      await _health.configure();
+      _configured = true;
 
       _logger.info('Health service initialized successfully');
     } catch (e, stackTrace) {
@@ -98,22 +134,33 @@ class HealthService {
     }
   }
 
+  /// Ensure configured before operations
+  Future<void> _ensureConfigured() async {
+    if (_configured) return;
+    await initialize();
+  }
+
   /// Request runtime permissions for health data
   /// Returns true if all permissions granted
   Future<bool> requestHealthPermissions() async {
     try {
+      await _ensureConfigured();
       _logger.info('Requesting health permissions');
 
-      final permissions = _types.map((type) => HealthDataAccess.READ).toList();
+      final types = _types;
+      final permissions = types.map((type) => HealthDataAccess.READ).toList();
 
       final granted = await _health.requestAuthorization(
-        _types,
+        types,
         permissions: permissions,
       );
 
       if (granted == true) {
         // Cache permission state
         await _storage.write(key: _permissionsCacheKey, value: 'true');
+        // Also save to SharedPreferences for HealthDataSource consistency
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('health_permissions_granted', true);
         _logger.info('Health permissions granted');
       } else {
         await _storage.write(key: _permissionsCacheKey, value: 'false');
@@ -131,6 +178,8 @@ class HealthService {
   /// Check if health permissions are granted
   Future<bool> isHealthConnected() async {
     try {
+      await _ensureConfigured();
+
       // Check cached permission state first
       final cached = await _storage.read(key: _permissionsCacheKey);
       if (cached == 'false') {
@@ -138,22 +187,29 @@ class HealthService {
       }
 
       // Verify with platform
+      final types = _types;
       final granted = await _health.hasPermissions(
-        _types,
-        permissions: _types.map((type) => HealthDataAccess.READ).toList(),
+        types,
+        permissions: types.map((type) => HealthDataAccess.READ).toList(),
       );
 
-      return granted ?? false;
+      // If platform gives a definitive answer, use it
+      if (granted != null) return granted;
+
+      // Health Connect returns null — fall back to cached state
+      return cached == 'true';
     } catch (e, stackTrace) {
       _logger.error('Error checking health permissions', e, stackTrace);
-      return false;
+      // Fall back to cached state
+      final cached = await _storage.read(key: _permissionsCacheKey);
+      return cached == 'true';
     }
   }
 
   /// Get current health platform status
   Future<HealthPlatformStatus> getHealthStatus() async {
     try {
-      if (!Platform.isAndroid && !Platform.isIOS) {
+      if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) {
         return HealthPlatformStatus.disconnected;
       }
 
@@ -177,15 +233,10 @@ class HealthService {
     }
   }
 
-  /// Fetch sleep data for date range
-  Future<List<HealthMetricRecord>> fetchSleep(
-    DateTime start,
-    DateTime end,
-  ) async {
-    try {
-      _logger.info('Fetching sleep data from ${start.toIso8601String()} to ${end.toIso8601String()}');
-
-      final sleepTypes = [
+  /// Sleep types for the current platform
+  List<HealthDataType> get _sleepTypes {
+    if (!kIsWeb && Platform.isIOS) {
+      return [
         HealthDataType.SLEEP_ASLEEP,
         HealthDataType.SLEEP_AWAKE,
         HealthDataType.SLEEP_IN_BED,
@@ -193,11 +244,29 @@ class HealthService {
         HealthDataType.SLEEP_LIGHT,
         HealthDataType.SLEEP_REM,
       ];
+    }
+    return [
+      HealthDataType.SLEEP_ASLEEP,
+      HealthDataType.SLEEP_AWAKE,
+      HealthDataType.SLEEP_DEEP,
+      HealthDataType.SLEEP_LIGHT,
+      HealthDataType.SLEEP_REM,
+    ];
+  }
+
+  /// Fetch sleep data for date range
+  Future<List<HealthMetricRecord>> fetchSleep(
+    DateTime start,
+    DateTime end,
+  ) async {
+    try {
+      await _ensureConfigured();
+      _logger.info('Fetching sleep data from ${start.toIso8601String()} to ${end.toIso8601String()}');
 
       final data = await _health.getHealthDataFromTypes(
         startTime: start,
         endTime: end,
-        types: sleepTypes,
+        types: _sleepTypes,
       );
 
       if (data.isEmpty) {
@@ -232,6 +301,7 @@ class HealthService {
     DateTime end,
   ) async {
     try {
+      await _ensureConfigured();
       _logger.info('Fetching steps data from ${start.toIso8601String()} to ${end.toIso8601String()}');
 
       final data = await _health.getHealthDataFromTypes(
@@ -260,6 +330,7 @@ class HealthService {
     DateTime end,
   ) async {
     try {
+      await _ensureConfigured();
       _logger.info('Fetching heart rate data from ${start.toIso8601String()} to ${end.toIso8601String()}');
 
       final data = await _health.getHealthDataFromTypes(
@@ -339,6 +410,118 @@ class HealthService {
     return records.first;
   }
 
+  /// Fetch weight data for date range
+  Future<List<HealthMetricRecord>> fetchWeight(DateTime start, DateTime end) async {
+    try {
+      await _ensureConfigured();
+      final data = await _health.getHealthDataFromTypes(
+        startTime: start, endTime: end,
+        types: [HealthDataType.WEIGHT],
+      );
+      if (data.isEmpty) return [];
+      return data
+          .where((p) => p.value is NumericHealthValue)
+          .map((p) => HealthMetricRecord(
+                type: 'weight',
+                value: (p.value as NumericHealthValue).numericValue.toDouble(),
+                startTime: p.dateFrom,
+                endTime: p.dateTo,
+                recordedAt: DateTime.now(),
+                source: _getPlatformSource(),
+                rawPayload: {'unit': p.unit.name, 'source_name': p.sourceName},
+              ))
+          .toList();
+    } catch (e, st) {
+      _logger.error('Error fetching weight data', e, st);
+      return [];
+    }
+  }
+
+  /// Fetch HRV (SDNN) data for date range
+  /// Only available on iOS; skipped on Android Health Connect
+  Future<List<HealthMetricRecord>> fetchHRV(DateTime start, DateTime end) async {
+    try {
+      // HRV SDNN is not reliably available on Health Connect
+      if (!kIsWeb && Platform.isAndroid) return [];
+
+      await _ensureConfigured();
+      final data = await _health.getHealthDataFromTypes(
+        startTime: start, endTime: end,
+        types: [HealthDataType.HEART_RATE_VARIABILITY_SDNN],
+      );
+      if (data.isEmpty) return [];
+      return data
+          .where((p) => p.value is NumericHealthValue)
+          .map((p) => HealthMetricRecord(
+                type: 'hrv',
+                value: (p.value as NumericHealthValue).numericValue.toDouble(),
+                startTime: p.dateFrom,
+                endTime: p.dateTo,
+                recordedAt: DateTime.now(),
+                source: _getPlatformSource(),
+                rawPayload: {'unit': 'ms', 'source_name': p.sourceName},
+              ))
+          .toList();
+    } catch (e, st) {
+      _logger.error('Error fetching HRV data', e, st);
+      return [];
+    }
+  }
+
+  /// Fetch active calories data for date range
+  Future<List<HealthMetricRecord>> fetchActiveCalories(DateTime start, DateTime end) async {
+    try {
+      await _ensureConfigured();
+      final data = await _health.getHealthDataFromTypes(
+        startTime: start, endTime: end,
+        types: [HealthDataType.ACTIVE_ENERGY_BURNED],
+      );
+      if (data.isEmpty) return [];
+      return data
+          .where((p) => p.value is NumericHealthValue)
+          .map((p) => HealthMetricRecord(
+                type: 'active_calories',
+                value: (p.value as NumericHealthValue).numericValue.toDouble(),
+                startTime: p.dateFrom,
+                endTime: p.dateTo,
+                recordedAt: DateTime.now(),
+                source: _getPlatformSource(),
+                rawPayload: {'unit': 'kcal', 'source_name': p.sourceName},
+              ))
+          .toList();
+    } catch (e, st) {
+      _logger.error('Error fetching active calories data', e, st);
+      return [];
+    }
+  }
+
+  /// Fetch distance data for date range
+  Future<List<HealthMetricRecord>> fetchDistance(DateTime start, DateTime end) async {
+    try {
+      await _ensureConfigured();
+      final data = await _health.getHealthDataFromTypes(
+        startTime: start, endTime: end,
+        types: [HealthDataType.DISTANCE_DELTA],
+      );
+      if (data.isEmpty) return [];
+      return data
+          .where((p) => p.value is NumericHealthValue)
+          .map((p) => HealthMetricRecord(
+                type: 'distance',
+                value: (p.value as NumericHealthValue).numericValue.toDouble(),
+                startTime: p.dateFrom,
+                endTime: p.dateTo,
+                recordedAt: DateTime.now(),
+                source: _getPlatformSource(),
+                rawPayload: {'unit': 'm', 'source_name': p.sourceName},
+              ))
+          .toList();
+    } catch (e, st) {
+      _logger.error('Error fetching distance data', e, st);
+      return [];
+    }
+  }
+
   /// Sync health data for user profile
   /// Fetches last 7 days of data, normalizes, and returns records
   Future<List<HealthMetricRecord>> syncHealthData(
@@ -362,8 +545,20 @@ class HealthService {
       final sleep = await fetchSleep(sevenDaysAgo, now);
       final steps = await fetchSteps(sevenDaysAgo, now);
       final heartRate = await fetchRestingHeartRate(sevenDaysAgo, now);
+      final weight = await fetchWeight(sevenDaysAgo, now);
+      final hrv = await fetchHRV(sevenDaysAgo, now);
+      final activeCals = await fetchActiveCalories(sevenDaysAgo, now);
+      final distance = await fetchDistance(sevenDaysAgo, now);
 
-      final allRecords = [...sleep, ...steps, ...heartRate];
+      final allRecords = [
+        ...sleep,
+        ...steps,
+        ...heartRate,
+        ...weight,
+        ...hrv,
+        ...activeCals,
+        ...distance,
+      ];
 
       // Update last sync time
       await _storage.write(
@@ -470,12 +665,13 @@ class HealthService {
   }
 
   String _getPlatformSource() {
+    if (kIsWeb) return 'web';
     if (Platform.isAndroid) {
       return 'health_connect';
     } else if (Platform.isIOS) {
       return 'healthkit';
     }
-    throw UnsupportedError('Platform not supported for health data');
+    return 'unknown';
   }
 }
 

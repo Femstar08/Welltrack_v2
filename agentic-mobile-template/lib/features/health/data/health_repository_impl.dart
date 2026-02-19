@@ -135,9 +135,7 @@ class HealthRepositoryImpl {
         query = query.eq('metric_type', metricType);
       }
 
-      query = query.order('start_time', ascending: true);
-
-      final response = await query;
+      final response = await query.order('start_time', ascending: true);
 
       return (response as List)
           .map((json) => HealthMetricEntity.fromSupabaseJson(json))
@@ -193,7 +191,7 @@ class HealthRepositoryImpl {
     try {
       var query = _supabase
           .from('wt_health_metrics')
-          .select('id', const FetchOptions(count: CountOption.exact))
+          .select('id')
           .eq('profile_id', profileId)
           .eq('metric_type', metricType.name)
           .eq('validation_status', ValidationStatus.validated.name);
@@ -203,7 +201,7 @@ class HealthRepositoryImpl {
       }
 
       final response = await query;
-      return response.count ?? 0;
+      return (response as List).length;
     } catch (e) {
       print('Error getting metric count: $e');
       return 0;
@@ -370,12 +368,22 @@ class HealthRepositoryImpl {
   /// Returns count of deleted records
   Future<int> deleteMetricsForProfile(String profileId) async {
     try {
-      final response = await _supabase
+      // Fetch IDs first, then delete
+      final existing = await _supabase
           .from('wt_health_metrics')
-          .delete(const FetchOptions(count: CountOption.exact))
+          .select('id')
           .eq('profile_id', profileId);
 
-      return response.count ?? 0;
+      final count = (existing as List).length;
+
+      if (count > 0) {
+        await _supabase
+            .from('wt_health_metrics')
+            .delete()
+            .eq('profile_id', profileId);
+      }
+
+      return count;
     } catch (e) {
       print('Error deleting metrics for profile: $e');
       return 0;

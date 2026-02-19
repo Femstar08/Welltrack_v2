@@ -305,7 +305,7 @@ class BaselineCalibration {
   ) async {
     try {
       final response = await _supabase
-          .from('wt_health_baselines')
+          .from('wt_baselines')
           .select()
           .eq('profile_id', profileId)
           .eq('metric_type', metricType.name)
@@ -331,7 +331,7 @@ class BaselineCalibration {
 
       // Delete existing baseline to force recomputation
       await _supabase
-          .from('wt_health_baselines')
+          .from('wt_baselines')
           .delete()
           .eq('profile_id', profileId)
           .eq('metric_type', metricType.name);
@@ -384,7 +384,7 @@ class BaselineCalibration {
     try {
       // Check if baseline exists
       final existing = await _supabase
-          .from('wt_health_baselines')
+          .from('wt_baselines')
           .select('id')
           .eq('profile_id', baseline.profileId)
           .eq('metric_type', baseline.metricType.name)
@@ -396,12 +396,12 @@ class BaselineCalibration {
         // Update existing
         json['id'] = existing['id'];
         await _supabase
-            .from('wt_health_baselines')
+            .from('wt_baselines')
             .update(json)
             .eq('id', existing['id']);
       } else {
         // Insert new
-        await _supabase.from('wt_health_baselines').insert(json);
+        await _supabase.from('wt_baselines').insert(json);
       }
 
       print('Upserted baseline for ${baseline.metricType}');

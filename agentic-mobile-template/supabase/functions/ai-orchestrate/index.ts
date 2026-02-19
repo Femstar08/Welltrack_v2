@@ -20,6 +20,8 @@ Deno.serve(async (req: Request) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  const startTime = Date.now()
+
   try {
     // Step 1: Parse and validate request
     const body = await req.json()
@@ -90,27 +92,45 @@ Deno.serve(async (req: Request) => {
     // Step 6: Build system prompt
     const systemPrompt = buildSystemPrompt(context, toolConfig.system_prompt_additions)
 
-    // Step 7: Call OpenAI API
+    // Step 7: Call OpenAI API with timeout
     if (!OPENAI_API_KEY) {
       throw new Error('OPENAI_API_KEY environment variable is not set')
     }
 
-    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: request.message || 'Generate response based on workflow type' },
-        ],
-        max_tokens: toolConfig.max_tokens,
-        temperature: toolConfig.temperature,
-      }),
-    })
+    const abortController = new AbortController()
+    const timeoutId = setTimeout(() => abortController.abort(), 45_000)
+
+    let openaiResponse: Response
+    try {
+      openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: request.message || 'Generate response based on workflow type' },
+          ],
+          max_tokens: toolConfig.max_tokens,
+          temperature: toolConfig.temperature,
+        }),
+        signal: abortController.signal,
+      })
+    } catch (fetchError) {
+      clearTimeout(timeoutId)
+      if (fetchError.name === 'AbortError') {
+        return new Response(
+          JSON.stringify({ error: 'OpenAI request timed out', fallback: true }),
+          { status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      throw fetchError
+    } finally {
+      clearTimeout(timeoutId)
+    }
 
     if (!openaiResponse.ok) {
       const errorText = await openaiResponse.text()
@@ -119,7 +139,23 @@ Deno.serve(async (req: Request) => {
     }
 
     const openaiData = await openaiResponse.json()
-    const assistantMessage = openaiData.choices[0]?.message?.content || 'No response generated'
+
+    // Validate OpenAI response structure
+    if (
+      !openaiData.choices ||
+      openaiData.choices.length === 0 ||
+      !openaiData.choices[0]?.message?.content
+    ) {
+      return new Response(
+        JSON.stringify({
+          error: 'OpenAI returned empty or malformed response',
+          fallback: true,
+        }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const assistantMessage = openaiData.choices[0].message.content
     const tokensUsed = openaiData.usage?.total_tokens || 0
 
     // Step 8: Parse response
@@ -167,24 +203,36 @@ Deno.serve(async (req: Request) => {
       dbWrites.forEach((w) => (w.dry_run = true))
     }
 
-    // Step 11: Increment usage tracking
-    await adminClient.rpc('increment_ai_usage', {
-      p_user_id: request.user_id,
-      p_profile_id: request.profile_id,
-      p_tokens: tokensUsed,
-    })
+    const durationMs = Date.now() - startTime
 
-    // Step 12: Audit logging
-    await adminClient.from('wt_ai_audit_log').insert({
-      user_id: request.user_id,
-      profile_id: request.profile_id,
-      workflow_type: request.workflow_type || 'general_chat',
-      user_message: request.message,
-      assistant_message: assistantMessage,
-      tokens_used: tokensUsed,
-      safety_flags: safetyFlags.length > 0 ? JSON.stringify(safetyFlags) : null,
-      db_writes_count: dbWrites.length,
-    })
+    // Step 11: Increment usage tracking (fault-tolerant)
+    try {
+      await adminClient.rpc('increment_ai_usage', {
+        p_user_id: request.user_id,
+        p_profile_id: request.profile_id,
+        p_tokens: tokensUsed,
+      })
+    } catch (usageError) {
+      console.error('Usage tracking failed (non-fatal):', usageError)
+    }
+
+    // Step 12: Audit logging (fault-tolerant)
+    try {
+      await adminClient.from('wt_ai_audit_log').insert({
+        user_id: request.user_id,
+        profile_id: request.profile_id,
+        workflow_type: request.workflow_type || 'general_chat',
+        user_message: request.message,
+        assistant_message: assistantMessage,
+        tokens_used: tokensUsed,
+        duration_ms: durationMs,
+        tool_called: request.workflow_type || 'general_chat',
+        safety_flags: safetyFlags.length > 0 ? JSON.stringify(safetyFlags) : null,
+        db_writes_count: dbWrites.length,
+      })
+    } catch (auditError) {
+      console.error('Audit logging failed (non-fatal):', auditError)
+    }
 
     // Step 13: Build usage info
     const usage: UsageInfo = {

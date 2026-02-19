@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:welltrack/features/auth/domain/auth_state.dart';
 import 'package:welltrack/features/auth/presentation/auth_provider.dart';
+import 'package:welltrack/shared/core/router/app_router.dart';
 import 'package:welltrack/shared/core/theme/app_colors.dart';
 
 /// Sign up screen for WellTrack
@@ -102,6 +103,15 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
         Future.delayed(const Duration(seconds: 3), () {
           ref.read(authProvider.notifier).clearError();
         });
+      } else if (next is AuthAuthenticated) {
+        // New user — mark onboarding incomplete and go to onboarding
+        ref.read(onboardingCompleteProvider.notifier).state =
+            next.user.onboardingCompleted;
+        if (next.user.onboardingCompleted) {
+          context.go('/');
+        } else {
+          context.go('/onboarding');
+        }
       }
     });
 

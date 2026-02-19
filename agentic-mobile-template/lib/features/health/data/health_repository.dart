@@ -62,48 +62,52 @@ class HealthRepository {
     DateTime end,
   ) async {
     final source = _dataSource.getPlatformSource();
-    int sleepCount = 0;
-    int stepsCount = 0;
-    int hrCount = 0;
+    final counts = <String, int>{};
 
     // Fetch and normalize sleep data
     final rawSleep = await _dataSource.fetchSleepData(start, end);
-    final sleepMetrics = _normalizer.normalizeSleepData(
-      rawSleep,
-      userId,
-      profileId,
-      source,
-    );
-    sleepCount = await _upsertMetrics(sleepMetrics);
+    final sleepMetrics = _normalizer.normalizeSleepData(rawSleep, userId, profileId, source);
+    counts['sleep'] = await _upsertMetrics(sleepMetrics);
 
     // Fetch and normalize steps data
     final rawSteps = await _dataSource.fetchStepsData(start, end);
-    final stepsMetrics = _normalizer.normalizeStepsData(
-      rawSteps,
-      userId,
-      profileId,
-      source,
-    );
-    stepsCount = await _upsertMetrics(stepsMetrics);
+    final stepsMetrics = _normalizer.normalizeStepsData(rawSteps, userId, profileId, source);
+    counts['steps'] = await _upsertMetrics(stepsMetrics);
 
     // Fetch and normalize heart rate data
     final rawHR = await _dataSource.fetchHeartRateData(start, end);
-    final hrMetrics = _normalizer.normalizeHeartRateData(
-      rawHR,
-      userId,
-      profileId,
-      source,
-    );
-    hrCount = await _upsertMetrics(hrMetrics);
+    final hrMetrics = _normalizer.normalizeHeartRateData(rawHR, userId, profileId, source);
+    counts['hr'] = await _upsertMetrics(hrMetrics);
+
+    // Fetch and normalize weight data
+    final rawWeight = await _dataSource.fetchWeightData(start, end);
+    final weightMetrics = _normalizer.normalizeWeightData(rawWeight, userId, profileId, source);
+    counts['weight'] = await _upsertMetrics(weightMetrics);
+
+    // Fetch and normalize body fat data
+    final rawBodyFat = await _dataSource.fetchBodyFatData(start, end);
+    final bodyFatMetrics = _normalizer.normalizeBodyFatData(rawBodyFat, userId, profileId, source);
+    counts['body_fat'] = await _upsertMetrics(bodyFatMetrics);
+
+    // Fetch and normalize HRV data
+    final rawHRV = await _dataSource.fetchHRVData(start, end);
+    final hrvMetrics = _normalizer.normalizeHRVData(rawHRV, userId, profileId, source);
+    counts['hrv'] = await _upsertMetrics(hrvMetrics);
+
+    // Fetch and normalize active calories data
+    final rawCals = await _dataSource.fetchActiveCaloriesData(start, end);
+    final calsMetrics = _normalizer.normalizeActiveCaloriesData(rawCals, userId, profileId, source);
+    counts['calories'] = await _upsertMetrics(calsMetrics);
+
+    // Fetch and normalize distance data
+    final rawDist = await _dataSource.fetchDistanceData(start, end);
+    final distMetrics = _normalizer.normalizeDistanceData(rawDist, userId, profileId, source);
+    counts['distance'] = await _upsertMetrics(distMetrics);
 
     // Update baseline calibration progress
     await updateBaselineProgress(profileId);
 
-    return {
-      'sleep': sleepCount,
-      'steps': stepsCount,
-      'hr': hrCount,
-    };
+    return counts;
   }
 
   /// Upsert normalized metrics to Supabase
@@ -194,7 +198,7 @@ class HealthRepository {
     if (profileId.isEmpty) return {};
     try {
       final response = await _supabase
-          .from('wt_health_baselines')
+          .from('wt_baselines')
           .select()
           .eq('profile_id', profileId);
 
@@ -219,6 +223,8 @@ class HealthRepository {
       MetricType.sleep,
       MetricType.steps,
       MetricType.hr,
+      MetricType.weight,
+      MetricType.hrv,
     ];
 
     for (final metricType in metricsToTrack) {
@@ -233,7 +239,7 @@ class HealthRepository {
     try {
       // Get or create baseline record
       final existingResponse = await _supabase
-          .from('wt_health_baselines')
+          .from('wt_baselines')
           .select()
           .eq('profile_id', profileId)
           .eq('metric_type', metricType.name)
@@ -288,7 +294,7 @@ class HealthRepository {
         ),
       );
 
-      await _supabase.from('wt_health_baselines').upsert(
+      await _supabase.from('wt_baselines').upsert(
             newBaseline.toSupabaseJson(),
           );
     } catch (e) {

@@ -19,6 +19,7 @@ class ApiConstants {
   // Timeouts
   static const Duration connectionTimeout = Duration(seconds: 30);
   static const Duration receiveTimeout = Duration(seconds: 30);
+  static const Duration aiReceiveTimeout = Duration(seconds: 60);
 
   // Sync
   static const Duration syncInterval = Duration(minutes: 15);

@@ -1,8 +1,12 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:welltrack/features/auth/data/auth_repository.dart';
+import 'package:welltrack/features/health/data/health_background_sync.dart';
 import 'package:welltrack/features/profile/presentation/profile_provider.dart';
+import 'package:welltrack/shared/core/health/health_service.dart';
 import 'package:welltrack/shared/core/router/app_router.dart';
 import 'package:welltrack/shared/core/theme/app_theme.dart';
 import 'package:welltrack/shared/core/storage/local_storage_service.dart';
@@ -44,6 +48,17 @@ class _WellTrackAppState extends ConsumerState<WellTrackApp> {
       await connectivityService.init();
       _logger.info('Connectivity service initialized');
 
+      // Initialize health service (configures Health Connect / HealthKit)
+      final healthService = ref.read(healthServiceProvider);
+      await healthService.initialize();
+      _logger.info('Health service initialized');
+
+      // Initialize SharedPreferences and wire background sync provider
+      final prefs = await SharedPreferences.getInstance();
+      final bgSync = HealthBackgroundSync(preferences: prefs);
+      ref.read(healthBackgroundSyncOverrideProvider.notifier).state = bgSync;
+      _logger.info('Health background sync provider configured');
+
       // Start sync engine
       final syncEngine = ref.read(syncEngineProvider.notifier);
       await syncEngine.startSync();
@@ -51,6 +66,35 @@ class _WellTrackAppState extends ConsumerState<WellTrackApp> {
 
       // Restore auth session state if user is already logged in
       await _restoreSessionState();
+
+      // Register background health sync (after session restore so profile is available)
+      // Workmanager is not supported on web — skip entirely
+      if (!kIsWeb) {
+        try {
+          final bgSyncInstance = ref.read(healthBackgroundSyncOverrideProvider);
+          if (bgSyncInstance != null) {
+            await bgSyncInstance.initialize();
+            await bgSyncInstance.registerPeriodicSync();
+            _logger.info('Health background sync registered');
+
+            // Trigger initial sync if user is authenticated with a profile
+            final profileId = ref.read(activeProfileIdProvider);
+            if (profileId != null && profileId.isNotEmpty) {
+              final isDue = await bgSyncInstance.isSyncDue();
+              if (isDue) {
+                bgSyncInstance.syncNow(profileId).catchError((e) {
+                  _logger.warning('Initial health sync failed: $e');
+                });
+                _logger.info('Initial health sync triggered');
+              }
+            }
+          }
+        } catch (e) {
+          _logger.warning('Health background sync setup failed (non-fatal): $e');
+        }
+      } else {
+        _logger.info('Skipping background sync on web platform');
+      }
 
       setState(() {
         _isInitialized = true;
