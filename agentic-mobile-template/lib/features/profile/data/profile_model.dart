@@ -15,6 +15,8 @@ class ProfileModel {
     this.fitnessGoals,
     this.dietaryRestrictions,
     this.allergies,
+    this.preferredIngredients = const [],
+    this.excludedIngredients = const [],
     this.primaryGoal,
     this.goalIntensity,
     this.isPrimary = true,
@@ -43,6 +45,8 @@ class ProfileModel {
       fitnessGoals: json['fitness_goals'] as String?,
       dietaryRestrictions: json['dietary_restrictions'] as String?,
       allergies: json['allergies'] as String?,
+      preferredIngredients: (json['preferred_ingredients'] as List<dynamic>?)?.cast<String>() ?? [],
+      excludedIngredients: (json['excluded_ingredients'] as List<dynamic>?)?.cast<String>() ?? [],
       primaryGoal: json['primary_goal'] as String?,
       goalIntensity: json['goal_intensity'] as String?,
       isPrimary: json['is_primary'] as bool? ?? true,
@@ -66,6 +70,8 @@ class ProfileModel {
       fitnessGoals: entity.fitnessGoals,
       dietaryRestrictions: entity.dietaryRestrictions,
       allergies: entity.allergies,
+      preferredIngredients: entity.preferredIngredients,
+      excludedIngredients: entity.excludedIngredients,
       primaryGoal: entity.primaryGoal,
       goalIntensity: entity.goalIntensity,
       isPrimary: entity.isPrimary,
@@ -86,6 +92,8 @@ class ProfileModel {
   final String? fitnessGoals;
   final String? dietaryRestrictions;
   final String? allergies;
+  final List<String> preferredIngredients;
+  final List<String> excludedIngredients;
   final String? primaryGoal;
   final String? goalIntensity;
   final bool isPrimary;
@@ -107,6 +115,8 @@ class ProfileModel {
       'fitness_goals': fitnessGoals,
       'dietary_restrictions': dietaryRestrictions,
       'allergies': allergies,
+      'preferred_ingredients': preferredIngredients,
+      'excluded_ingredients': excludedIngredients,
       'primary_goal': primaryGoal,
       'goal_intensity': goalIntensity,
       'is_primary': isPrimary,
@@ -130,6 +140,8 @@ class ProfileModel {
       fitnessGoals: fitnessGoals,
       dietaryRestrictions: dietaryRestrictions,
       allergies: allergies,
+      preferredIngredients: preferredIngredients,
+      excludedIngredients: excludedIngredients,
       primaryGoal: primaryGoal,
       goalIntensity: goalIntensity,
       isPrimary: isPrimary,

@@ -13,6 +13,8 @@ class ProfileEntity {
     this.fitnessGoals,
     this.dietaryRestrictions,
     this.allergies,
+    this.preferredIngredients = const [],
+    this.excludedIngredients = const [],
     this.primaryGoal,
     this.goalIntensity,
     this.isPrimary = true,
@@ -32,6 +34,8 @@ class ProfileEntity {
   final String? fitnessGoals;
   final String? dietaryRestrictions;
   final String? allergies;
+  final List<String> preferredIngredients;
+  final List<String> excludedIngredients;
   final String? primaryGoal;
   final String? goalIntensity;
   final bool isPrimary;
@@ -49,6 +53,8 @@ class ProfileEntity {
     String? fitnessGoals,
     String? dietaryRestrictions,
     String? allergies,
+    List<String>? preferredIngredients,
+    List<String>? excludedIngredients,
     String? primaryGoal,
     String? goalIntensity,
     String? avatarUrl,
@@ -66,6 +72,8 @@ class ProfileEntity {
       fitnessGoals: fitnessGoals ?? this.fitnessGoals,
       dietaryRestrictions: dietaryRestrictions ?? this.dietaryRestrictions,
       allergies: allergies ?? this.allergies,
+      preferredIngredients: preferredIngredients ?? this.preferredIngredients,
+      excludedIngredients: excludedIngredients ?? this.excludedIngredients,
       primaryGoal: primaryGoal ?? this.primaryGoal,
       goalIntensity: goalIntensity ?? this.goalIntensity,
       isPrimary: isPrimary,

@@ -26,6 +26,8 @@ import '../../../features/settings/presentation/settings_screen.dart'
     as settings_screen;
 import '../../../features/settings/presentation/health_settings_screen.dart'
     as health_settings;
+import '../../../features/settings/presentation/ingredient_preferences_screen.dart'
+    as ingredient_prefs;
 
 // Pantry & recipes
 import '../../../features/pantry/presentation/pantry_screen.dart'
@@ -39,9 +41,36 @@ import '../../../features/recipes/presentation/url_import_screen.dart'
 import '../../../features/recipes/presentation/ocr_import_screen.dart'
     as ocr_import;
 
+// Shopping
+import '../../../features/shopping/presentation/shopping_lists_screen.dart'
+    as shopping_lists;
+import '../../../features/shopping/presentation/shopping_list_detail_screen.dart'
+    as shopping_detail;
+import '../../../features/shopping/presentation/photo_shopping_import_screen.dart'
+    as photo_shopping_import;
+import '../../../features/shopping/presentation/barcode_scanner_screen.dart'
+    as barcode_scanner;
+import '../../../features/shopping/domain/shopping_list_item_entity.dart';
+
+// Pantry photo import
+import '../../../features/pantry/presentation/photo_pantry_import_screen.dart'
+    as photo_pantry_import;
+
+// Recipe list & edit
+import '../../../features/recipes/presentation/recipe_list_screen.dart'
+    as recipe_list;
+import '../../../features/recipes/presentation/recipe_edit_screen.dart'
+    as recipe_edit;
+
 // Meals
 import '../../../features/meals/presentation/log_meal_screen.dart'
     as log_meal;
+import '../../../features/meals/presentation/meal_plan_screen.dart'
+    as meal_plan;
+import '../../../features/meals/presentation/shopping_list_generator_screen.dart'
+    as shopping_generator;
+import '../../../features/meals/presentation/nutrition_targets_screen.dart'
+    as nutrition_targets;
 
 // Health
 import '../../../features/health/presentation/health_connection_screen.dart'
@@ -155,7 +184,8 @@ class AppRouter {
             requestedPath == '/insights' ||
             requestedPath == '/supplements' ||
             requestedPath == '/workouts' ||
-            requestedPath.startsWith('/goals');
+            requestedPath.startsWith('/goals') ||
+            requestedPath.startsWith('/meals/');
         if (needsProfile &&
             (profileId == null || profileId.isEmpty) &&
             isAuthenticated) {
@@ -228,6 +258,18 @@ class AppRouter {
           builder: (context, state) =>
               const health_settings.HealthSettingsScreen(),
         ),
+        GoRoute(
+          path: '/settings/nutrition-targets',
+          name: 'nutritionTargets',
+          builder: (context, state) =>
+              const nutrition_targets.NutritionTargetsScreen(),
+        ),
+        GoRoute(
+          path: '/settings/ingredient-preferences',
+          name: 'ingredientPreferences',
+          builder: (context, state) =>
+              const ingredient_prefs.IngredientPreferencesScreen(),
+        ),
 
         // ── Pantry & Recipes ───────────────────────────────
         GoRoute(
@@ -235,6 +277,12 @@ class AppRouter {
           name: 'pantry',
           builder: (context, state) =>
               const pantry_screen.PantryScreen(),
+        ),
+        GoRoute(
+          path: '/pantry/photo-import',
+          name: 'pantryPhotoImport',
+          builder: (context, state) =>
+              const photo_pantry_import.PhotoPantryImportScreen(),
         ),
         GoRoute(
           path: '/recipes/suggestions',
@@ -254,6 +302,57 @@ class AppRouter {
           builder: (context, state) =>
               const ocr_import.OcrImportScreen(),
         ),
+        // Shopping lists
+        GoRoute(
+          path: '/shopping',
+          name: 'shoppingLists',
+          builder: (context, state) =>
+              const shopping_lists.ShoppingListsScreen(),
+        ),
+        GoRoute(
+          path: '/shopping/:id',
+          name: 'shoppingListDetail',
+          builder: (context, state) {
+            final id = state.pathParameters['id']!;
+            return shopping_detail.ShoppingListDetailScreen(listId: id);
+          },
+        ),
+        GoRoute(
+          path: '/shopping/:id/photo-import',
+          name: 'shoppingPhotoImport',
+          builder: (context, state) {
+            final id = state.pathParameters['id']!;
+            return photo_shopping_import.PhotoShoppingImportScreen(listId: id);
+          },
+        ),
+        GoRoute(
+          path: '/shopping/:id/barcode-scan',
+          name: 'shoppingBarcodeScan',
+          builder: (context, state) {
+            final id = state.pathParameters['id']!;
+            final items =
+                state.extra as List<ShoppingListItemEntity>? ?? const [];
+            return barcode_scanner.BarcodeScannerScreen(
+              listId: id,
+              items: items,
+            );
+          },
+        ),
+        // Recipe browsing & editing
+        GoRoute(
+          path: '/recipes',
+          name: 'recipeList',
+          builder: (context, state) =>
+              const recipe_list.RecipeListScreen(),
+        ),
+        GoRoute(
+          path: '/recipes/:id/edit',
+          name: 'recipeEdit',
+          builder: (context, state) {
+            final id = state.pathParameters['id']!;
+            return recipe_edit.RecipeEditScreen(recipeId: id);
+          },
+        ),
         GoRoute(
           path: '/recipes/:id',
           name: 'recipeDetail',
@@ -269,6 +368,24 @@ class AppRouter {
           name: 'logMeal',
           builder: (context, state) =>
               const log_meal.LogMealScreen(),
+        ),
+        GoRoute(
+          path: '/meals/plan',
+          name: 'mealPlan',
+          builder: (context, state) {
+            final profileId = ref.read(activeProfileIdProvider) ?? '';
+            return meal_plan.MealPlanScreen(profileId: profileId);
+          },
+        ),
+        GoRoute(
+          path: '/meals/shopping-generator',
+          name: 'shoppingListGenerator',
+          builder: (context, state) {
+            final profileId = ref.read(activeProfileIdProvider) ?? '';
+            return shopping_generator.ShoppingListGeneratorScreen(
+              profileId: profileId,
+            );
+          },
         ),
 
         // ── Health ─────────────────────────────────────────

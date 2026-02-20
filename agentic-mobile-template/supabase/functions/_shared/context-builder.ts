@@ -23,7 +23,7 @@ export async function buildContextSnapshot(
   // Fetch profile data
   const { data: profileData, error: profileError } = await adminClient
     .from('wt_profiles')
-    .select('display_name, age, gender, height_cm, weight_kg, activity_level, fitness_goals, dietary_restrictions, allergies, plan_tier')
+    .select('display_name, date_of_birth, gender, height_cm, weight_kg, activity_level, fitness_goals, dietary_restrictions, allergies, preferred_ingredients, excluded_ingredients')
     .eq('id', profileId)
     .eq('user_id', userId)
     .single()
@@ -32,9 +32,25 @@ export async function buildContextSnapshot(
     throw new Error(`Profile not found: ${profileError?.message || 'Unknown error'}`)
   }
 
+  // Fetch plan_tier from wt_users (it lives there, not on wt_profiles)
+  const { data: userData } = await adminClient
+    .from('wt_users')
+    .select('plan_tier')
+    .eq('id', userId)
+    .single()
+
+  // Compute age from date_of_birth
+  let computedAge: number | null = null
+  if (profileData.date_of_birth) {
+    const dob = new Date(profileData.date_of_birth)
+    computedAge = Math.floor(
+      (Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000)
+    )
+  }
+
   const profile: ProfileContext = {
     display_name: profileData.display_name || 'User',
-    age: profileData.age,
+    age: computedAge,
     gender: profileData.gender,
     height_cm: profileData.height_cm,
     weight_kg: profileData.weight_kg,
@@ -42,7 +58,9 @@ export async function buildContextSnapshot(
     fitness_goals: profileData.fitness_goals,
     dietary_restrictions: profileData.dietary_restrictions,
     allergies: profileData.allergies,
-    plan_tier: profileData.plan_tier || 'free',
+    preferred_ingredients: profileData.preferred_ingredients || null,
+    excluded_ingredients: profileData.excluded_ingredients || null,
+    plan_tier: userData?.plan_tier || 'free',
   }
 
   // Fetch recent health metrics (last 7 days, aggregated)
@@ -107,7 +125,7 @@ export async function buildContextSnapshot(
     .from('wt_ai_memory')
     .select('memory_type, memory_key, memory_value')
     .eq('profile_id', profileId)
-    .order('last_accessed_at', { ascending: false })
+    .order('updated_at', { ascending: false })
     .limit(50)
 
   const ai_memory: MemoryItem[] =

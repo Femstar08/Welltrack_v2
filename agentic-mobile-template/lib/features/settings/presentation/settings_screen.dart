@@ -179,6 +179,31 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           ),
 
+          // Nutrition Section
+          _buildSectionHeader('Nutrition'),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.track_changes_outlined),
+                  title: const Text('Nutrition Targets'),
+                  subtitle: const Text('Custom calorie & macro goals per day type'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/settings/nutrition-targets'),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.restaurant_menu_outlined),
+                  title: const Text('Ingredient Preferences'),
+                  subtitle: const Text('Preferred and excluded ingredients'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/settings/ingredient-preferences'),
+                ),
+              ],
+            ),
+          ),
+
           // AI Usage Section
           _buildSectionHeader('AI Usage'),
           const Card(

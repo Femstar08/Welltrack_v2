@@ -18,6 +18,9 @@ export type WorkflowType =
   | 'log_event_suggestion'
   | 'extract_recipe_from_url'
   | 'extract_recipe_from_image'
+  | 'generate_daily_meal_plan'
+  | 'generate_meal_swap'
+  | 'generate_shopping_list'
 
 export interface OrchestrateResponse {
   assistant_message: string
@@ -82,6 +85,8 @@ export interface ProfileContext {
   fitness_goals: string | null
   dietary_restrictions: string | null
   allergies: string | null
+  preferred_ingredients: string[] | null
+  excluded_ingredients: string[] | null
   plan_tier: string
 }
 

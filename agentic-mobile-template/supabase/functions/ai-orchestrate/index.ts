@@ -51,11 +51,13 @@ Deno.serve(async (req: Request) => {
     }
 
     // Step 3: Check rate limits
-    const { data: limitCheck, error: limitError } = await adminClient.rpc(
+    // check_ai_limit(p_user_id, p_calls, p_tokens) returns boolean
+    const { data: limitAllowed, error: limitError } = await adminClient.rpc(
       'check_ai_limit',
       {
         p_user_id: request.user_id,
-        p_profile_id: request.profile_id,
+        p_calls: 1,
+        p_tokens: 0,
       }
     )
 
@@ -63,16 +65,10 @@ Deno.serve(async (req: Request) => {
       console.error('Rate limit check error:', limitError)
     }
 
-    if (limitCheck && !limitCheck.allowed) {
+    if (limitAllowed === false) {
       return new Response(
         JSON.stringify({
           error: 'AI usage limit exceeded',
-          usage: {
-            calls_used: limitCheck.calls_used,
-            calls_limit: limitCheck.calls_limit,
-            tokens_used: limitCheck.tokens_used,
-            tokens_limit: limitCheck.tokens_limit,
-          },
         }),
         { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
@@ -221,14 +217,12 @@ Deno.serve(async (req: Request) => {
       await adminClient.from('wt_ai_audit_log').insert({
         user_id: request.user_id,
         profile_id: request.profile_id,
-        workflow_type: request.workflow_type || 'general_chat',
-        user_message: request.message,
-        assistant_message: assistantMessage,
-        tokens_used: tokensUsed,
-        duration_ms: durationMs,
         tool_called: request.workflow_type || 'general_chat',
-        safety_flags: safetyFlags.length > 0 ? JSON.stringify(safetyFlags) : null,
-        db_writes_count: dbWrites.length,
+        input_summary: request.message?.substring(0, 500) || null,
+        output_summary: assistantMessage.substring(0, 500),
+        tokens_consumed: tokensUsed,
+        duration_ms: durationMs,
+        safety_flags: safetyFlags.length > 0 ? safetyFlags : [],
       })
     } catch (auditError) {
       console.error('Audit logging failed (non-fatal):', auditError)
@@ -236,10 +230,10 @@ Deno.serve(async (req: Request) => {
 
     // Step 13: Build usage info
     const usage: UsageInfo = {
-      calls_used: (limitCheck?.calls_used || 0) + 1,
-      calls_limit: limitCheck?.calls_limit || 0,
-      tokens_used: (limitCheck?.tokens_used || 0) + tokensUsed,
-      tokens_limit: limitCheck?.tokens_limit || 0,
+      calls_used: 1,
+      calls_limit: 0,
+      tokens_used: tokensUsed,
+      tokens_limit: 0,
     }
 
     // Step 14: Return response
@@ -289,6 +283,12 @@ Plan Tier: ${context.profile.plan_tier}
 Fitness Goals: ${context.profile.fitness_goals || 'Not specified'}
 Dietary Restrictions: ${context.profile.dietary_restrictions || 'None'}
 Allergies: ${context.profile.allergies || 'None'}
+Preferred Ingredients: ${context.profile.preferred_ingredients?.join(', ') || 'None'}
+Excluded Ingredients: ${context.profile.excluded_ingredients?.join(', ') || 'None'}
+
+INGREDIENT RULES:
+- ALWAYS prioritize preferred ingredients when generating meal plans, recipes, or shopping lists.
+- NEVER use excluded ingredients in any meal plan, recipe, or shopping list.
 
 RECENT METRICS (Last 7 days):
 ${context.recent_metrics.map((m: any) => `- ${m.metric_type}: avg ${m.avg_value} ${m.unit}, trend: ${m.trend}`).join('\n') || 'No metrics available'}
@@ -372,6 +372,15 @@ function parseAssistantResponse(
             action_type: 'apply_recommendation',
             label: rec.action,
             payload: rec,
+          })
+        })
+      } else if (workflowType === 'generate_shopping_list' && jsonData.items) {
+        // Shopping list items - convert to suggested actions
+        jsonData.items.forEach((item: any) => {
+          suggestedActions.push({
+            action_type: 'add_shopping_item',
+            label: item.ingredient_name,
+            payload: item,
           })
         })
       }
