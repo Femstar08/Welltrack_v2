@@ -13,6 +13,7 @@ import 'widgets/shimmer_loading.dart';
 import 'widgets/pantry_recipe_card.dart';
 import 'widgets/today_summary_card.dart';
 import 'widgets/trends_preview_card.dart';
+import 'widgets/workouts_card.dart';
 import '../../goals/domain/goal_entity.dart';
 import '../../goals/presentation/goals_provider.dart';
 
@@ -104,6 +105,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ),
                   const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
+                  // Section: Workouts
+                  SliverToBoxAdapter(
+                    child: WorkoutsCard(profileId: widget.profileId),
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
+
                   // Section: Pantry & Recipes
                   SliverToBoxAdapter(
                     child: PantryRecipeCard(profileId: widget.profileId),
@@ -162,7 +169,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       case 1:
         context.push('/daily-view');
       case 2:
-        context.push('/meals/plan');
+        _showPlanSheet();
       case 3:
         context.push('/profile');
     }
@@ -172,6 +179,77 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         _currentIndex = 0;
       });
     }
+  }
+
+  void _showPlanSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        final theme = Theme.of(ctx);
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Planning',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: const Color(0xFF42A5F5).withValues(alpha: 0.2),
+                    child: const Icon(Icons.fitness_center, color: Color(0xFF42A5F5)),
+                  ),
+                  title: const Text('Workout Plans'),
+                  subtitle: const Text('Create and manage training splits'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    context.push('/workouts');
+                  },
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: const Color(0xFFFF7043).withValues(alpha: 0.2),
+                    child: const Icon(Icons.restaurant, color: Color(0xFFFF7043)),
+                  ),
+                  title: const Text('Meal Plans'),
+                  subtitle: const Text('Daily meals and nutrition targets'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    context.push('/meals/plan');
+                  },
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.green.withValues(alpha: 0.2),
+                    child: const Icon(Icons.flag, color: Colors.green),
+                  ),
+                  title: const Text('Goals'),
+                  subtitle: const Text('Track targets and projections'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    context.push('/goals');
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 }
 
@@ -185,61 +263,70 @@ class _GoalsSummaryCard extends ConsumerWidget {
     final goalsAsync = ref.watch(goalsProvider(profileId));
     final theme = Theme.of(context);
 
-    return goalsAsync.when(
-      loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
-      data: (goals) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Card(
-            child: InkWell(
-              onTap: () => context.push('/goals'),
-              borderRadius: BorderRadius.circular(12),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    final goals = goalsAsync.valueOrNull ?? [];
+    final isLoading = goalsAsync is AsyncLoading;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Card(
+        child: InkWell(
+          onTap: () => context.push('/goals'),
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Your Goals',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Icon(
-                          Icons.chevron_right,
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    if (goals.isEmpty)
-                      _buildEmptyGoals(context, theme)
-                    else
-                      ...goals.take(3).map(
-                            (goal) => _buildGoalRow(context, theme, goal),
-                          ),
-                    if (goals.length > 3)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Text(
-                          'View all ${goals.length} goals',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
+                    Text(
+                      'Your Goals',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
                       ),
+                    ),
+                    Icon(
+                      Icons.chevron_right,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                    ),
                   ],
                 ),
-              ),
+                const SizedBox(height: 12),
+                if (isLoading)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(8),
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                  )
+                else if (goals.isEmpty)
+                  _buildEmptyGoals(context, theme)
+                else ...[
+                  ...goals.take(3).map(
+                        (goal) => _buildGoalRow(context, theme, goal),
+                      ),
+                  if (goals.length > 3)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        'View all ${goals.length} goals',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                ],
+              ],
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 

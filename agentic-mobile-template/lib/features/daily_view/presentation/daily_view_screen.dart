@@ -4,6 +4,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'daily_view_provider.dart';
 
 class DailyViewScreen extends ConsumerStatefulWidget {
@@ -553,30 +554,18 @@ class _DailyViewScreenState extends ConsumerState<DailyViewScreen> {
   }
 
   void _navigateToMeals(BuildContext context) {
-    // TODO: Navigate to meals screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to meals - TODO')),
-    );
+    context.push('/meals/plan');
   }
 
   void _navigateToSupplements(BuildContext context) {
-    // TODO: Navigate to supplements screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to supplements - TODO')),
-    );
+    context.push('/supplements');
   }
 
   void _navigateToWorkouts(BuildContext context) {
-    // TODO: Navigate to workouts screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to workouts - TODO')),
-    );
+    context.push('/workouts');
   }
 
   void _navigateToWorkout(BuildContext context, String workoutId) {
-    // TODO: Navigate to specific workout
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Navigate to workout $workoutId - TODO')),
-    );
+    context.push('/workouts/log/$workoutId');
   }
 }

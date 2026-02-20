@@ -43,7 +43,7 @@ dependencies:
   cached_network_image: ^3.3.0
 
   # Health Data
-  health: ^13.0.0
+  health: ^13.3.0
   crypto: ^3.0.3
   permission_handler: ^11.0.0
 
@@ -56,6 +56,10 @@ dependencies:
   mobile_scanner: ^6.0.0
   package_info_plus: ^8.0.0
   shared_preferences: ^2.3.0
+
+  # Haptics & Audio
+  vibration: ^3.1.7
+  audioplayers: ^6.0.0
 
   # OCR
   google_mlkit_text_recognition: ^0.13.0
@@ -82,3 +86,4 @@ flutter:
   assets:
     - assets/images/
     - assets/fonts/
+    - assets/sounds/

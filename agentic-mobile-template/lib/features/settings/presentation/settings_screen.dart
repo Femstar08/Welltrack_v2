@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../shared/core/theme/theme_provider.dart';
+import 'rest_timer_settings.dart';
+import '../../../features/workouts/presentation/rest_timer_provider.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -201,6 +203,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onTap: () => context.push('/settings/ingredient-preferences'),
                 ),
               ],
+            ),
+          ),
+
+          // Workout Section
+          _buildSectionHeader('Workout'),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: ListTile(
+              leading: const Icon(Icons.timer_outlined),
+              title: const Text('Rest Timer Alert'),
+              subtitle: Text(
+                switch (ref.watch(restTimerAlertModeProvider)) {
+                  RestTimerAlertMode.vibrateOnly => 'Vibrate only',
+                  RestTimerAlertMode.soundOnly => 'Sound only',
+                  RestTimerAlertMode.both => 'Vibrate + Sound',
+                  RestTimerAlertMode.silent => 'Silent',
+                },
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => showRestTimerAlertPicker(context, ref),
             ),
           ),
 

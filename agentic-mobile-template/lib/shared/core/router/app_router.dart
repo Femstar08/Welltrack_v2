@@ -104,6 +104,18 @@ import '../../../features/supplements/presentation/supplements_screen.dart'
     as supplements_screen;
 import '../../../features/workouts/presentation/workouts_screen.dart'
     as workouts_screen;
+import '../../../features/workouts/presentation/workout_plan_detail_screen.dart'
+    as workout_plan_detail;
+import '../../../features/workouts/presentation/exercise_browser_screen.dart'
+    as exercise_browser;
+import '../../../features/workouts/presentation/workout_logging_screen.dart'
+    as workout_logging;
+import '../../../features/workouts/presentation/session_summary_screen.dart'
+    as session_summary;
+import '../../../features/workouts/presentation/progress_screen.dart'
+    as progress_screen;
+import '../../../features/workouts/presentation/body_map_screen.dart'
+    as body_map;
 
 // Reminders
 import '../../../features/reminders/presentation/reminders_screen.dart'
@@ -184,6 +196,7 @@ class AppRouter {
             requestedPath == '/insights' ||
             requestedPath == '/supplements' ||
             requestedPath == '/workouts' ||
+            requestedPath.startsWith('/workouts/') ||
             requestedPath.startsWith('/goals') ||
             requestedPath.startsWith('/meals/');
         if (needsProfile &&
@@ -504,6 +517,60 @@ class AppRouter {
               profileId: profileId,
             );
           },
+        ),
+        GoRoute(
+          path: '/workouts/plan/:planId',
+          name: 'workoutPlanDetail',
+          builder: (context, state) {
+            final planId = state.pathParameters['planId']!;
+            return workout_plan_detail.WorkoutPlanDetailScreen(
+              planId: planId,
+            );
+          },
+        ),
+        GoRoute(
+          path: '/workouts/exercises',
+          name: 'exerciseBrowser',
+          builder: (context, state) {
+            final selectMode = state.uri.queryParameters['selectMode'] == 'true';
+            return exercise_browser.ExerciseBrowserScreen(
+              selectMode: selectMode,
+            );
+          },
+        ),
+        GoRoute(
+          path: '/workouts/log/:workoutId',
+          name: 'workoutLog',
+          builder: (context, state) {
+            final workoutId = state.pathParameters['workoutId']!;
+            final profileId = ref.read(activeProfileIdProvider) ?? '';
+            return workout_logging.WorkoutLoggingScreen(
+              profileId: profileId,
+              workoutId: workoutId,
+            );
+          },
+        ),
+        GoRoute(
+          path: '/workouts/summary/:workoutId',
+          name: 'sessionSummary',
+          builder: (context, state) {
+            final workoutId = state.pathParameters['workoutId']!;
+            return session_summary.SessionSummaryScreen(
+              workoutId: workoutId,
+            );
+          },
+        ),
+        GoRoute(
+          path: '/workouts/progress',
+          name: 'workoutProgress',
+          builder: (context, state) =>
+              const progress_screen.ProgressScreen(),
+        ),
+        GoRoute(
+          path: '/workouts/body-map',
+          name: 'bodyMap',
+          builder: (context, state) =>
+              const body_map.BodyMapScreen(),
         ),
 
         // ── Reminders ──────────────────────────────────────

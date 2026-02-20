@@ -2,6 +2,7 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/workout_repository.dart';
+import '../domain/exercise_entity.dart';
 import '../domain/workout_entity.dart';
 import '../domain/workout_log_entity.dart';
 
@@ -17,14 +18,14 @@ class WorkoutState {
   });
   final List<WorkoutEntity> workouts;
   final List<WorkoutEntity> todayWorkouts;
-  final List<Exercise> exercises;
+  final List<ExerciseEntity> exercises;
   final bool isLoading;
   final String? error;
 
   WorkoutState copyWith({
     List<WorkoutEntity>? workouts,
     List<WorkoutEntity>? todayWorkouts,
-    List<Exercise>? exercises,
+    List<ExerciseEntity>? exercises,
     bool? isLoading,
     String? error,
   }) {
@@ -114,11 +115,11 @@ class WorkoutNotifier extends StateNotifier<WorkoutState> {
     }
   }
 
-  Future<void> loadExercises({String? category, String? searchQuery}) async {
+  Future<void> loadExercises({String? muscleGroup, String? searchQuery}) async {
     try {
       final exercises = await _repository.getExercises(
-        category: category,
-        searchQuery: searchQuery,
+        muscleGroup: muscleGroup,
+        search: searchQuery,
       );
 
       state = state.copyWith(exercises: exercises);
@@ -132,6 +133,7 @@ class WorkoutNotifier extends StateNotifier<WorkoutState> {
     required String workoutType,
     required DateTime scheduledDate,
     String? notes,
+    String? planId,
   }) async {
     try {
       final workout = await _repository.createWorkout(
@@ -140,6 +142,7 @@ class WorkoutNotifier extends StateNotifier<WorkoutState> {
         workoutType: workoutType,
         scheduledDate: scheduledDate,
         notes: notes,
+        planId: planId,
       );
 
       final isToday = workout.isScheduledToday;

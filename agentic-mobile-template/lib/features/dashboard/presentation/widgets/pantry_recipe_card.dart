@@ -97,22 +97,39 @@ class PantryRecipeCard extends ConsumerWidget {
 
                 // Action buttons row
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    TextButton.icon(
-                      onPressed: () => context.push('/pantry'),
-                      icon: const Icon(Icons.kitchen, size: 18),
-                      label: const Text('Pantry'),
+                    Expanded(
+                      child: TextButton.icon(
+                        onPressed: () => context.push('/pantry'),
+                        icon: const Icon(Icons.kitchen, size: 16),
+                        label: const Text('Pantry', style: TextStyle(fontSize: 12)),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ),
                     ),
-                    TextButton.icon(
-                      onPressed: () => context.push('/recipes'),
-                      icon: const Icon(Icons.menu_book, size: 18),
-                      label: const Text('Recipes'),
+                    Expanded(
+                      child: TextButton.icon(
+                        onPressed: () => context.push('/recipes'),
+                        icon: const Icon(Icons.menu_book, size: 16),
+                        label: const Text('Recipes', style: TextStyle(fontSize: 12)),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ),
                     ),
-                    TextButton.icon(
-                      onPressed: () => context.push('/shopping'),
-                      icon: const Icon(Icons.shopping_cart, size: 18),
-                      label: const Text('Shopping'),
+                    Expanded(
+                      child: TextButton.icon(
+                        onPressed: () => context.push('/shopping'),
+                        icon: const Icon(Icons.shopping_cart, size: 16),
+                        label: const Text('Shopping', style: TextStyle(fontSize: 12)),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ),
                     ),
                   ],
                 ),

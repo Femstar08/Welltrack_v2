@@ -14,6 +14,9 @@ class WorkoutEntity {
     this.notes,
     required this.createdAt,
     required this.updatedAt,
+    this.planId,
+    this.startTime,
+    this.endTime,
   });
 
   factory WorkoutEntity.fromJson(Map<String, dynamic> json) {
@@ -31,6 +34,13 @@ class WorkoutEntity {
       notes: json['notes'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
+      planId: json['plan_id'] as String?,
+      startTime: json['start_time'] != null
+          ? DateTime.parse(json['start_time'] as String)
+          : null,
+      endTime: json['end_time'] != null
+          ? DateTime.parse(json['end_time'] as String)
+          : null,
     );
   }
   final String id;
@@ -45,6 +55,18 @@ class WorkoutEntity {
   final DateTime createdAt;
   final DateTime updatedAt;
 
+  /// References `wt_workout_plans.id`. Null when the workout is ad-hoc (not
+  /// linked to a named plan).
+  final String? planId;
+
+  /// Timestamp when the live session started. Null for scheduled-but-not-yet-
+  /// started workouts.
+  final DateTime? startTime;
+
+  /// Timestamp when the live session ended. Null while the session is in
+  /// progress or for workouts that have not been started.
+  final DateTime? endTime;
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -58,6 +80,9 @@ class WorkoutEntity {
       'notes': notes,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
+      'plan_id': planId,
+      'start_time': startTime?.toIso8601String(),
+      'end_time': endTime?.toIso8601String(),
     };
   }
 
@@ -73,6 +98,9 @@ class WorkoutEntity {
     String? notes,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? planId,
+    DateTime? startTime,
+    DateTime? endTime,
   }) {
     return WorkoutEntity(
       id: id ?? this.id,
@@ -86,6 +114,9 @@ class WorkoutEntity {
       notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      planId: planId ?? this.planId,
+      startTime: startTime ?? this.startTime,
+      endTime: endTime ?? this.endTime,
     );
   }
 
