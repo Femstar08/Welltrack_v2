@@ -1,6 +1,7 @@
 // lib/features/daily_view/presentation/daily_view_provider.dart
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../meals/data/meal_plan_repository.dart';
 import '../../supplements/data/supplement_repository.dart';
 import '../../workouts/domain/workout_entity.dart';
 import '../../workouts/data/workout_repository.dart';
@@ -205,10 +206,12 @@ class DailyViewNotifier extends StateNotifier<DailyViewState> {
   DailyViewNotifier(
     this._supplementRepository,
     this._workoutRepository,
+    this._mealPlanRepository,
     this._profileId,
   ) : super(DailyViewState(selectedDate: DateTime.now()));
   final SupplementRepository _supplementRepository;
   final WorkoutRepository _workoutRepository;
+  final MealPlanRepository _mealPlanRepository;
   final String _profileId;
 
   Future<void> loadDailyData({DateTime? date}) async {
@@ -294,13 +297,21 @@ class DailyViewNotifier extends StateNotifier<DailyViewState> {
   }
 
   Future<MealsSummary?> _loadMealsData(DateTime date) async {
-    // TODO: Implement once meals repository is available
-    // For now, return mock data or null
-    return const MealsSummary(
-      plannedCount: 3,
-      loggedCount: 1,
-      plannedMeals: ['Breakfast', 'Lunch', 'Dinner'],
-    );
+    try {
+      final plan = await _mealPlanRepository.getMealPlan(_profileId, date);
+      if (plan == null) return null;
+
+      final loggedCount = plan.items.where((i) => i.isLogged).length;
+      final plannedMeals = plan.items.map((i) => i.name).toList();
+
+      return MealsSummary(
+        plannedCount: plan.items.length,
+        loggedCount: loggedCount,
+        plannedMeals: plannedMeals,
+      );
+    } catch (e) {
+      return null;
+    }
   }
 
   Future<HealthMetricsSummary?> _loadHealthMetrics(DateTime date) async {
@@ -352,9 +363,11 @@ final dailyViewProvider =
   (ref, profileId) {
     final supplementRepository = ref.watch(supplementRepositoryProvider);
     final workoutRepository = ref.watch(workoutRepositoryProvider);
+    final mealPlanRepository = ref.watch(mealPlanRepositoryProvider);
     return DailyViewNotifier(
       supplementRepository,
       workoutRepository,
+      mealPlanRepository,
       profileId,
     );
   },

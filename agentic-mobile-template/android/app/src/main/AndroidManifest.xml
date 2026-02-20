@@ -18,6 +18,9 @@
     <!-- Required for steps / fitness data -->
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
 
+    <!-- Camera for OCR photo import -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
     <!-- Network + foreground service for sync -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />

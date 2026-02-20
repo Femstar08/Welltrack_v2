@@ -1,7 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../shared/core/router/app_router.dart';
 import '../data/recipe_repository.dart';
 import '../domain/recipe_entity.dart';
+import '../../shopping/data/shopping_list_repository.dart';
 import 'prep_walkthrough_screen.dart';
 
 final recipeDetailProvider = FutureProvider.family<RecipeEntity, String>((ref, recipeId) {
@@ -98,6 +103,101 @@ class _RecipeDetailContent extends ConsumerWidget {
                     .toggleFavorite(recipe.id, !recipe.isFavorite);
                 ref.invalidate(recipeDetailProvider(recipe.id));
               },
+            ),
+            PopupMenuButton<String>(
+              onSelected: (value) async {
+                switch (value) {
+                  case 'edit':
+                    unawaited(context.push('/recipes/${recipe.id}/edit'));
+                    break;
+                  case 'shopping':
+                    final repo = ref.read(shoppingListRepositoryProvider);
+                    final profileId =
+                        ref.read(activeProfileIdProvider) ?? '';
+                    try {
+                      final list = await repo.createListFromRecipes(
+                        profileId: profileId,
+                        name: '${recipe.title} - Shopping List',
+                        recipeIds: [recipe.id],
+                      );
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('Shopping list created!')),
+                        );
+                        unawaited(context.push('/shopping/${list.id}'));
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                              content:
+                                  Text('Failed to create list: $e')),
+                        );
+                      }
+                    }
+                    break;
+                  case 'delete':
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('Delete Recipe'),
+                        content: const Text(
+                            'Are you sure? This cannot be undone.'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: const Text('Cancel'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            child: Text(
+                              'Delete',
+                              style: TextStyle(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .error),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirm == true) {
+                      await ref
+                          .read(recipeRepositoryProvider)
+                          .deleteRecipe(recipe.id);
+                      if (context.mounted) context.go('/recipes');
+                    }
+                    break;
+                }
+              },
+              itemBuilder: (context) => const [
+                PopupMenuItem(
+                  value: 'edit',
+                  child: ListTile(
+                    leading: Icon(Icons.edit),
+                    title: Text('Edit'),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'shopping',
+                  child: ListTile(
+                    leading: Icon(Icons.shopping_cart),
+                    title: Text('Add to Shopping List'),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'delete',
+                  child: ListTile(
+                    leading: Icon(Icons.delete, color: Colors.red),
+                    title: Text('Delete',
+                        style: TextStyle(color: Colors.red)),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+              ],
             ),
           ],
         ),

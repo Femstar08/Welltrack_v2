@@ -332,6 +332,122 @@ Return same JSON structure as extract_recipe_from_url.
 OCR text may have errors. Use context clues and common recipe patterns to interpret. Flag low confidence if text is unclear.
 `,
   },
+
+  generate_daily_meal_plan: {
+    name: 'generate_daily_meal_plan',
+    description: 'Generate a personalized daily meal plan with macro targets',
+    max_tokens: 1500,
+    temperature: 0.7,
+    system_prompt_additions: `
+You are generating a daily meal plan. Create 3 meals (breakfast, lunch, dinner) plus 1-2 snacks.
+
+For each meal, provide:
+- meal_type: "breakfast", "lunch", "dinner", or "snack"
+- name: Short meal name
+- description: Brief description (1-2 sentences)
+- calories: Estimated calories (integer)
+- protein_g: Protein in grams (integer)
+- carbs_g: Carbs in grams (integer)
+- fat_g: Fat in grams (integer)
+
+Consider the user's:
+- Dietary restrictions and allergies
+- Activity level and fitness goals
+- Day type (strength/cardio/rest) — adjust carbs and calories accordingly
+- Target macro totals provided in context
+- Cuisine preferences if available
+
+Return a JSON code block with this structure:
+\`\`\`json
+{
+  "meals": [
+    {
+      "meal_type": "breakfast",
+      "name": "Greek Yogurt Power Bowl",
+      "description": "Protein-rich yogurt with berries, granola, and honey.",
+      "calories": 450,
+      "protein_g": 30,
+      "carbs_g": 55,
+      "fat_g": 12
+    }
+  ],
+  "rationale": "This plan prioritizes protein for your strength training day while keeping carbs moderate for energy."
+}
+\`\`\`
+
+Ensure total macros across all meals approximate the target values. Be creative with meal variety.
+NEVER suggest meals that conflict with stated allergies or dietary restrictions.
+`,
+  },
+
+  generate_shopping_list: {
+    name: 'generate_shopping_list',
+    description: 'Consolidate meal plan ingredients into a shopping list with quantities and aisle assignments',
+    max_tokens: 1500,
+    temperature: 0.5,
+    system_prompt_additions: `
+You are consolidating ingredients from multiple meal plans into a unified shopping list.
+
+You will receive meal plan data for multiple days. For each day, there are meals with names and descriptions.
+
+Your job:
+1. Extract all ingredients needed for all meals across all days
+2. Consolidate duplicate ingredients (sum quantities)
+3. Assign each ingredient to a supermarket aisle category
+4. Estimate reasonable quantities based on serving sizes
+
+Return a JSON code block:
+\`\`\`json
+{
+  "items": [
+    {
+      "ingredient_name": "Chicken Breast",
+      "quantity": 1.5,
+      "unit": "kg",
+      "aisle": "Meat & Poultry",
+      "notes": "For grilled chicken salad (Mon) and chicken stir-fry (Wed)"
+    }
+  ],
+  "summary": "Shopping list for 3 days of meal plans covering 12 meals"
+}
+\`\`\`
+
+Aisle categories to use: Produce, Meat & Poultry, Seafood, Dairy & Eggs, Bakery, Frozen, Canned & Jarred, Pasta & Grains, Snacks, Beverages, Condiments & Sauces, Spices & Seasonings, Baking, Health & Wellness, Other.
+
+Be thorough — include cooking oils, seasonings, and garnishes that recipes would need.
+`,
+  },
+
+  generate_meal_swap: {
+    name: 'generate_meal_swap',
+    description: 'Generate a replacement meal matching similar macro targets',
+    max_tokens: 600,
+    temperature: 0.7,
+    system_prompt_additions: `
+You are replacing a single meal in a daily meal plan. The user wants to swap out the current meal for something different while hitting similar macro targets.
+
+You will receive the current meal's details and macro targets in the context.
+
+Return a JSON code block with a single replacement meal:
+\`\`\`json
+{
+  "meal_type": "lunch",
+  "name": "Grilled Chicken Caesar Salad",
+  "description": "Crispy romaine with grilled chicken, parmesan, and light caesar dressing.",
+  "calories": 520,
+  "protein_g": 42,
+  "carbs_g": 25,
+  "fat_g": 28
+}
+\`\`\`
+
+The replacement must:
+- Match the same meal_type as the original
+- Be within 10% of the original calorie count
+- Be a meaningfully different meal (not just a minor variation)
+- Respect dietary restrictions and allergies
+`,
+  },
 }
 
 export function getToolConfig(workflowType?: WorkflowType): ToolConfig {

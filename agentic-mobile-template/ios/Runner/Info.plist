@@ -46,6 +46,12 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 
+	<!-- Camera & Photo Library -->
+	<key>NSCameraUsageDescription</key>
+	<string>WellTrack uses the camera to photograph recipes, receipts, and shopping lists for OCR import, and to scan product barcodes.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>WellTrack accesses your photo library to import recipes, receipts, and shopping lists via OCR.</string>
+
 	<!-- HealthKit -->
 	<key>NSHealthShareUsageDescription</key>
 	<string>WellTrack reads your health data (sleep, steps, heart rate, VO2 max) to provide personalized performance insights and recovery recommendations.</string>

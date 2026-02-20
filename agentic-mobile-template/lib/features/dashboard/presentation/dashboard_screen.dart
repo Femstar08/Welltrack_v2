@@ -10,6 +10,7 @@ import 'widgets/intelligence_insight_card.dart';
 import 'widgets/key_signals_grid.dart';
 import 'widgets/secondary_modules_list.dart';
 import 'widgets/shimmer_loading.dart';
+import 'widgets/pantry_recipe_card.dart';
 import 'widgets/today_summary_card.dart';
 import 'widgets/trends_preview_card.dart';
 import '../../goals/domain/goal_entity.dart';
@@ -103,6 +104,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ),
                   const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
+                  // Section: Pantry & Recipes
+                  SliverToBoxAdapter(
+                    child: PantryRecipeCard(profileId: widget.profileId),
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
+
                   // Section 6: Secondary Modules
                   SliverToBoxAdapter(
                     child: SecondaryModulesList(tiles: dashboard.tiles),
@@ -155,7 +162,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       case 1:
         context.push('/daily-view');
       case 2:
-        context.push('/insights');
+        context.push('/meals/plan');
       case 3:
         context.push('/profile');
     }

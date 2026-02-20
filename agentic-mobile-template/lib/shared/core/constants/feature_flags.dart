@@ -16,6 +16,11 @@ class FeatureFlags {
   // Profile features
   static const String multipleProfiles = 'multiple_profiles';
 
+  // Meal planning features
+  static const String shoppingLists = 'shopping_lists';
+  static const String mealPrepAssistant = 'meal_prep_assistant';
+  static const String aiMealPlanning = 'ai_meal_planning';
+
   /// All Pro-gated features
   static const List<String> proFeatures = [
     recoveryScore,
@@ -26,6 +31,7 @@ class FeatureFlags {
     fullHistory,
     fullNutrients,
     multipleProfiles,
+    aiMealPlanning,
   ];
 
   /// Gets user-friendly display name for a feature
@@ -47,6 +53,12 @@ class FeatureFlags {
         return 'Full Nutrient Tracking';
       case multipleProfiles:
         return 'Multiple Profiles';
+      case shoppingLists:
+        return 'Shopping Lists';
+      case mealPrepAssistant:
+        return 'Meal Prep Assistant';
+      case aiMealPlanning:
+        return 'AI Meal Planning';
       default:
         return feature;
     }
@@ -71,6 +83,12 @@ class FeatureFlags {
         return 'Track all vitamins and minerals, not just macros';
       case multipleProfiles:
         return 'Manage up to 5 profiles under one account';
+      case shoppingLists:
+        return 'Create and manage shopping lists from your recipes';
+      case mealPrepAssistant:
+        return 'AI-powered meal prep planning and scheduling';
+      case aiMealPlanning:
+        return 'AI-generated daily meal plans with macro targets';
       default:
         return '';
     }

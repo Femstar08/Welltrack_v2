@@ -1,12 +1,19 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../shared/core/router/app_router.dart';
 import '../data/recipe_repository.dart';
 import '../data/url_recipe_extractor.dart';
 import '../domain/recipe_entity.dart';
 import '../../auth/presentation/auth_provider.dart';
 import '../../auth/domain/auth_state.dart';
 import '../../profile/presentation/profile_provider.dart';
+import '../../shopping/data/shopping_list_repository.dart';
+import '../../shopping/data/aisle_mapper.dart';
+import '../../shopping/domain/shopping_list_item_entity.dart';
 
 /// State for URL import
 class UrlImportState {
@@ -408,7 +415,57 @@ class _UrlImportScreenState extends ConsumerState<UrlImportScreen> {
           ),
           const SizedBox(height: 8),
           OutlinedButton.icon(
-            onPressed: null, // Stub for future implementation
+            onPressed: state.extractedRecipe != null
+                ? () async {
+                    final recipe = state.extractedRecipe!;
+                    final profileId =
+                        ref.read(activeProfileIdProvider) ?? '';
+                    if (profileId.isEmpty) return;
+                    try {
+                      final repo =
+                          ref.read(shoppingListRepositoryProvider);
+                      final items = recipe.ingredients
+                          .asMap()
+                          .entries
+                          .map((entry) {
+                        final ing = entry.value;
+                        return ShoppingListItemEntity(
+                          id: '',
+                          shoppingListId: '',
+                          ingredientName: ing.ingredientName,
+                          quantity: ing.quantity,
+                          unit: ing.unit,
+                          aisle: AisleMapper.getAisle(
+                              ing.ingredientName),
+                          isChecked: false,
+                          sortOrder: entry.key,
+                          createdAt: DateTime.now(),
+                        );
+                      }).toList();
+
+                      final list = await repo.createList(
+                        profileId: profileId,
+                        name: '${recipe.title} - Shopping List',
+                        items: items,
+                      );
+
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content:
+                                  Text('Shopping list created!')),
+                        );
+                        unawaited(context.push('/shopping/${list.id}'));
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Failed: $e')),
+                        );
+                      }
+                    }
+                  }
+                : null,
             icon: const Icon(Icons.shopping_cart),
             label: const Text('Generate Shopping List'),
           ),

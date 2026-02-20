@@ -209,6 +209,112 @@ class RecipeRepository {
     }
   }
 
+  Future<List<RecipeEntity>> searchRecipes(String profileId, String query) async {
+    try {
+      final response = await _client
+          .from('wt_recipes')
+          .select()
+          .eq('profile_id', profileId)
+          .ilike('title', '%$query%')
+          .order('created_at', ascending: false);
+
+      return (response as List)
+          .map((json) => RecipeEntity.fromJson(json))
+          .toList();
+    } catch (e) {
+      throw Exception('Failed to search recipes: $e');
+    }
+  }
+
+  Future<List<RecipeEntity>> getRecipesByTags(String profileId, List<String> tags) async {
+    try {
+      // Fetch all recipes and filter client-side for multi-tag matching
+      final response = await _client
+          .from('wt_recipes')
+          .select()
+          .eq('profile_id', profileId)
+          .order('created_at', ascending: false);
+
+      final allRecipes = (response as List)
+          .map((json) => RecipeEntity.fromJson(json))
+          .toList();
+
+      return allRecipes.where((recipe) {
+        return tags.any((tag) => recipe.tags.contains(tag));
+      }).toList();
+    } catch (e) {
+      throw Exception('Failed to fetch recipes by tags: $e');
+    }
+  }
+
+  Future<RecipeEntity> updateRecipe(String recipeId, Map<String, dynamic> fields) async {
+    try {
+      fields['updated_at'] = DateTime.now().toIso8601String();
+      await _client
+          .from('wt_recipes')
+          .update(fields)
+          .eq('id', recipeId);
+
+      return await getRecipe(recipeId);
+    } catch (e) {
+      throw Exception('Failed to update recipe: $e');
+    }
+  }
+
+  Future<void> updateRecipeSteps(String recipeId, List<RecipeStep> steps) async {
+    try {
+      // Delete existing steps
+      await _client
+          .from('wt_recipe_steps')
+          .delete()
+          .eq('recipe_id', recipeId);
+
+      // Insert new steps
+      if (steps.isNotEmpty) {
+        final stepsData = steps.map((step) {
+          return {
+            'recipe_id': recipeId,
+            'step_number': step.stepNumber,
+            'instruction': step.instruction,
+            'duration_minutes': step.durationMinutes,
+          };
+        }).toList();
+
+        await _client.from('wt_recipe_steps').insert(stepsData);
+      }
+    } catch (e) {
+      throw Exception('Failed to update recipe steps: $e');
+    }
+  }
+
+  Future<void> updateRecipeIngredients(String recipeId, List<RecipeIngredient> ingredients) async {
+    try {
+      // Delete existing ingredients
+      await _client
+          .from('wt_recipe_ingredients')
+          .delete()
+          .eq('recipe_id', recipeId);
+
+      // Insert new ingredients
+      if (ingredients.isNotEmpty) {
+        final ingredientsData = ingredients.map((ingredient) {
+          return {
+            'recipe_id': recipeId,
+            'ingredient_name': ingredient.ingredientName,
+            'quantity': ingredient.quantity,
+            'unit': ingredient.unit,
+            'notes': ingredient.notes,
+            'sort_order': ingredient.sortOrder,
+          };
+        }).toList();
+
+        await _client.from('wt_recipe_ingredients').insert(ingredientsData);
+      }
+    } catch (e) {
+      throw Exception('Failed to update recipe ingredients: $e');
+    }
+  }
+
   Future<List<RecipeEntity>> getFavoriteRecipes(String profileId) async {
     try {
       final response = await _client

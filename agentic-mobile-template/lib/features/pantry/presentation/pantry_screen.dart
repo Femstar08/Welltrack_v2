@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../domain/pantry_item_entity.dart';
 import 'add_pantry_item_sheet.dart';
 import 'pantry_provider.dart';
@@ -191,6 +192,13 @@ class _PantryScreenState extends ConsumerState<PantryScreen>
           floatingActionButton: Column(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
+              FloatingActionButton.extended(
+                onPressed: () => context.push('/pantry/photo-import'),
+                icon: const Icon(Icons.camera_alt),
+                label: const Text('Scan items'),
+                heroTag: 'scan',
+              ),
+              const SizedBox(height: 16),
               FloatingActionButton.extended(
                 onPressed: () async {
                   final availableItems = pantryAsync.value
