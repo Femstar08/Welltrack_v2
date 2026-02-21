@@ -24,6 +24,7 @@ void main() {
     double intercept = 40.0,
     double rSquared = 0.75,
     DateTime? pDate,
+    bool pDateNull = false,
     ForecastConfidence confidence = ForecastConfidence.high,
     int dataPoints = 20,
     String modelType = 'linear_regression',
@@ -39,7 +40,7 @@ void main() {
       slope: slope,
       intercept: intercept,
       rSquared: rSquared,
-      projectedDate: pDate ?? projectedDate,
+      projectedDate: pDateNull ? null : (pDate ?? projectedDate),
       confidence: confidence,
       dataPoints: dataPoints,
       modelType: modelType,
@@ -271,7 +272,7 @@ void main() {
     test('should serialise null projectedDate and null goalForecastId as null', () {
       final entity = buildForecast(
         goalForecastId: null,
-        pDate: null,
+        pDateNull: true,
       );
       final json = entity.toJson();
 
@@ -315,7 +316,7 @@ void main() {
     });
 
     test('should preserve null optional fields through roundtrip', () {
-      final original = buildForecast(goalForecastId: null, pDate: null);
+      final original = buildForecast(goalForecastId: null, pDateNull: true);
       final restored = ForecastEntity.fromJson(original.toJson());
 
       expect(restored.goalForecastId, isNull);
@@ -344,7 +345,7 @@ void main() {
     });
 
     test('should return false when projectedDate is null', () {
-      final entity = buildForecast(pDate: null);
+      final entity = buildForecast(pDateNull: true);
 
       expect(entity.isAchievable, isFalse);
     });
@@ -505,7 +506,7 @@ void main() {
 
   group('projectionMessage', () {
     test('should return not-achievable message when projectedDate is null', () {
-      final entity = buildForecast(pDate: null);
+      final entity = buildForecast(pDateNull: true);
 
       expect(
         entity.projectionMessage,
@@ -696,28 +697,49 @@ void main() {
       expect(entity.progressPercentage, 100.0);
     });
 
-    test('should return 0.0 due to the identity subtraction in the implementation', () {
-      // The source implementation uses (currentValue - currentValue).abs() as
-      // the progress numerator, which always evaluates to 0.  This documents
-      // the actual behaviour rather than the intended business rule.
-      final entity = buildForecast(currentValue: 42.0, targetValue: 55.0);
+    test('should calculate progress using intercept as baseline for increase goal', () {
+      // intercept=40, current=42, target=55 → progress = |42-40|/|55-40| * 100 ≈ 13.33%
+      final entity = buildForecast(
+        currentValue: 42.0,
+        targetValue: 55.0,
+        intercept: 40.0,
+      );
 
-      expect(entity.progressPercentage, 0.0);
+      expect(entity.progressPercentage, closeTo(13.33, 0.01));
     });
 
-    test('should return 0.0 for a weight-loss scenario (always 0 due to implementation)', () {
-      final entity = buildForecast(currentValue: 90.0, targetValue: 80.0);
+    test('should calculate progress using intercept as baseline for decrease goal', () {
+      // intercept=92, current=90, target=80 → progress = |90-92|/|80-92| * 100 ≈ 16.67%
+      final entity = buildForecast(
+        currentValue: 90.0,
+        targetValue: 80.0,
+        intercept: 92.0,
+      );
 
-      expect(entity.progressPercentage, 0.0);
+      expect(entity.progressPercentage, closeTo(16.67, 0.01));
     });
 
     test('should clamp result between 0 and 100', () {
-      final entity = buildForecast(currentValue: 42.0, targetValue: 55.0);
+      final entity = buildForecast(
+        currentValue: 42.0,
+        targetValue: 55.0,
+        intercept: 40.0,
+      );
 
       final result = entity.progressPercentage;
 
       expect(result, greaterThanOrEqualTo(0.0));
       expect(result, lessThanOrEqualTo(100.0));
+    });
+
+    test('should return 100.0 when intercept equals target (zero range)', () {
+      final entity = buildForecast(
+        currentValue: 60.0,
+        targetValue: 55.0,
+        intercept: 55.0,
+      );
+
+      expect(entity.progressPercentage, 100.0);
     });
   });
 

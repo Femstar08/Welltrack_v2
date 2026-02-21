@@ -200,11 +200,8 @@ class _GoalCard extends StatelessWidget {
   }
 
   double _calculateProgress() {
-    if (goal.targetValue == 0) return 0;
-    if (goal.currentValue == 0 && goal.forecast == null) return 0;
-    // Simple ratio for display
-    final ratio = goal.currentValue / goal.targetValue;
-    return ratio.clamp(0.0, 1.0);
+    // Use the entity's progressPercentage (0-100) and convert to 0-1
+    return (goal.progressPercentage / 100).clamp(0.0, 1.0);
   }
 
   Color _statusColor(String colorName) {

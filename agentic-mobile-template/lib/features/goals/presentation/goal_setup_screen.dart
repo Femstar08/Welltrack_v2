@@ -21,6 +21,7 @@ class GoalSetupScreen extends ConsumerStatefulWidget {
 class _GoalSetupScreenState extends ConsumerState<GoalSetupScreen> {
   final _formKey = GlobalKey<FormState>();
   late String _selectedMetricType;
+  late TextEditingController _currentValueController;
   late TextEditingController _targetValueController;
   late TextEditingController _unitController;
   late TextEditingController _descriptionController;
@@ -59,6 +60,9 @@ class _GoalSetupScreenState extends ConsumerState<GoalSetupScreen> {
     super.initState();
     final goal = widget.existingGoal;
     _selectedMetricType = goal?.metricType ?? 'weight';
+    _currentValueController = TextEditingController(
+      text: goal != null ? goal.currentValue.toString() : '',
+    );
     _targetValueController = TextEditingController(
       text: goal != null ? goal.targetValue.toString() : '',
     );
@@ -74,6 +78,7 @@ class _GoalSetupScreenState extends ConsumerState<GoalSetupScreen> {
 
   @override
   void dispose() {
+    _currentValueController.dispose();
     _targetValueController.dispose();
     _unitController.dispose();
     _descriptionController.dispose();
@@ -106,6 +111,7 @@ class _GoalSetupScreenState extends ConsumerState<GoalSetupScreen> {
     setState(() => _isLoading = true);
 
     try {
+      final currentValue = double.parse(_currentValueController.text.trim());
       final targetValue = double.parse(_targetValueController.text.trim());
       final description = _descriptionController.text.trim();
       final unit = _unitController.text.trim();
@@ -117,6 +123,7 @@ class _GoalSetupScreenState extends ConsumerState<GoalSetupScreen> {
             'metric_type': _selectedMetricType,
             'goal_description': description.isEmpty ? null : description,
             'target_value': targetValue,
+            'current_value': currentValue,
             'unit': unit,
             'deadline': _deadline?.toIso8601String().split('T').first,
             'priority': _priority,
@@ -127,6 +134,7 @@ class _GoalSetupScreenState extends ConsumerState<GoalSetupScreen> {
           metricType: _selectedMetricType,
           description: description.isEmpty ? null : description,
           targetValue: targetValue,
+          currentValue: currentValue,
           unit: unit,
           deadline: _deadline,
           priority: _priority,
@@ -173,6 +181,29 @@ class _GoalSetupScreenState extends ConsumerState<GoalSetupScreen> {
                   .toList(),
               onChanged: _onMetricTypeChanged,
               validator: (v) => v == null ? 'Select a metric' : null,
+            ),
+            const SizedBox(height: 16),
+
+            // Current value
+            TextFormField(
+              controller: _currentValueController,
+              decoration: InputDecoration(
+                labelText: 'Current Value',
+                hintText: 'Where are you now?',
+                border: const OutlineInputBorder(),
+                suffixText: _unitController.text,
+              ),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              validator: (v) {
+                if (v == null || v.trim().isEmpty) {
+                  return 'Enter your current value';
+                }
+                if (double.tryParse(v.trim()) == null) {
+                  return 'Enter a valid number';
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 16),
 

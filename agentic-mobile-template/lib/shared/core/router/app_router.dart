@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 // Auth screens
 import '../../../features/auth/presentation/login_screen.dart'
@@ -126,6 +125,8 @@ import '../../../features/freemium/presentation/paywall_screen.dart'
     as paywall_screen;
 
 import '../router/route_guards.dart';
+import '../../../features/auth/presentation/auth_provider.dart'
+    show isAuthenticatedProvider;
 
 /// Splash screen shown during app initialization
 class _SplashScreen extends StatelessWidget {
@@ -139,9 +140,11 @@ class _SplashScreen extends StatelessWidget {
   }
 }
 
-/// Auth state provider — tracks whether the current Supabase session is valid
+/// Auth state provider — reactively tracks whether the user is authenticated.
+/// Delegates to isAuthenticatedProvider which watches the Riverpod authProvider,
+/// so it updates immediately when auth state changes (sign-in, sign-out).
 final authStateProvider = Provider<bool>((ref) {
-  return Supabase.instance.client.auth.currentSession != null;
+  return ref.watch(isAuthenticatedProvider);
 });
 
 /// Onboarding state provider — placeholder, connect to actual user prefs

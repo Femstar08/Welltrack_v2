@@ -21,6 +21,7 @@ export type WorkflowType =
   | 'generate_daily_meal_plan'
   | 'generate_meal_swap'
   | 'generate_shopping_list'
+  | 'explain_metric'
 
 export interface OrchestrateResponse {
   assistant_message: string
@@ -73,6 +74,25 @@ export interface ContextSnapshot {
   ai_memory: MemoryItem[]
   baselines: BaselineSummary[]
   recovery_score: number | null
+  vitality_data: VitalitySummary | null
+  bloodwork_results: BloodworkResult[] | null
+}
+
+export interface VitalitySummary {
+  days_with_morning_erection: number
+  total_days_tracked: number
+  latest_erection_quality_weekly: number | null
+  feeling_trend: string | null
+}
+
+export interface BloodworkResult {
+  test_name: string
+  value_num: number
+  unit: string
+  reference_range_low: number | null
+  reference_range_high: number | null
+  is_out_of_range: boolean
+  test_date: string
 }
 
 export interface ProfileContext {

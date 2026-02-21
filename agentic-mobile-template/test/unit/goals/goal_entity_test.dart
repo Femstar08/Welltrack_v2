@@ -22,6 +22,7 @@ GoalEntity _fullGoal({ForecastEntity? forecast}) {
     goalDescription: 'Reach target weight',
     targetValue: 80.0,
     currentValue: 90.0,
+    initialValue: 100.0,
     unit: 'kg',
     deadline: _deadline,
     priority: 2,
@@ -57,6 +58,7 @@ Map<String, dynamic> _fullJson() {
     'goal_description': 'Reach target weight',
     'target_value': 80.0,
     'current_value': 90.0,
+    'initial_value': 100.0,
     'unit': 'kg',
     'deadline': '2026-09-01',
     'priority': 2,
@@ -198,6 +200,7 @@ void main() {
         expect(entity.goalDescription, 'Reach target weight');
         expect(entity.targetValue, 80.0);
         expect(entity.currentValue, 90.0);
+        expect(entity.initialValue, 100.0);
         expect(entity.unit, 'kg');
         expect(entity.deadline, DateTime(2026, 9, 1));
         expect(entity.priority, 2);
@@ -218,6 +221,7 @@ void main() {
         expect(entity.goalDescription, isNull);
         expect(entity.targetValue, 0.0);
         expect(entity.currentValue, 0.0);
+        expect(entity.initialValue, isNull);
         expect(entity.unit, '');
         expect(entity.deadline, isNull);
         expect(entity.priority, 0);
@@ -289,6 +293,7 @@ void main() {
         expect(json.containsKey('goal_description'), isTrue);
         expect(json.containsKey('target_value'), isTrue);
         expect(json.containsKey('current_value'), isTrue);
+        expect(json.containsKey('initial_value'), isTrue);
         expect(json.containsKey('unit'), isTrue);
         expect(json.containsKey('deadline'), isTrue);
         expect(json.containsKey('priority'), isTrue);
@@ -308,6 +313,7 @@ void main() {
         expect(json['goal_description'], 'Reach target weight');
         expect(json['target_value'], 80.0);
         expect(json['current_value'], 90.0);
+        expect(json['initial_value'], 100.0);
         expect(json['unit'], 'kg');
         expect(json['deadline'], '2026-09-01'); // date-only format
         expect(json['priority'], 2);
@@ -336,6 +342,7 @@ void main() {
         final json = _minimalGoal().toJson();
 
         expect(json['goal_description'], isNull);
+        expect(json['initial_value'], isNull);
         expect(json['deadline'], isNull);
         expect(json['expected_date'], isNull);
         expect(json['confidence_score'], isNull);
@@ -362,6 +369,7 @@ void main() {
         expect(restored.goalDescription, original.goalDescription);
         expect(restored.targetValue, original.targetValue);
         expect(restored.currentValue, original.currentValue);
+        expect(restored.initialValue, original.initialValue);
         expect(restored.unit, original.unit);
         expect(restored.priority, original.priority);
         expect(restored.confidenceScore, original.confidenceScore);
@@ -407,7 +415,8 @@ void main() {
           profileId: 'p1',
           metricType: 'weight',
           targetValue: 80.0,
-          currentValue: 80.0, // same as target
+          currentValue: 80.0,
+          initialValue: 100.0,
           unit: 'kg',
           createdAt: _createdAt,
           updatedAt: _updatedAt,
@@ -416,48 +425,103 @@ void main() {
         expect(goal.progressPercentage, 100.0);
       });
 
-      test('returns 0.0 when there is no forecast and target differs from current', () {
+      test('returns 0.0 when currentValue equals initialValue and differs from target', () {
         final goal = GoalEntity(
           id: 'g2',
           profileId: 'p1',
           metricType: 'weight',
           targetValue: 80.0,
-          currentValue: 90.0,
+          currentValue: 100.0,
+          initialValue: 100.0,
           unit: 'kg',
           createdAt: _createdAt,
           updatedAt: _updatedAt,
-          forecast: null,
         );
 
         expect(goal.progressPercentage, 0.0);
       });
 
-      test('delegates to forecast.progressPercentage when forecast is present', () {
-        final forecast = _forecastOnTrack();
-        final goal = _fullGoal(forecast: forecast);
-
-        // ForecastEntity.progressPercentage computes (currentValue - currentValue).abs() / range
-        // which is always 0 because the numerator is zero; however the contract is that
-        // GoalEntity.progressPercentage == forecast.progressPercentage.
-        expect(goal.progressPercentage, forecast.progressPercentage);
-      });
-
-      test('returns forecast.progressPercentage even when it would be 0', () {
-        // Range is non-zero (targetValue != currentValue) but forecast is present
-        final forecast = _forecastOnTrack(); // progressPercentage will be 0 due to formula
+      test('calculates correct progress for decrease goal (weight loss)', () {
+        // Started at 100, now at 90, target is 80 → 50% progress
         final goal = GoalEntity(
           id: 'g3',
           profileId: 'p1',
           metricType: 'weight',
           targetValue: 80.0,
           currentValue: 90.0,
+          initialValue: 100.0,
           unit: 'kg',
           createdAt: _createdAt,
           updatedAt: _updatedAt,
-          forecast: forecast,
         );
 
-        expect(goal.progressPercentage, forecast.progressPercentage);
+        expect(goal.progressPercentage, 50.0);
+      });
+
+      test('calculates correct progress for increase goal (VO2 max)', () {
+        // Started at 40, now at 46, target is 55 → 40%
+        final goal = GoalEntity(
+          id: 'g4',
+          profileId: 'p1',
+          metricType: 'vo2max',
+          targetValue: 55.0,
+          currentValue: 46.0,
+          initialValue: 40.0,
+          unit: 'mL/kg/min',
+          createdAt: _createdAt,
+          updatedAt: _updatedAt,
+        );
+
+        expect(goal.progressPercentage, 40.0);
+      });
+
+      test('falls back to 0% when initialValue is null (no baseline data)', () {
+        // Without initialValue, start = currentValue, so progress is 0
+        final goal = GoalEntity(
+          id: 'g5',
+          profileId: 'p1',
+          metricType: 'weight',
+          targetValue: 80.0,
+          currentValue: 90.0,
+          unit: 'kg',
+          createdAt: _createdAt,
+          updatedAt: _updatedAt,
+        );
+
+        expect(goal.progressPercentage, 0.0);
+      });
+
+      test('clamps to 100% when overshoot occurs', () {
+        // Started at 100, target is 80, now at 75 → past target
+        final goal = GoalEntity(
+          id: 'g6',
+          profileId: 'p1',
+          metricType: 'weight',
+          targetValue: 80.0,
+          currentValue: 75.0,
+          initialValue: 100.0,
+          unit: 'kg',
+          createdAt: _createdAt,
+          updatedAt: _updatedAt,
+        );
+
+        expect(goal.progressPercentage, 100.0);
+      });
+
+      test('returns 100.0 when initialValue equals targetValue (zero range)', () {
+        final goal = GoalEntity(
+          id: 'g7',
+          profileId: 'p1',
+          metricType: 'weight',
+          targetValue: 80.0,
+          currentValue: 85.0,
+          initialValue: 80.0,
+          unit: 'kg',
+          createdAt: _createdAt,
+          updatedAt: _updatedAt,
+        );
+
+        expect(goal.progressPercentage, 100.0);
       });
     });
 
@@ -648,6 +712,7 @@ void main() {
         expect(updated.profileId, original.profileId);
         expect(updated.metricType, original.metricType);
         expect(updated.goalDescription, original.goalDescription);
+        expect(updated.initialValue, original.initialValue);
         expect(updated.unit, original.unit);
         expect(updated.deadline, original.deadline);
         expect(updated.expectedDate, original.expectedDate);
@@ -699,6 +764,7 @@ void main() {
         expect(copy.goalDescription, original.goalDescription);
         expect(copy.targetValue, original.targetValue);
         expect(copy.currentValue, original.currentValue);
+        expect(copy.initialValue, original.initialValue);
         expect(copy.unit, original.unit);
         expect(copy.deadline, original.deadline);
         expect(copy.priority, original.priority);

@@ -3,9 +3,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../domain/overload_suggestion_entity.dart';
 import '../domain/workout_entity.dart';
 import '../domain/workout_log_entity.dart';
 import '../data/workout_repository.dart';
+import 'overload_suggestions_provider.dart';
 
 // ── Summary data model ────────────────────────────────────────────────────────
 
@@ -14,6 +16,7 @@ import '../data/workout_repository.dart';
 class WorkoutSummaryData {
   const WorkoutSummaryData({
     required this.workoutId,
+    this.profileId,
     this.workoutName,
     this.durationMinutes,
     this.totalSets,
@@ -21,6 +24,7 @@ class WorkoutSummaryData {
     this.exercisesCompleted,
     this.newPrExerciseNames = const [],
     this.muscleGroupsWorked = const [],
+    this.exerciseEntries = const [],
   });
 
   factory WorkoutSummaryData.fromMap(
@@ -29,6 +33,7 @@ class WorkoutSummaryData {
   ) {
     return WorkoutSummaryData(
       workoutId: workoutId,
+      profileId: map['profileId'] as String?,
       workoutName: map['workoutName'] as String?,
       durationMinutes: map['durationMinutes'] as int?,
       totalSets: map['totalSets'] as int?,
@@ -40,10 +45,18 @@ class WorkoutSummaryData {
           (map['newPrExerciseNames'] as List?)?.cast<String>() ?? [],
       muscleGroupsWorked:
           (map['muscleGroupsWorked'] as List?)?.cast<String>() ?? [],
+      exerciseEntries: (map['exerciseEntries'] as List?)
+              ?.map((e) => (
+                    exerciseId: e['exerciseId'] as String,
+                    exerciseName: e['exerciseName'] as String,
+                  ))
+              .toList() ??
+          [],
     );
   }
 
   final String workoutId;
+  final String? profileId;
   final String? workoutName;
   final int? durationMinutes;
   final int? totalSets;
@@ -51,6 +64,9 @@ class WorkoutSummaryData {
   final int? exercisesCompleted;
   final List<String> newPrExerciseNames;
   final List<String> muscleGroupsWorked;
+
+  /// Exercise ID + name pairs for overload suggestion queries.
+  final List<({String exerciseId, String exerciseName})> exerciseEntries;
 }
 
 // ── Providers ─────────────────────────────────────────────────────────────────
@@ -143,7 +159,7 @@ class SessionSummaryScreen extends ConsumerWidget {
 
 // ── Body ─────────────────────────────────────────────────────────────────────
 
-class _SummaryBody extends StatelessWidget {
+class _SummaryBody extends ConsumerWidget {
   const _SummaryBody({
     required this.workoutName,
     required this.durationMinutes,
@@ -195,7 +211,11 @@ class _SummaryBody extends StatelessWidget {
   // ── Build ──────────────────────────────────────────────────────────
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Overload suggestions — only query if we have exercise data.
+    final profileId = summaryData?.profileId;
+    final entries = summaryData?.exerciseEntries ?? [];
+
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -257,6 +277,13 @@ class _SummaryBody extends StatelessWidget {
               _PrSection(prExercises: _prExercises),
               const SizedBox(height: 24),
             ],
+
+            // ── Smart overload suggestions ─────────────────────────
+            if (profileId != null && entries.isNotEmpty)
+              _OverloadSuggestionsSection(
+                profileId: profileId,
+                exercises: entries,
+              ),
 
             // ── Muscle groups worked ───────────────────────────────
             if (_muscleGroups.isNotEmpty) ...[
@@ -584,6 +611,120 @@ class _ExercisesLoggedSection extends StatelessWidget {
                 ),
               ),
             ),
+      ],
+    );
+  }
+}
+
+// ── Overload suggestions section ─────────────────────────────────────────
+
+class _OverloadSuggestionsSection extends ConsumerWidget {
+  const _OverloadSuggestionsSection({
+    required this.profileId,
+    required this.exercises,
+  });
+
+  final String profileId;
+  final List<({String exerciseId, String exerciseName})> exercises;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final params = OverloadSuggestionsParams(
+      profileId: profileId,
+      exercises: exercises,
+    );
+    final suggestionsAsync = ref.watch(overloadSuggestionsProvider(params));
+
+    return suggestionsAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (suggestions) {
+        if (suggestions.isEmpty) return const SizedBox.shrink();
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 24),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.blue.shade300.withValues(alpha: 0.2),
+                  Colors.indigo.shade400.withValues(alpha: 0.15),
+                ],
+              ),
+              border:
+                  Border.all(color: Colors.blue.shade400, width: 1.5),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.trending_up,
+                        color: Colors.blue.shade700, size: 22),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Progressive Overload',
+                      style:
+                          Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue.shade800,
+                              ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                ...suggestions.map(
+                  (s) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _OverloadSuggestionTile(suggestion: s),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _OverloadSuggestionTile extends StatelessWidget {
+  const _OverloadSuggestionTile({required this.suggestion});
+  final OverloadSuggestion suggestion;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(Icons.fitness_center,
+            size: 16, color: Colors.blue.shade600),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                suggestion.exerciseName,
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '${suggestion.summary} — ${suggestion.suggestion}',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color:
+                          Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }

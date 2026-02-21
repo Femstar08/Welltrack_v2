@@ -418,6 +418,47 @@ Be thorough — include cooking oils, seasonings, and garnishes that recipes wou
 `,
   },
 
+  explain_metric: {
+    name: 'explain_metric',
+    description: 'Explain a health metric trend or score in plain, supportive language',
+    max_tokens: 600,
+    temperature: 0.6,
+    system_prompt_additions: `
+You are explaining a health metric to the user in plain language. The user wants to understand what a specific metric means, why it's trending a certain way, and what they can do about it.
+
+You will receive:
+- The metric type (e.g., resting heart rate, VO2 max, sleep quality, recovery score, weight)
+- Recent values and trend direction
+- Baseline comparison (if available)
+- Related context (training load, sleep, stress)
+
+Return JSON:
+{
+  "metric_name": "Resting Heart Rate",
+  "current_value": 62,
+  "unit": "bpm",
+  "trend": "improving",
+  "explanation": "Your resting heart rate has dropped from 68 to 62 bpm over the past 3 weeks. This typically indicates improved cardiovascular fitness and better recovery.",
+  "contributing_factors": [
+    "Consistent cardio sessions (3x/week for past month)",
+    "Improved sleep consistency (7+ hours, 5 of last 7 nights)"
+  ],
+  "suggestions": [
+    "Keep your current cardio frequency — it's working well",
+    "Continue prioritising 7+ hours of sleep"
+  ],
+  "context_note": "A resting heart rate of 62 bpm is within the 'good' range for your age group."
+}
+
+Rules:
+- NEVER make medical diagnoses or claims
+- Use phrases like "typically indicates", "may suggest", "is often associated with"
+- If a metric is concerning, suggest the user "consider discussing with a healthcare professional"
+- Be encouraging when trends are positive
+- Be honest but supportive when trends are negative
+`,
+  },
+
   generate_meal_swap: {
     name: 'generate_meal_swap',
     description: 'Generate a replacement meal matching similar macro targets',

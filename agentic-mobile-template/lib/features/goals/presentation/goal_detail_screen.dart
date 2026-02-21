@@ -121,9 +121,7 @@ class _GoalDetailContent extends ConsumerWidget {
   }
 
   Widget _buildHeaderCard(BuildContext context, ThemeData theme) {
-    final progress = goal.targetValue != 0
-        ? (goal.currentValue / goal.targetValue).clamp(0.0, 1.0)
-        : 0.0;
+    final progress = (goal.progressPercentage / 100).clamp(0.0, 1.0);
 
     return Card(
       child: Padding(
@@ -371,12 +369,12 @@ class _GoalDetailContent extends ConsumerWidget {
             const Text('Are you sure you want to delete this goal?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
+            onPressed: () => ctx.pop(),
             child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () async {
-              Navigator.of(ctx).pop();
+              ctx.pop();
               final profileId = ref.read(activeProfileIdProvider) ?? '';
               await ref
                   .read(goalsProvider(profileId).notifier)

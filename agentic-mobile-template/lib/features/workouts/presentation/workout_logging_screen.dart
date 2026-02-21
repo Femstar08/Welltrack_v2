@@ -290,11 +290,47 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen>
     if (!confirmed) return;
 
     try {
+      // Capture exercise entries before completeSession resets state.
+      final exerciseEntries = session.exercises
+          .map((e) => {
+                'exerciseId': e.planExercise.exerciseId,
+                'exerciseName': e.displayName,
+              })
+          .toList();
+      final profileId = session.profileId;
+      final prIds = session.newPRExerciseIds;
+      final prNames = session.exercises
+          .where((e) => prIds.contains(e.planExercise.exerciseId))
+          .map((e) => e.displayName)
+          .toList();
+      final totalSets = session.totalSetsCompleted;
+      final totalVolume = session.totalVolume;
+      final exercisesCompleted = session.exercisesStarted;
+      final muscleGroups = <String>{};
+      for (final e in session.exercises) {
+        final mg = e.planExercise.exercise?.muscleGroups;
+        if (mg != null) muscleGroups.addAll(mg);
+      }
+      final elapsedMin = session.elapsed.inMinutes;
+
       final completed =
           await ref.read(liveSessionProvider.notifier).completeSession();
       ref.read(restTimerProvider.notifier).stop();
       if (mounted) {
-        context.go('/workouts/summary/${completed.id}');
+        context.go(
+          '/workouts/summary/${completed.id}',
+          extra: <String, dynamic>{
+            'profileId': profileId,
+            'workoutName': completed.name,
+            'durationMinutes': elapsedMin,
+            'totalSets': totalSets,
+            'totalVolumeKg': totalVolume,
+            'exercisesCompleted': exercisesCompleted,
+            'newPrExerciseNames': prNames,
+            'muscleGroupsWorked': muscleGroups.toList(),
+            'exerciseEntries': exerciseEntries,
+          },
+        );
       }
     } catch (e) {
       if (mounted) {

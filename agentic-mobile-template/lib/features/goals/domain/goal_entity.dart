@@ -9,6 +9,7 @@ class GoalEntity {
     this.goalDescription,
     required this.targetValue,
     required this.currentValue,
+    this.initialValue,
     required this.unit,
     this.deadline,
     this.priority = 0,
@@ -31,6 +32,7 @@ class GoalEntity {
       goalDescription: json['goal_description'] as String?,
       targetValue: (json['target_value'] as num?)?.toDouble() ?? 0,
       currentValue: (json['current_value'] as num?)?.toDouble() ?? 0,
+      initialValue: (json['initial_value'] as num?)?.toDouble(),
       unit: json['unit'] as String? ?? '',
       deadline: json['deadline'] != null
           ? DateTime.parse(json['deadline'] as String)
@@ -53,6 +55,7 @@ class GoalEntity {
   final String? goalDescription;
   final double targetValue;
   final double currentValue;
+  final double? initialValue;
   final String unit;
   final DateTime? deadline;
   final int priority;
@@ -64,17 +67,12 @@ class GoalEntity {
   final ForecastEntity? forecast;
 
   double get progressPercentage {
-    final range = (targetValue - currentValue).abs();
-    if (range == 0) return 100.0;
-    // For goals where target > initial (e.g., increase VO2 max):
-    // progress = how far current has moved toward target
-    // We don't have the initial value stored, so we use currentValue vs targetValue
-    // If currentValue == targetValue, 100%. Otherwise estimate based on forecast or return 0.
     if (targetValue == currentValue) return 100.0;
-    if (forecast != null) {
-      return forecast!.progressPercentage;
-    }
-    return 0.0;
+    final start = initialValue ?? currentValue;
+    final totalRange = (targetValue - start).abs();
+    if (totalRange == 0) return 100.0;
+    final progress = (currentValue - start).abs();
+    return (progress / totalRange * 100).clamp(0, 100);
   }
 
   String get statusLabel {
@@ -178,6 +176,7 @@ class GoalEntity {
       'goal_description': goalDescription,
       'target_value': targetValue,
       'current_value': currentValue,
+      'initial_value': initialValue,
       'unit': unit,
       'deadline': deadline?.toIso8601String().split('T').first,
       'priority': priority,
@@ -194,6 +193,7 @@ class GoalEntity {
     String? goalDescription,
     double? targetValue,
     double? currentValue,
+    double? initialValue,
     String? unit,
     DateTime? deadline,
     int? priority,
@@ -209,6 +209,7 @@ class GoalEntity {
       goalDescription: goalDescription ?? this.goalDescription,
       targetValue: targetValue ?? this.targetValue,
       currentValue: currentValue ?? this.currentValue,
+      initialValue: initialValue ?? this.initialValue,
       unit: unit ?? this.unit,
       deadline: deadline ?? this.deadline,
       priority: priority ?? this.priority,

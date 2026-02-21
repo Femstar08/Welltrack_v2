@@ -7,6 +7,8 @@ import {
   MemoryItem,
   BaselineSummary,
   PlanSummary,
+  VitalitySummary,
+  BloodworkResult,
 } from './types.ts'
 
 export async function buildContextSnapshot(
@@ -23,7 +25,7 @@ export async function buildContextSnapshot(
   // Fetch profile data
   const { data: profileData, error: profileError } = await adminClient
     .from('wt_profiles')
-    .select('display_name, date_of_birth, gender, height_cm, weight_kg, activity_level, fitness_goals, dietary_restrictions, allergies, preferred_ingredients, excluded_ingredients')
+    .select('display_name, date_of_birth, gender, height_cm, weight_kg, activity_level, fitness_goals, dietary_restrictions, allergies, preferred_ingredients, excluded_ingredients, ai_consent_vitality, ai_consent_bloodwork')
     .eq('id', profileId)
     .eq('user_id', userId)
     .single()
@@ -159,6 +161,57 @@ export async function buildContextSnapshot(
 
   const recovery_score = recoveryData?.score || null
 
+  // Consent-gated: Fetch vitality data only if user opted in
+  let vitality_data: VitalitySummary | null = null
+  if (profileData.ai_consent_vitality) {
+    const { data: checkinData } = await adminClient
+      .from('wt_daily_checkins')
+      .select('morning_erection, erection_quality_weekly, feeling_level, checkin_date')
+      .eq('profile_id', profileId)
+      .gte('checkin_date', sevenDaysAgo.toISOString().split('T')[0])
+      .order('checkin_date', { ascending: false })
+      .limit(14)
+
+    if (checkinData && checkinData.length > 0) {
+      const withErection = checkinData.filter((c) => c.morning_erection !== null)
+      const latestWeekly = checkinData.find((c) => c.erection_quality_weekly !== null)
+      const feelings = checkinData
+        .map((c) => c.feeling_level)
+        .filter((f) => f !== null)
+      const feelingTrend = feelings.length >= 3 ? feelings[0] : null
+
+      vitality_data = {
+        days_with_morning_erection: withErection.filter((c) => c.morning_erection === true).length,
+        total_days_tracked: withErection.length,
+        latest_erection_quality_weekly: latestWeekly?.erection_quality_weekly ?? null,
+        feeling_trend: feelingTrend,
+      }
+    }
+  }
+
+  // Consent-gated: Fetch bloodwork results only if user opted in
+  let bloodwork_results: BloodworkResult[] | null = null
+  if (profileData.ai_consent_bloodwork) {
+    const { data: bloodworkData } = await adminClient
+      .from('wt_bloodwork_results')
+      .select('test_name, value_num, unit, reference_range_low, reference_range_high, is_out_of_range, test_date')
+      .eq('profile_id', profileId)
+      .order('test_date', { ascending: false })
+      .limit(30)
+
+    if (bloodworkData && bloodworkData.length > 0) {
+      bloodwork_results = bloodworkData.map((b) => ({
+        test_name: b.test_name,
+        value_num: b.value_num,
+        unit: b.unit,
+        reference_range_low: b.reference_range_low,
+        reference_range_high: b.reference_range_high,
+        is_out_of_range: b.is_out_of_range,
+        test_date: b.test_date,
+      }))
+    }
+  }
+
   // Apply context override if provided
   const context: ContextSnapshot = {
     profile,
@@ -169,6 +222,8 @@ export async function buildContextSnapshot(
     ai_memory,
     baselines,
     recovery_score,
+    vitality_data,
+    bloodwork_results,
   }
 
   if (contextOverride) {

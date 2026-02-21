@@ -683,6 +683,67 @@ class WorkoutRepository {
     }
   }
 
+  // ─── Plateau Detection Queries ───────────────────────────────────
+
+  /// Returns the best (heaviest completed) set per session for a given exercise,
+  /// across the last [sessionCount] distinct workout sessions.
+  ///
+  /// Each entry is the heaviest completed set from that session. Results are
+  /// ordered most-recent-first.
+  Future<List<WorkoutSetEntity>> getRecentBestSetsForExercise(
+    String profileId,
+    String exerciseId, {
+    int sessionCount = 5,
+  }) async {
+    try {
+      // Fetch recent completed sets for this exercise, ordered newest first.
+      // We pull more rows than needed so we can group by workout_id locally.
+      final response = await _supabase
+          .from('wt_workout_sets')
+          .select()
+          .eq('profile_id', profileId)
+          .eq('exercise_id', exerciseId)
+          .eq('completed', true)
+          .not('weight_kg', 'is', null)
+          .not('reps', 'is', null)
+          .order('logged_at', ascending: false)
+          .limit(sessionCount * 10); // generous buffer
+
+      if ((response as List).isEmpty) return [];
+
+      final sets = response
+          .map((json) => WorkoutSetEntity.fromJson(json))
+          .toList();
+
+      // Group by workout_id and take the heaviest set from each session.
+      final seenWorkouts = <String>[];
+      final bestPerSession = <WorkoutSetEntity>[];
+
+      for (final s in sets) {
+        final wid = s.workoutId;
+        if (!seenWorkouts.contains(wid)) {
+          seenWorkouts.add(wid);
+          // Find the heaviest set in this workout for this exercise.
+          final sameWorkout = sets.where((x) => x.workoutId == wid);
+          final best = sameWorkout.reduce((a, b) {
+            final aWeight = a.weightKg ?? 0;
+            final bWeight = b.weightKg ?? 0;
+            if (aWeight != bWeight) return aWeight > bWeight ? a : b;
+            // Tie-break by reps.
+            return (a.reps ?? 0) > (b.reps ?? 0) ? a : b;
+          });
+          bestPerSession.add(best);
+
+          if (seenWorkouts.length >= sessionCount) break;
+        }
+      }
+
+      return bestPerSession;
+    } catch (e) {
+      throw Exception('Failed to fetch recent best sets: $e');
+    }
+  }
+
   // ─── Exercise Records (PRs) ───────────────────────────────────────
 
   Future<ExerciseRecordEntity?> getExerciseRecord(

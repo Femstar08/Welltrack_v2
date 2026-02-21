@@ -66,12 +66,16 @@ class ForecastEntity {
     return projectedDate!.difference(DateTime.now()).inDays;
   }
 
-  /// Get progress percentage toward target
+  /// Get progress percentage toward target using intercept as baseline.
+  /// The regression intercept approximates the starting value at day 0 of
+  /// the data window. For more accurate goal progress, use
+  /// GoalEntity.progressPercentage which tracks the true initial value.
   double get progressPercentage {
-    final range = (targetValue - currentValue).abs();
-    if (range == 0) return 100.0;
-    final progress = (currentValue - currentValue).abs();
-    return (progress / range * 100).clamp(0, 100);
+    if (targetValue == currentValue) return 100.0;
+    final totalRange = (targetValue - intercept).abs();
+    if (totalRange == 0) return 100.0;
+    final progress = (currentValue - intercept).abs();
+    return (progress / totalRange * 100).clamp(0, 100);
   }
 
   /// Check if moving toward target
