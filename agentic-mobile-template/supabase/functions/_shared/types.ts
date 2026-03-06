@@ -22,6 +22,7 @@ export type WorkflowType =
   | 'generate_meal_swap'
   | 'generate_shopping_list'
   | 'explain_metric'
+  | 'generate_daily_plan'
 
 export interface OrchestrateResponse {
   assistant_message: string

@@ -14,6 +14,7 @@ import 'widgets/pantry_recipe_card.dart';
 import 'widgets/today_summary_card.dart';
 import 'widgets/trends_preview_card.dart';
 import 'widgets/workouts_card.dart';
+import 'widgets/daily_coach_card.dart';
 import '../../goals/domain/goal_entity.dart';
 import '../../goals/presentation/goals_provider.dart';
 
@@ -70,6 +71,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       displayName: widget.displayName,
                       primaryMetric: homeState.primaryMetric,
                     ),
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
+
+                  // Section 1b: Daily Coach Card
+                  SliverToBoxAdapter(
+                    child: DailyCoachCard(profileId: widget.profileId),
                   ),
                   const SliverToBoxAdapter(child: SizedBox(height: 24)),
 

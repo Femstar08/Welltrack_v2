@@ -124,7 +124,7 @@
 
 ---
 
-## Phase 5: Workout Logger — JEFIT-Style (7–10 days) ⭐ NEW — NOT STARTED
+## Phase 5: Workout Logger — JEFIT-Style (7–10 days) ⭐ NEW — DONE
 **Why:** Core daily interaction. Must be excellent. This is what you'll use every gym session.
 
 **Delivers:**
@@ -183,10 +183,10 @@
 
 ---
 
-## Phase 8: AI Meal Planning (6–8 days) ⭐ NEW — PARTIAL
+## Phase 8: AI Meal Planning (6–8 days) ⭐ NEW — DONE
 **Why:** Nutrition is 80% of fitness results. AI removes the guesswork.
 
-**Status:** Meal plan screen, nutrition targets screen, shopping list generator screen, ingredient preferences screen (preferred + excluded) — all built. Macro calculator and meal plan repository exist.
+**Status:** DONE (2026-02-21). Meal plan screen, nutrition targets, shopping list generator, ingredient preferences, nutrition profiles UI (cardiovascular/hormonal), cuisine preference selector, weekly meal prep screen, meal swap functionality — all built and functional.
 
 **Delivers:**
 - Daily macro calculation (auto-adjusts based on weight, goal, training day type)
@@ -206,8 +206,6 @@
 - Manual food logging fallback
 
 **API cost management:** Cache weekly meal plans. Only regenerate on swap or new week.
-
-**Remaining:** Nutrition profiles UI (cardiovascular/hormonal selection). Meal swap functionality. Weekly meal prep screen. Cuisine preference setting.
 
 ---
 
@@ -382,10 +380,10 @@
 | 2 | Scaffold + Auth + Offline | 5–7 | DONE |
 | 3 | Health Connect / HealthKit | 3–4 | DONE |
 | 4 | AI Orchestrator | 5–7 | DONE |
-| 5 | **Workout Logger (JEFIT-style)** | **7–10** | NOT STARTED |
+| 5 | **Workout Logger (JEFIT-style)** | **7–10** | DONE |
 | 6 | **Goals + Projections** | **4–5** | DONE |
 | 7 | Pantry → Recipes → Prep | 5–7 | DONE |
-| 8 | **AI Meal Planning** | **6–8** | PARTIAL |
+| 8 | **AI Meal Planning** | **6–8** | DONE |
 | 9 | **AI Daily Coach** | **5–7** | NOT STARTED |
 | 10 | Performance Intelligence | 5–7 | PARTIAL |
 | 11 | Garmin + Strava | 5–7 | NOT STARTED |
@@ -396,9 +394,9 @@
 | 16 | OCR + Polish + Launch | 4–5 | NOT STARTED |
 | **Total** | | **~72–96 focused days** | |
 
-**Completed:** ~30–35 days of work across Phases 0–4, 6, 7, 14.
-**Remaining:** ~45–60 focused days (Phases 5, 8 remainder, 9–13, 15 remainder, 16).
-**Realistic range with integration friction:** 60–80 more days to launch-ready.
+**Completed:** ~40–45 days of work across Phases 0–8, 14.
+**Remaining:** ~35–50 focused days (Phases 9–13, 15 remainder, 16).
+**Realistic range with integration friction:** 50–70 more days to launch-ready.
 
 ---
 
@@ -409,7 +407,7 @@
 | **Usable tracker** | End of Phase 3 (~2 weeks) | See your Health Connect data on a dashboard | DONE |
 | **Gym companion** | End of Phase 5 (~5 weeks) | Log workouts JEFIT-style with 1RM tracking | NEXT |
 | **Goal-driven** | End of Phase 6 (~6 weeks) | Track goals with timeline projections | DONE |
-| **Meal-planned** | End of Phase 8 (~9 weeks) | AI generates daily meals + recipes + shopping lists | PARTIAL |
+| **Meal-planned** | End of Phase 8 (~9 weeks) | AI generates daily meals + recipes + shopping lists | DONE |
 | **Daily coached** | End of Phase 9 (~11 weeks) | Morning check-in → personalised daily plan | -- |
 | **Performance engine** | End of Phase 10 (~12 weeks) | Recovery score, load analysis, baseline comparisons | PARTIAL |
 | **Fully connected** | End of Phase 11 (~14 weeks) | Garmin data flowing via webhooks | -- |

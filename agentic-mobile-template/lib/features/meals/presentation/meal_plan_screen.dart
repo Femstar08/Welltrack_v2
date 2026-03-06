@@ -256,6 +256,11 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
         centerTitle: true,
         actions: [
           IconButton(
+            icon: const Icon(Icons.kitchen_outlined),
+            tooltip: 'Meal Prep',
+            onPressed: () => context.push('/meals/prep'),
+          ),
+          IconButton(
             icon: const Icon(Icons.shopping_cart_outlined),
             tooltip: 'Generate shopping list',
             onPressed: () => context.push('/meals/shopping-generator'),

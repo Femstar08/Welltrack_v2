@@ -150,35 +150,48 @@ class RemindersScreen extends ConsumerWidget {
         child: const Icon(Icons.delete, color: Colors.white),
       ),
       confirmDismiss: (direction) async {
-        return await showDialog<bool>(
+        final confirmed = await showDialog<bool>(
           context: context,
-          builder: (context) => AlertDialog(
+          builder: (ctx) => AlertDialog(
             title: const Text('Delete Reminder'),
             content: const Text('Are you sure you want to delete this reminder?'),
             actions: [
               TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
+                onPressed: () => Navigator.of(ctx).pop(false),
                 child: const Text('Cancel'),
               ),
               TextButton(
-                onPressed: () => Navigator.of(context).pop(true),
+                onPressed: () => Navigator.of(ctx).pop(true),
                 child: const Text('Delete'),
               ),
             ],
           ),
         );
-      },
-      onDismissed: (direction) async {
-        await ref.read(reminderRepositoryProvider).deleteReminder(reminder.id);
-        await ref.read(notificationServiceProvider).cancelNotification(reminder.id);
-        ref.invalidate(remindersProvider);
+        if (confirmed != true) return false;
 
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Reminder deleted')),
-          );
+        // Do the actual delete here so we can control the flow
+        try {
+          await ref.read(reminderRepositoryProvider).deleteReminder(reminder.id);
+          try {
+            await ref.read(notificationServiceProvider).cancelNotification(reminder.id);
+          } catch (_) {}
+          ref.invalidate(remindersProvider);
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Reminder deleted')),
+            );
+          }
+          return true;
+        } catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error deleting: $e')),
+            );
+          }
+          return false;
         }
       },
+      onDismissed: (_) {},
       child: Card(
         margin: const EdgeInsets.only(bottom: 8),
         child: ListTile(
@@ -416,11 +429,26 @@ class _AddReminderFormState extends ConsumerState<AddReminderForm> {
       updatedAt: DateTime.now(),
     );
 
-    try {
-      final saved = await ref.read(reminderRepositoryProvider).createReminder(reminder);
-      await ref.read(notificationServiceProvider).scheduleRepeatingNotification(saved);
-      ref.invalidate(remindersProvider);
+    // Capture provider references BEFORE popping (ref dies after dispose)
+    final repo = ref.read(reminderRepositoryProvider);
+    final notifService = ref.read(notificationServiceProvider);
 
+    try {
+      final saved = await repo.createReminder(reminder);
+
+      // Schedule notification BEFORE closing the sheet
+      try {
+        await notifService.scheduleRepeatingNotification(saved);
+      } catch (e) {
+        // Show scheduling error but still close sheet (reminder is saved)
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Reminder saved but notification failed: $e')),
+          );
+        }
+      }
+
+      ref.invalidate(remindersProvider);
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -443,12 +471,16 @@ class _AddReminderFormState extends ConsumerState<AddReminderForm> {
 
     return Container(
       padding: const EdgeInsets.all(16),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.85,
+      ),
       child: Form(
         key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
             Text('New Reminder', style: theme.textTheme.titleLarge),
             const SizedBox(height: 16),
             // Quick templates
@@ -463,7 +495,7 @@ class _AddReminderFormState extends ConsumerState<AddReminderForm> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              initialValue: _selectedModule,
+              value: _selectedModule,
               decoration: const InputDecoration(
                 labelText: 'Category',
                 border: OutlineInputBorder(),
@@ -531,7 +563,7 @@ class _AddReminderFormState extends ConsumerState<AddReminderForm> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              initialValue: _selectedRepeat,
+              value: _selectedRepeat,
               decoration: const InputDecoration(
                 labelText: 'Repeat',
                 border: OutlineInputBorder(),
@@ -557,6 +589,7 @@ class _AddReminderFormState extends ConsumerState<AddReminderForm> {
               child: const Text('Create Reminder'),
             ),
           ],
+          ),
         ),
       ),
     );

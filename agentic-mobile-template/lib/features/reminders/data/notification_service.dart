@@ -1,6 +1,8 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import '../domain/reminder_entity.dart';
+import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
 /// Service for managing push notifications and local notifications
@@ -8,6 +10,32 @@ class NotificationService {
 
   NotificationService(this._flutterLocalNotificationsPlugin);
   final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin;
+  bool _tzInitialized = false;
+
+  /// Ensures timezone database is initialized AND tz.local is set to device timezone.
+  /// Must be called (and awaited) before any scheduling.
+  Future<void> _ensureTimezonesInitialized() async {
+    if (_tzInitialized) return;
+    tz_data.initializeTimeZones();
+    try {
+      final String timeZoneName = await FlutterTimezone.getLocalTimezone();
+      tz.setLocalLocation(tz.getLocation(timeZoneName));
+    } catch (_) {
+      // Fallback: use UTC offset to find a matching timezone
+      try {
+        final offset = DateTime.now().timeZoneOffset;
+        for (final loc in tz.timeZoneDatabase.locations.values) {
+          if (loc.currentTimeZone.offset == offset.inMilliseconds) {
+            tz.setLocalLocation(loc);
+            break;
+          }
+        }
+      } catch (_) {
+        // Last resort: tz.local stays at UTC
+      }
+    }
+    _tzInitialized = true;
+  }
 
   /// Initializes the notification service
   ///
@@ -16,6 +44,9 @@ class NotificationService {
   Future<void> initialize({
     required Function(String?) onNotificationTap,
   }) async {
+    // Initialize timezones eagerly at startup
+    await _ensureTimezonesInitialized();
+
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
@@ -44,10 +75,23 @@ class NotificationService {
       playSound: true,
     );
 
-    await _flutterLocalNotificationsPlugin
+    final androidImpl = _flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(androidChannel);
+            AndroidFlutterLocalNotificationsPlugin>();
+
+    await androidImpl?.createNotificationChannel(androidChannel);
+
+    // Request exact alarm permission (required on Android 12+ / API 31+)
+    if (androidImpl != null) {
+      try {
+        final canScheduleExact = await androidImpl.canScheduleExactNotifications();
+        if (canScheduleExact != true) {
+          await androidImpl.requestExactAlarmsPermission();
+        }
+      } catch (_) {
+        // Non-fatal: inexact alarms will still work
+      }
+    }
   }
 
   /// Requests notification permissions
@@ -119,9 +163,21 @@ class NotificationService {
 
   /// Schedules a notification for a specific reminder
   Future<void> scheduleNotification(ReminderEntity reminder) async {
+    await _ensureTimezonesInitialized();
+
+    // Build the scheduled time from reminder's date/time components in local timezone.
+    // This avoids UTC/local confusion from Supabase round-trip.
+    final scheduledDate = tz.TZDateTime(
+      tz.local,
+      reminder.remindAt.year,
+      reminder.remindAt.month,
+      reminder.remindAt.day,
+      reminder.remindAt.hour,
+      reminder.remindAt.minute,
+    );
+
     // If the reminder time is in the past, don't schedule
-    if (tz.TZDateTime.from(reminder.remindAt, tz.local)
-        .isBefore(tz.TZDateTime.now(tz.local))) {
+    if (scheduledDate.isBefore(tz.TZDateTime.now(tz.local))) {
       return;
     }
 
@@ -152,9 +208,9 @@ class NotificationService {
       reminder.id.hashCode, // Use reminder ID hash as notification ID
       reminder.title,
       reminder.body,
-      tz.TZDateTime.from(reminder.remindAt, tz.local),
+      scheduledDate,
       notificationDetails,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      androidScheduleMode: AndroidScheduleMode.alarmClock,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
       payload: payload,
@@ -163,6 +219,7 @@ class NotificationService {
 
   /// Schedules a repeating notification
   Future<void> scheduleRepeatingNotification(ReminderEntity reminder) async {
+    await _ensureTimezonesInitialized();
     if (reminder.repeatRule == null || reminder.repeatRule == 'once') {
       return scheduleNotification(reminder);
     }
@@ -173,7 +230,15 @@ class NotificationService {
       return scheduleNotification(reminder);
     }
 
-    final nextScheduledDate = tz.TZDateTime.from(nextDate, tz.local);
+    // Build TZDateTime from components in local timezone
+    final nextScheduledDate = tz.TZDateTime(
+      tz.local,
+      nextDate.year,
+      nextDate.month,
+      nextDate.day,
+      nextDate.hour,
+      nextDate.minute,
+    );
 
     const androidDetails = AndroidNotificationDetails(
       'welltrack_reminders',
@@ -206,7 +271,7 @@ class NotificationService {
           reminder.body,
           nextScheduledDate,
           notificationDetails,
-          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          androidScheduleMode: AndroidScheduleMode.alarmClock,
           uiLocalNotificationDateInterpretation:
               UILocalNotificationDateInterpretation.absoluteTime,
           payload: payload,
@@ -220,7 +285,7 @@ class NotificationService {
           reminder.body,
           nextScheduledDate,
           notificationDetails,
-          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          androidScheduleMode: AndroidScheduleMode.alarmClock,
           uiLocalNotificationDateInterpretation:
               UILocalNotificationDateInterpretation.absoluteTime,
           payload: payload,

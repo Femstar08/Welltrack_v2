@@ -4,8 +4,10 @@ import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../shared/core/theme/theme_provider.dart';
+import '../../../shared/core/router/app_router.dart' show activeProfileIdProvider;
 import 'rest_timer_settings.dart';
 import '../../../features/workouts/presentation/rest_timer_provider.dart';
+import '../../../features/profile/data/profile_repository.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -16,16 +18,85 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   PackageInfo? _packageInfo;
+  bool _aiConsentVitality = false;
+  bool _aiConsentBloodwork = false;
+  bool _loadingConsent = true;
 
   @override
   void initState() {
     super.initState();
     _loadPackageInfo();
+    _loadConsentSettings();
   }
 
   Future<void> _loadPackageInfo() async {
     final info = await PackageInfo.fromPlatform();
     setState(() => _packageInfo = info);
+  }
+
+  Future<void> _loadConsentSettings() async {
+    final profileId = ref.read(activeProfileIdProvider);
+    if (profileId == null || profileId.isEmpty) {
+      setState(() => _loadingConsent = false);
+      return;
+    }
+    try {
+      final response = await Supabase.instance.client
+          .from('wt_profiles')
+          .select('ai_consent_vitality, ai_consent_bloodwork')
+          .eq('id', profileId)
+          .maybeSingle();
+
+      if (response != null && mounted) {
+        setState(() {
+          _aiConsentVitality = response['ai_consent_vitality'] as bool? ?? false;
+          _aiConsentBloodwork = response['ai_consent_bloodwork'] as bool? ?? false;
+          _loadingConsent = false;
+        });
+      } else if (mounted) {
+        setState(() => _loadingConsent = false);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingConsent = false);
+    }
+  }
+
+  Future<void> _setVitalityConsent(bool value) async {
+    final profileId = ref.read(activeProfileIdProvider);
+    if (profileId == null || profileId.isEmpty) return;
+    setState(() => _aiConsentVitality = value);
+    try {
+      await ref.read(profileRepositoryProvider).updateAiConsent(
+        profileId,
+        aiConsentVitality: value,
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() => _aiConsentVitality = !value); // revert
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not save setting: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _setBloodworkConsent(bool value) async {
+    final profileId = ref.read(activeProfileIdProvider);
+    if (profileId == null || profileId.isEmpty) return;
+    setState(() => _aiConsentBloodwork = value);
+    try {
+      await ref.read(profileRepositoryProvider).updateAiConsent(
+        profileId,
+        aiConsentBloodwork: value,
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() => _aiConsentBloodwork = !value); // revert
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not save setting: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _signOut() async {
@@ -202,6 +273,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => context.push('/settings/ingredient-preferences'),
                 ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.eco_outlined),
+                  title: const Text('Nutrition Profiles'),
+                  subtitle: const Text(
+                    'Cardiovascular, hormonal food preferences & cuisine',
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/meals/nutrition-profiles'),
+                ),
               ],
             ),
           ),
@@ -228,9 +309,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           // AI Usage Section
           _buildSectionHeader('AI Usage'),
-          const Card(
-            margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: ListTile(
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: const ListTile(
               leading: Icon(Icons.auto_awesome_outlined),
               title: Text('AI Calls Remaining'),
               subtitle: Text('Freemium plan'),
@@ -241,6 +322,35 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
+            ),
+          ),
+
+          // AI Data Sharing Section
+          _buildSectionHeader('AI Data Sharing'),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Column(
+              children: [
+                SwitchListTile(
+                  secondary: const Icon(Icons.favorite_border),
+                  title: const Text('Share vitality data with AI'),
+                  subtitle: const Text(
+                    'Include morning wellness tracking in AI analysis for health correlations',
+                  ),
+                  value: _loadingConsent ? false : _aiConsentVitality,
+                  onChanged: _loadingConsent ? null : _setVitalityConsent,
+                ),
+                const Divider(height: 1),
+                SwitchListTile(
+                  secondary: const Icon(Icons.biotech_outlined),
+                  title: const Text('Share bloodwork data with AI'),
+                  subtitle: const Text(
+                    'Include lab results in AI analysis for health insights',
+                  ),
+                  value: _loadingConsent ? false : _aiConsentBloodwork,
+                  onChanged: _loadingConsent ? null : _setBloodworkConsent,
+                ),
+              ],
             ),
           ),
 

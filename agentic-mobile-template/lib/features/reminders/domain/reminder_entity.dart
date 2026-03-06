@@ -23,7 +23,7 @@ class ReminderEntity {
       module: json['module'] as String,
       title: json['title'] as String,
       body: json['body'] as String,
-      remindAt: DateTime.parse(json['remind_at'] as String),
+      remindAt: DateTime.parse(json['remind_at'] as String).toLocal(),
       repeatRule: json['repeat_rule'] as String?,
       isActive: json['is_active'] as bool? ?? true,
       lastTriggeredAt: json['last_triggered_at'] != null

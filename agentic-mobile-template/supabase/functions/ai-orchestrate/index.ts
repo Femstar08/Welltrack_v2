@@ -327,6 +327,41 @@ function parseAssistantResponse(
   const suggestedActions: any[] = []
   let updatedForecast = undefined
 
+  // --- generate_daily_plan: expects bare JSON { focus_tip, narrative } ---
+  if (workflowType === 'generate_daily_plan') {
+    try {
+      // Try parsing entire message as JSON first
+      const parsed = JSON.parse(message.trim())
+      if (
+        typeof parsed.focus_tip === 'string' &&
+        typeof parsed.narrative === 'string'
+      ) {
+        // Valid — no DB writes needed; the Flutter client reads assistant_message directly
+        return { dbWrites, suggestedActions, updatedForecast }
+      }
+    } catch (_) {
+      // Fall through to code block extraction
+    }
+
+    // Try extracting from a JSON code block
+    const blockMatch = /```json\n([\s\S]*?)\n```/.exec(message)
+    if (blockMatch) {
+      try {
+        const parsed = JSON.parse(blockMatch[1])
+        if (
+          typeof parsed.focus_tip === 'string' &&
+          typeof parsed.narrative === 'string'
+        ) {
+          return { dbWrites, suggestedActions, updatedForecast }
+        }
+      } catch (_) {
+        // ignore — fallback handled by Flutter client (isFallback = true)
+      }
+    }
+
+    return { dbWrites, suggestedActions, updatedForecast }
+  }
+
   // Extract JSON blocks from response
   const jsonBlockRegex = /```json\n([\s\S]*?)\n```/g
   let match

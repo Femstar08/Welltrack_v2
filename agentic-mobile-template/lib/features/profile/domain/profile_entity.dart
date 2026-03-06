@@ -15,10 +15,14 @@ class ProfileEntity {
     this.allergies,
     this.preferredIngredients = const [],
     this.excludedIngredients = const [],
+    this.nutritionProfiles = const [],
+    this.cuisinePreference = 'balanced',
     this.primaryGoal,
     this.goalIntensity,
     this.isPrimary = true,
     this.avatarUrl,
+    this.aiConsentVitality = false,
+    this.aiConsentBloodwork = false,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -36,10 +40,14 @@ class ProfileEntity {
   final String? allergies;
   final List<String> preferredIngredients;
   final List<String> excludedIngredients;
+  final List<String> nutritionProfiles;
+  final String cuisinePreference;
   final String? primaryGoal;
   final String? goalIntensity;
   final bool isPrimary;
   final String? avatarUrl;
+  final bool aiConsentVitality;
+  final bool aiConsentBloodwork;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -55,9 +63,13 @@ class ProfileEntity {
     String? allergies,
     List<String>? preferredIngredients,
     List<String>? excludedIngredients,
+    List<String>? nutritionProfiles,
+    String? cuisinePreference,
     String? primaryGoal,
     String? goalIntensity,
     String? avatarUrl,
+    bool? aiConsentVitality,
+    bool? aiConsentBloodwork,
   }) {
     return ProfileEntity(
       id: id,
@@ -74,10 +86,14 @@ class ProfileEntity {
       allergies: allergies ?? this.allergies,
       preferredIngredients: preferredIngredients ?? this.preferredIngredients,
       excludedIngredients: excludedIngredients ?? this.excludedIngredients,
+      nutritionProfiles: nutritionProfiles ?? this.nutritionProfiles,
+      cuisinePreference: cuisinePreference ?? this.cuisinePreference,
       primaryGoal: primaryGoal ?? this.primaryGoal,
       goalIntensity: goalIntensity ?? this.goalIntensity,
       isPrimary: isPrimary,
       avatarUrl: avatarUrl ?? this.avatarUrl,
+      aiConsentVitality: aiConsentVitality ?? this.aiConsentVitality,
+      aiConsentBloodwork: aiConsentBloodwork ?? this.aiConsentBloodwork,
       createdAt: createdAt,
       updatedAt: DateTime.now(),
     );

@@ -89,6 +89,24 @@ class ProfileRepository {
     }
   }
 
+  Future<ProfileEntity> updateAiConsent(
+    String profileId, {
+    bool? aiConsentVitality,
+    bool? aiConsentBloodwork,
+  }) async {
+    if (aiConsentVitality == null && aiConsentBloodwork == null) {
+      return getProfile(profileId);
+    }
+    final fields = <String, dynamic>{};
+    if (aiConsentVitality != null) {
+      fields['ai_consent_vitality'] = aiConsentVitality;
+    }
+    if (aiConsentBloodwork != null) {
+      fields['ai_consent_bloodwork'] = aiConsentBloodwork;
+    }
+    return updateProfile(profileId, fields);
+  }
+
   Future<ProfileEntity> createProfile({
     required String userId,
     required String profileType,

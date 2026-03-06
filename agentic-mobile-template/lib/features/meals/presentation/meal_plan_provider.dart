@@ -6,6 +6,7 @@ import '../data/meal_plan_repository.dart';
 import '../data/custom_macro_target_repository.dart';
 import '../domain/meal_plan_entity.dart';
 import '../../../shared/core/ai/ai_orchestrator_service.dart';
+import '../../profile/data/profile_repository.dart';
 
 class MealPlanState {
   const MealPlanState({
@@ -65,12 +66,14 @@ class MealPlanNotifier extends StateNotifier<MealPlanState> {
     this._aiService,
     this._profileId,
     this._customTargetRepo,
+    this._profileRepository,
   ) : super(MealPlanState(selectedDate: DateTime.now()));
 
   final MealPlanRepository _repository;
   final AiOrchestratorService _aiService;
   final String _profileId;
   final CustomMacroTargetRepository _customTargetRepo;
+  final ProfileRepository _profileRepository;
 
   Future<void> loadPlan(DateTime date) async {
     state = state.copyWith(
@@ -118,6 +121,17 @@ class MealPlanNotifier extends StateNotifier<MealPlanState> {
 
       state = state.copyWith(macroTargets: targets);
 
+      // Load profile for nutrition preferences
+      List<String> nutritionProfiles = const [];
+      String cuisinePreference = 'balanced';
+      try {
+        final profile = await _profileRepository.getProfile(_profileId);
+        nutritionProfiles = profile.nutritionProfiles;
+        cuisinePreference = profile.cuisinePreference;
+      } catch (_) {
+        // Non-fatal — proceed with defaults
+      }
+
       // Call AI orchestrator
       final response = await _aiService.orchestrate(
         userId: userId,
@@ -130,6 +144,8 @@ class MealPlanNotifier extends StateNotifier<MealPlanState> {
           'day_type': dayType,
           'macro_targets': targets.toJson(),
           'plan_date': '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
+          'nutrition_profiles': nutritionProfiles,
+          'cuisine_preference': cuisinePreference,
         },
       );
 
@@ -200,6 +216,18 @@ class MealPlanNotifier extends StateNotifier<MealPlanState> {
     state = state.copyWith(isSwapping: true, swappingItemId: itemId, clearError: true);
 
     try {
+      // Derive macro targets: prefer in-memory (set during generatePlan) but fall
+      // back to the plan's stored totals so swaps work on plans loaded from DB.
+      final macroTargetsJson = state.macroTargets?.toJson() ??
+          (plan.totalCalories != null
+              ? {
+                  'calories': plan.totalCalories,
+                  'protein_g': plan.totalProteinG,
+                  'carbs_g': plan.totalCarbsG,
+                  'fat_g': plan.totalFatG,
+                }
+              : null);
+
       final response = await _aiService.orchestrate(
         userId: userId,
         profileId: _profileId,
@@ -209,7 +237,7 @@ class MealPlanNotifier extends StateNotifier<MealPlanState> {
             '${item.carbsG}g C, ${item.fatG}g F) for something different.',
         contextOverride: {
           'current_meal': item.toJson(),
-          'macro_targets': state.macroTargets?.toJson(),
+          'macro_targets': macroTargetsJson,
           'day_type': state.dayType,
         },
       );
@@ -305,6 +333,13 @@ final mealPlanProvider =
     final repository = ref.watch(mealPlanRepositoryProvider);
     final aiService = ref.watch(aiOrchestratorServiceProvider);
     final customTargetRepo = ref.watch(customMacroTargetRepositoryProvider);
-    return MealPlanNotifier(repository, aiService, profileId, customTargetRepo);
+    final profileRepo = ref.watch(profileRepositoryProvider);
+    return MealPlanNotifier(
+      repository,
+      aiService,
+      profileId,
+      customTargetRepo,
+      profileRepo,
+    );
   },
 );

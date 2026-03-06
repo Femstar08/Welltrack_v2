@@ -65,7 +65,7 @@ class GoalsRepository {
       final data = {
         'profile_id': profileId,
         'metric_type': metricType,
-        'goal_description': description,
+        'goal_description': description ?? metricType,
         'target_value': targetValue,
         'current_value': currentValue,
         'initial_value': currentValue,

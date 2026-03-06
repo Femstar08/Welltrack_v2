@@ -8,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'features/auth/data/auth_repository.dart';
 import 'features/health/data/health_background_sync.dart';
 import 'features/profile/presentation/profile_provider.dart';
+import 'features/reminders/data/notification_service.dart';
 import 'shared/core/health/health_service.dart';
 import 'shared/core/router/app_router.dart';
 import 'shared/core/theme/app_theme.dart';
@@ -65,6 +66,28 @@ class _WellTrackAppState extends ConsumerState<WellTrackApp> {
       final syncEngine = ref.read(syncEngineProvider.notifier);
       await syncEngine.startSync();
       _logger.info('Sync engine started');
+
+      // Initialize notification service (non-fatal if it fails)
+      if (!kIsWeb) {
+        try {
+          final notificationService = ref.read(notificationServiceProvider);
+          await notificationService.initialize(
+            onNotificationTap: (payload) {
+              final route = notificationService.handleNotificationTap(payload);
+              if (route != null) {
+                try {
+                  final router = ref.read(goRouterProvider);
+                  router.go(route);
+                } catch (_) {}
+              }
+            },
+          );
+          await notificationService.requestPermissions();
+          _logger.info('Notification service initialized');
+        } catch (e) {
+          _logger.warning('Notification service init failed (non-fatal): $e');
+        }
+      }
 
       // Restore auth session state if user is already logged in
       await _restoreSessionState();

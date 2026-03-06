@@ -17,10 +17,14 @@ class ProfileModel {
     this.allergies,
     this.preferredIngredients = const [],
     this.excludedIngredients = const [],
+    this.nutritionProfiles = const [],
+    this.cuisinePreference = 'balanced',
     this.primaryGoal,
     this.goalIntensity,
     this.isPrimary = true,
     this.avatarUrl,
+    this.aiConsentVitality = false,
+    this.aiConsentBloodwork = false,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -47,10 +51,14 @@ class ProfileModel {
       allergies: json['allergies'] as String?,
       preferredIngredients: (json['preferred_ingredients'] as List<dynamic>?)?.cast<String>() ?? [],
       excludedIngredients: (json['excluded_ingredients'] as List<dynamic>?)?.cast<String>() ?? [],
+      nutritionProfiles: (json['nutrition_profiles'] as List<dynamic>?)?.cast<String>() ?? [],
+      cuisinePreference: json['cuisine_preference'] as String? ?? 'balanced',
       primaryGoal: json['primary_goal'] as String?,
       goalIntensity: json['goal_intensity'] as String?,
       isPrimary: json['is_primary'] as bool? ?? true,
       avatarUrl: json['avatar_url'] as String?,
+      aiConsentVitality: json['ai_consent_vitality'] as bool? ?? false,
+      aiConsentBloodwork: json['ai_consent_bloodwork'] as bool? ?? false,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
@@ -72,10 +80,14 @@ class ProfileModel {
       allergies: entity.allergies,
       preferredIngredients: entity.preferredIngredients,
       excludedIngredients: entity.excludedIngredients,
+      nutritionProfiles: entity.nutritionProfiles,
+      cuisinePreference: entity.cuisinePreference,
       primaryGoal: entity.primaryGoal,
       goalIntensity: entity.goalIntensity,
       isPrimary: entity.isPrimary,
       avatarUrl: entity.avatarUrl,
+      aiConsentVitality: entity.aiConsentVitality,
+      aiConsentBloodwork: entity.aiConsentBloodwork,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
     );
@@ -94,10 +106,14 @@ class ProfileModel {
   final String? allergies;
   final List<String> preferredIngredients;
   final List<String> excludedIngredients;
+  final List<String> nutritionProfiles;
+  final String cuisinePreference;
   final String? primaryGoal;
   final String? goalIntensity;
   final bool isPrimary;
   final String? avatarUrl;
+  final bool aiConsentVitality;
+  final bool aiConsentBloodwork;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -117,10 +133,14 @@ class ProfileModel {
       'allergies': allergies,
       'preferred_ingredients': preferredIngredients,
       'excluded_ingredients': excludedIngredients,
+      'nutrition_profiles': nutritionProfiles,
+      'cuisine_preference': cuisinePreference,
       'primary_goal': primaryGoal,
       'goal_intensity': goalIntensity,
       'is_primary': isPrimary,
       'avatar_url': avatarUrl,
+      'ai_consent_vitality': aiConsentVitality,
+      'ai_consent_bloodwork': aiConsentBloodwork,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -142,10 +162,14 @@ class ProfileModel {
       allergies: allergies,
       preferredIngredients: preferredIngredients,
       excludedIngredients: excludedIngredients,
+      nutritionProfiles: nutritionProfiles,
+      cuisinePreference: cuisinePreference,
       primaryGoal: primaryGoal,
       goalIntensity: goalIntensity,
       isPrimary: isPrimary,
       avatarUrl: avatarUrl,
+      aiConsentVitality: aiConsentVitality,
+      aiConsentBloodwork: aiConsentBloodwork,
       createdAt: createdAt,
       updatedAt: updatedAt,
     );

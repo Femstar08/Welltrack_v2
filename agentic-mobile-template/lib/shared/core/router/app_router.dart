@@ -66,10 +66,14 @@ import '../../../features/meals/presentation/log_meal_screen.dart'
     as log_meal;
 import '../../../features/meals/presentation/meal_plan_screen.dart'
     as meal_plan;
+import '../../../features/meals/presentation/meal_prep_screen.dart'
+    as meal_prep;
 import '../../../features/meals/presentation/shopping_list_generator_screen.dart'
     as shopping_generator;
 import '../../../features/meals/presentation/nutrition_targets_screen.dart'
     as nutrition_targets;
+import '../../../features/meals/presentation/nutrition_profiles_screen.dart'
+    as nutrition_profiles;
 
 // Health
 import '../../../features/health/presentation/health_connection_screen.dart'
@@ -115,6 +119,12 @@ import '../../../features/workouts/presentation/progress_screen.dart'
     as progress_screen;
 import '../../../features/workouts/presentation/body_map_screen.dart'
     as body_map;
+
+// Daily Coach
+import '../../../features/daily_coach/presentation/morning_checkin_screen.dart'
+    as morning_checkin;
+import '../../../features/daily_coach/presentation/todays_plan_screen.dart'
+    as todays_plan;
 
 // Reminders
 import '../../../features/reminders/presentation/reminders_screen.dart'
@@ -201,7 +211,8 @@ class AppRouter {
             requestedPath == '/workouts' ||
             requestedPath.startsWith('/workouts/') ||
             requestedPath.startsWith('/goals') ||
-            requestedPath.startsWith('/meals/');
+            requestedPath.startsWith('/meals/') ||
+            requestedPath.startsWith('/daily-coach/');
         if (needsProfile &&
             (profileId == null || profileId.isEmpty) &&
             isAuthenticated) {
@@ -403,6 +414,24 @@ class AppRouter {
             );
           },
         ),
+        GoRoute(
+          path: '/meals/prep',
+          name: 'mealPrep',
+          builder: (context, state) {
+            final profileId = ref.read(activeProfileIdProvider) ?? '';
+            return meal_prep.MealPrepScreen(profileId: profileId);
+          },
+        ),
+        GoRoute(
+          path: '/meals/nutrition-profiles',
+          name: 'nutritionProfiles',
+          builder: (context, state) {
+            final profileId = ref.read(activeProfileIdProvider) ?? '';
+            return nutrition_profiles.NutritionProfilesScreen(
+              profileId: profileId,
+            );
+          },
+        ),
 
         // ── Health ─────────────────────────────────────────
         GoRoute(
@@ -574,6 +603,24 @@ class AppRouter {
           name: 'bodyMap',
           builder: (context, state) =>
               const body_map.BodyMapScreen(),
+        ),
+
+        // ── Daily Coach ────────────────────────────────────
+        GoRoute(
+          path: '/daily-coach/checkin',
+          name: 'morningCheckIn',
+          builder: (context, state) {
+            final profileId = ref.read(activeProfileIdProvider) ?? '';
+            return morning_checkin.MorningCheckInScreen(profileId: profileId);
+          },
+        ),
+        GoRoute(
+          path: '/daily-coach/plan',
+          name: 'todaysPlan',
+          builder: (context, state) {
+            final profileId = ref.read(activeProfileIdProvider) ?? '';
+            return todays_plan.TodaysPlanScreen(profileId: profileId);
+          },
         ),
 
         // ── Reminders ──────────────────────────────────────
