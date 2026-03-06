@@ -155,3 +155,27 @@
   - Weight trend = (newest - oldest weight) / days between — needs at least 2 data points in 14-day window
   - Prescription engine `weightTrend` threshold is `abs() < 0.05` kg/day — effectively no change over 14 days
 ---
+
+## 2026-03-06 - US-007
+- What was implemented:
+  - Re-added vitality step to morning check-in flow on Sundays only
+  - `totalSteps` is now dynamic: 5 on Sundays (feeling, sleep, schedule, vitality, injuries), 4 otherwise
+  - Added `showMorningErection` parameter to `CheckInStepVitality` (default false) — only weekly quality slider shown for US-007
+  - Sunday vitality step shows erection quality slider 1-10 with skip option
+  - Slider value saved to `wt_daily_checkins.erection_quality_weekly` (integer, 1-10)
+  - `is_sensitive = true` already set on entity — data excluded from AI context via `toAiContextJson(includeVitality: false)`
+  - Consent toggle already exists in settings — `includeVitality` only set to true when user explicitly opts in
+  - Verified no debug/print statements leak sensitive data
+  - No migration needed — `erection_quality_weekly`, `is_weekly`, `is_sensitive` columns already exist
+  - flutter analyze: 0 errors (61 info-level only)
+- Files changed:
+  - lib/features/daily_coach/presentation/widgets/checkin_step_vitality.dart (added showMorningErection param)
+  - lib/features/daily_coach/presentation/morning_checkin_screen.dart (re-added vitality step on Sundays)
+  - lib/features/daily_coach/presentation/morning_checkin_provider.dart (dynamic totalSteps)
+  - prd.json (US-007 passes: true)
+- **Learnings for future iterations:**
+  - `showMorningErection` defaults to false — US-008 will set it to true to enable daily morning erection Y/N
+  - PageView `if` conditional works for dynamic step insertion — Flutter handles the list correctly
+  - `isSundayPrompt` is derived in state from `DateTime.now().weekday == DateTime.sunday` — no need to pass it in
+  - The vitality step is fully self-contained with skip and next buttons — skipping just advances without saving vitality data
+---

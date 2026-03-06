@@ -7,6 +7,7 @@ import 'todays_plan_provider.dart';
 import 'widgets/checkin_step_feeling.dart';
 import 'widgets/checkin_step_sleep.dart';
 import 'widgets/checkin_step_schedule.dart';
+import 'widgets/checkin_step_vitality.dart';
 import 'widgets/checkin_step_injuries.dart';
 
 class MorningCheckInScreen extends ConsumerStatefulWidget {
@@ -135,7 +136,20 @@ class _MorningCheckInScreenState extends ConsumerState<MorningCheckInScreen> {
             },
           ),
 
-          // Step 3 — Injuries + Submit
+          // Step 3 (Sunday only) — Vitality: weekly erection quality
+          if (state.isSundayPrompt)
+            CheckInStepVitality(
+              morningErection: state.morningErection,
+              erectionQualityWeekly: state.erectionQualityWeekly,
+              isSunday: true,
+              showMorningErection: false,
+              onMorningErection: notifier.setMorningErection,
+              onErectionQuality: notifier.setErectionQuality,
+              onNext: notifier.nextStep,
+              onSkip: notifier.nextStep,
+            ),
+
+          // Step 3 (weekdays) / Step 4 (Sunday) — Injuries + Submit
           CheckInStepInjuries(
             injuriesNotes: state.injuriesNotes,
             isSubmitting: state.isSubmitting,

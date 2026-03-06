@@ -17,12 +17,14 @@ class CheckInStepVitality extends StatefulWidget {
     required this.onErectionQuality,
     required this.onNext,
     required this.onSkip,
+    this.showMorningErection = false,
     super.key,
   });
 
   final bool? morningErection;
   final int? erectionQualityWeekly;
   final bool isSunday;
+  final bool showMorningErection;
   final ValueChanged<bool?> onMorningErection;
   final ValueChanged<int> onErectionQuality;
   final VoidCallback onNext;
@@ -93,33 +95,35 @@ class _CheckInStepVitalityState extends State<CheckInStepVitality> {
                     ),
                     const SizedBox(height: 32),
 
-                    // ── Morning erection ──────────────────────────────────
-                    Text(
-                      'Morning erection today?',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
+                    // ── Morning erection (only shown when enabled) ──────
+                    if (widget.showMorningErection) ...[
+                      Text(
+                        'Morning erection today?',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _VitalityChip(
-                            label: 'Yes',
-                            isSelected: widget.morningErection == true,
-                            onTap: () => widget.onMorningErection(true),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _VitalityChip(
+                              label: 'Yes',
+                              isSelected: widget.morningErection == true,
+                              onTap: () => widget.onMorningErection(true),
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _VitalityChip(
-                            label: 'No',
-                            isSelected: widget.morningErection == false,
-                            onTap: () => widget.onMorningErection(false),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _VitalityChip(
+                              label: 'No',
+                              isSelected: widget.morningErection == false,
+                              onTap: () => widget.onMorningErection(false),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
+                    ],
 
                     // ── Sunday: weekly quality slider ─────────────────────
                     if (widget.isSunday) ...[

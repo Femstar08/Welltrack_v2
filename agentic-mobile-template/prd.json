@@ -110,7 +110,7 @@
             "id": "US-007",
             "title": "Weekly check-in (Sunday) for sensitive metrics",
             "priority": 7,
-            "passes": false,
+            "passes": true,
             "acceptanceCriteria": [
                 "Read the existing file first",
                 "Weekly check-in prompt appears on Sunday mornings only (replaces or follows daily check-in)",

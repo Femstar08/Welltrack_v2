@@ -57,8 +57,8 @@ class MorningCheckInState {
 
   bool get isSundayPrompt => DateTime.now().weekday == DateTime.sunday;
 
-  /// 4 steps: feeling, sleep, schedule, injuries.
-  int get totalSteps => 4;
+  /// 4 steps normally; 5 on Sundays (adds vitality step).
+  int get totalSteps => isSundayPrompt ? 5 : 4;
 
   /// The sleep quality value to persist (override takes precedence).
   double? get effectiveSleepQuality {
