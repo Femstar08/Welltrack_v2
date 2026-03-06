@@ -127,7 +127,7 @@
             "id": "US-008",
             "title": "Morning erection Y/N logged in daily check-in",
             "priority": 8,
-            "passes": false,
+            "passes": true,
             "acceptanceCriteria": [
                 "Read the existing file first",
                 "Daily check-in includes Y/N toggle for morning erection (shown after sleep question)",

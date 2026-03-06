@@ -5,7 +5,7 @@
 - Navigation: `context.go('/daily-coach/plan')` after check-in completion, `context.push('/daily-coach/checkin')` from dashboard
 - ref.listen previous param is nullable (MorningCheckInState?) — always null-check before accessing
 - Route `/daily-coach/checkin` reads profileId from `activeProfileIdProvider`
-- Vitality step (morning erection + weekly quality) is in its own widget `checkin_step_vitality.dart` — currently removed from flow, will be re-added by US-007/US-008
+- Vitality step (morning erection Y/N + Sunday weekly quality slider) is step 3 in the 5-step flow — always shown, `showMorningErection: true`, `isSunday` controls slider visibility
 - Flutter analyze: run via `cmd.exe /c "flutter analyze"` on WSL2 — returns infos/warnings but 0 errors is the target
 - PrescriptionEngine is pure Dart (no async/Supabase) — provider assembles PrescriptionInput from real data, engine evaluates deterministically
 - Recovery score drives base PlanType (push/normal/easy/rest); check-in feeling/schedule override the base type
@@ -178,4 +178,25 @@
   - PageView `if` conditional works for dynamic step insertion — Flutter handles the list correctly
   - `isSundayPrompt` is derived in state from `DateTime.now().weekday == DateTime.sunday` — no need to pass it in
   - The vitality step is fully self-contained with skip and next buttons — skipping just advances without saving vitality data
+---
+
+## 2026-03-06 - US-008
+- What was implemented:
+  - Vitality step now shown every day (not just Sundays) with morning erection Y/N toggle
+  - `showMorningErection` set to `true` — Yes/No chips always visible
+  - `totalSteps` now always 5 (feeling, sleep, schedule, vitality, injuries)
+  - On Sundays: both morning erection Y/N AND weekly quality slider shown
+  - On other days: only morning erection Y/N shown
+  - Response saved to `wt_daily_checkins.morning_erection` (boolean)
+  - Field is optional — skipping via Skip button advances without saving, does not block completion
+  - `is_sensitive = true` on entity — never sent to AI without explicit consent toggle
+  - flutter analyze: 0 errors (61 info-level only)
+- Files changed:
+  - lib/features/daily_coach/presentation/morning_checkin_screen.dart (vitality step shown daily, showMorningErection: true)
+  - lib/features/daily_coach/presentation/morning_checkin_provider.dart (totalSteps always 5)
+  - prd.json (US-008 passes: true)
+- **Learnings for future iterations:**
+  - Vitality step is now permanently step 3 in the 5-step flow — do not remove it again
+  - `showMorningErection` param controls visibility of the Y/N chips independently from the weekly slider
+  - The `isSunday` param controls the weekly quality slider visibility — fully orthogonal from morning erection
 ---

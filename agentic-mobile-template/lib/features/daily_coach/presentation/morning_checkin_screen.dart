@@ -136,20 +136,19 @@ class _MorningCheckInScreenState extends ConsumerState<MorningCheckInScreen> {
             },
           ),
 
-          // Step 3 (Sunday only) — Vitality: weekly erection quality
-          if (state.isSundayPrompt)
-            CheckInStepVitality(
-              morningErection: state.morningErection,
-              erectionQualityWeekly: state.erectionQualityWeekly,
-              isSunday: true,
-              showMorningErection: false,
-              onMorningErection: notifier.setMorningErection,
-              onErectionQuality: notifier.setErectionQuality,
-              onNext: notifier.nextStep,
-              onSkip: notifier.nextStep,
-            ),
+          // Step 3 — Vitality: morning erection Y/N (daily) + weekly quality slider (Sunday)
+          CheckInStepVitality(
+            morningErection: state.morningErection,
+            erectionQualityWeekly: state.erectionQualityWeekly,
+            isSunday: state.isSundayPrompt,
+            showMorningErection: true,
+            onMorningErection: notifier.setMorningErection,
+            onErectionQuality: notifier.setErectionQuality,
+            onNext: notifier.nextStep,
+            onSkip: notifier.nextStep,
+          ),
 
-          // Step 3 (weekdays) / Step 4 (Sunday) — Injuries + Submit
+          // Step 4 — Injuries + Submit
           CheckInStepInjuries(
             injuriesNotes: state.injuriesNotes,
             isSubmitting: state.isSubmitting,
