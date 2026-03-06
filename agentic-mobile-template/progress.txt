@@ -7,6 +7,15 @@
 - Route `/daily-coach/checkin` reads profileId from `activeProfileIdProvider`
 - Vitality step (morning erection + weekly quality) is in its own widget `checkin_step_vitality.dart` — currently removed from flow, will be re-added by US-007/US-008
 - Flutter analyze: run via `cmd.exe /c "flutter analyze"` on WSL2 — returns infos/warnings but 0 errors is the target
+- PrescriptionEngine is pure Dart (no async/Supabase) — provider assembles PrescriptionInput from real data, engine evaluates deterministically
+- Recovery score drives base PlanType (push/normal/easy/rest); check-in feeling/schedule override the base type
+- Adding a new PrescriptionScenario enum value requires updating: fallback_narratives.dart, todays_focus_tip.dart, daily_coach_card.dart (exhaustive switches)
+- Use `entity.copyWith()` instead of constructing new DailyPrescriptionEntity when merging AI fields — preserves all fields including new ones
+- Bedtime formula: `(wakeHour + 24 - 7) % 24` clamped [21,23] — NOT `wakeHour - 1`
+- Use `ref.invalidate(provider)` for cross-provider refresh (e.g. check-in → plan screen)
+- Card + InkWell: set `clipBehavior: Clip.antiAlias` on Card for proper ripple containment
+- Scenario nudge cards use Hive box `scenario_nudge_dismissals` with key `YYYY-MM-DD:scenarioName` — auto-resets daily
+- ScenarioNudgeCard factory constructors: `.tired()`, `.behindOnSteps()`, `.weightStalling()` — prefer these over manual construction
 
 ---
 
@@ -43,4 +52,106 @@
   - Sleep auto-fill logic is in `_loadInitialData()` of MorningCheckInNotifier — queries yesterday-to-now range
   - The sleep step widget already handles override/reset-to-auto flow — no changes needed for user override behavior
   - `autoSleepMinutes` is raw minutes from Health Connect; divided by 60 and clamped to 1-10 for slider display
+---
+
+## 2026-03-06 - US-003
+- What was implemented:
+  - Added `PlanType` enum (push/normal/easy/rest) driven by recovery score (0-100)
+  - Added `recoveryScore` and `calorieAdjustmentPercent` fields to `DailyPrescriptionEntity`
+  - Added `recoveryScore` to `PrescriptionInput` — computed from real wt_health_metrics via InsightsRepository
+  - Restructured `PrescriptionEngine._resolveScenario()` to use score-based tiers as fallback
+  - Added new `PrescriptionScenario.sore` — feeling=sore always reduces volume by 20% (no longer requires hadHeavySessionYesterday)
+  - `verySore` still triggers for sore + heavy yesterday (full active recovery)
+  - Unwell overrides score (forces rest regardless)
+  - Busy caps plan type at normal
+  - Provider uses `copyWith` instead of manual entity construction for AI merge
+  - Updated exhaustive switch in todays_focus_tip.dart and daily_coach_card.dart for new `sore` scenario
+  - Migration: added plan_type, recovery_score, calorie_adjustment_percent columns
+- Files changed:
+  - lib/features/daily_coach/domain/daily_prescription_entity.dart
+  - lib/features/daily_coach/data/prescription_engine.dart
+  - lib/features/daily_coach/data/fallback_narratives.dart
+  - lib/features/daily_coach/presentation/morning_checkin_provider.dart
+  - lib/features/daily_coach/presentation/widgets/todays_focus_tip.dart
+  - lib/features/dashboard/presentation/widgets/daily_coach_card.dart
+  - supabase/migrations/20260222000002_prescription_plan_type.sql
+  - test/unit/daily_coach/prescription_engine_test.dart
+- **Learnings for future iterations:**
+  - Adding a new `PrescriptionScenario` enum value requires updating 3 files: fallback_narratives.dart, todays_focus_tip.dart, daily_coach_card.dart
+  - Always use `copyWith` instead of creating new `DailyPrescriptionEntity` when merging AI fields — avoids losing new fields
+  - The `_resolvePlanType` method maps scenario -> PlanType with score fallback; heuristic fallback when no score available
+  - Pre-existing error in meal_plan_screen.dart (`swapMeal` undefined) — not related to daily coach changes
+  - Recovery scores come from `InsightsRepository.getRecoveryScores()` — already wired in the provider since US-002
+---
+
+## 2026-03-06 - US-004
+- What was implemented:
+  - Fixed bedtime calculation: `(wakeHour + 24 - 7) % 24` clamped to [21,23] (wake 6 AM = bed 11 PM)
+  - Added `estimatedDurationMinutes` and `muscleGroups` to TodaysPlanState
+  - Provider computes duration from exercises: ~45s/set + rest between sets
+  - Provider extracts unique muscle groups from exercise join data
+  - Workout card now shows estimated duration and muscle groups below plan name
+  - Workout card wrapped in InkWell — entire card tappable to open workout session
+  - Meal rows wrapped in InkWell — tapping opens `/meals/plan`
+  - Invalidated `todaysPlanProvider` in morning_checkin_screen after check-in completes — ensures screen refresh
+- Files changed:
+  - lib/features/daily_coach/data/prescription_engine.dart (bedtime formula)
+  - lib/features/daily_coach/presentation/todays_plan_provider.dart (state + loading)
+  - lib/features/daily_coach/presentation/todays_plan_screen.dart (pass new fields)
+  - lib/features/daily_coach/presentation/widgets/todays_workout_card.dart (duration, muscles, InkWell)
+  - lib/features/daily_coach/presentation/widgets/todays_meals_card.dart (InkWell on meal rows)
+  - lib/features/daily_coach/presentation/morning_checkin_screen.dart (invalidate plan provider)
+- **Learnings for future iterations:**
+  - Bedtime formula: `(wakeHour + 24 - 7) % 24` then clamp — NOT `wakeHour - 1`
+  - WorkoutPlanExerciseEntity has `.exercise` (joined from wt_exercises) with `.muscleGroup` — use getPlanExercises to access
+  - Duration estimate: `(sets * 45) + ((sets-1) * restSeconds)` per exercise, sum all, divide by 60
+  - `ref.invalidate(provider)` forces a re-creation on next read — use for cross-provider refresh
+  - Card InkWell needs `clipBehavior: Clip.antiAlias` on the Card for proper ripple effect
+---
+
+## 2026-03-06 - US-005
+- What was implemented:
+  - Verified prescription_engine.dart is pure if/else — zero AI calls, zero AI imports
+  - Verified AI orchestrator is called AFTER prescription is calculated, receives full plan context as input
+  - Added explicit `message` parameter to AI orchestrate call instructing 1-2 sentence WHY explanation
+  - Renamed UI label from "Focus Tip" to "WellTrack insight" — AI responses never presented as commands
+  - Verified fallback narratives fire on AiException — screen renders with pre-written content, never breaks
+  - flutter analyze: 0 errors (62 info-level only)
+- Files changed:
+  - lib/features/daily_coach/presentation/morning_checkin_provider.dart (added AI prompt message)
+  - lib/features/daily_coach/presentation/widgets/todays_focus_tip.dart (renamed label)
+- **Learnings for future iterations:**
+  - The AI orchestrator `message` parameter is the prompt text sent to the edge function — always include explicit instructions for response format and tone
+  - All AI-generated content in UI should be labelled "WellTrack insight" — never "AI recommendation" or imperative language
+  - The prescription → AI flow is: PrescriptionEngine.evaluate() → save to DB → AI narrates → copyWith merge → save again
+  - Fallback path catches `AiException` specifically, then generic catch-all — both preserve the deterministic plan
+---
+
+## 2026-03-06 - US-006
+- What was implemented:
+  - Wired `weightTrend` into PrescriptionInput — fetches 14-day weight data, computes kg/day rate
+  - Created `ScenarioNudgeCard` widget — dismissable card with left color border, icon, title, message, close button
+  - Created `ScenarioNudgeDismissalNotifier` — Hive-backed dismissal state keyed by date+scenario (resets daily)
+  - Added tired/behind-steps/weight-stalling scenario cards to TodaysPlanScreen (shown above workout card)
+  - Created `DashboardScenarioNudges` widget — shows scenario cards on main dashboard
+  - Dashboard steps nudge has dynamic check: after 3 PM, queries live step count even if prescription scenario differs
+  - Tired scenario: engine already sets volume 0.8 + extraCarbs; card explains this to user
+  - Behind on steps: card shows prescription stepsNudge text or default "A 30-min walk puts you on track"
+  - Weight stalling: card suggests reducing rest-day calories by 100-200kcal
+  - All cards dismissable — dismissal stored in Hive, does not reappear same day
+  - flutter analyze: 0 errors (61 info-level only)
+- Files changed:
+  - lib/features/daily_coach/presentation/morning_checkin_provider.dart (weightTrend wiring)
+  - lib/features/daily_coach/presentation/scenario_nudge_provider.dart (NEW — Hive dismissal state)
+  - lib/features/daily_coach/presentation/widgets/scenario_nudge_card.dart (NEW — dismissable card widget)
+  - lib/features/daily_coach/presentation/todays_plan_screen.dart (scenario cards added)
+  - lib/features/dashboard/presentation/dashboard_screen.dart (scenario nudges section)
+  - lib/features/dashboard/presentation/widgets/dashboard_scenario_nudges.dart (NEW — dashboard nudges)
+  - prd.json (US-006 passes: true)
+- **Learnings for future iterations:**
+  - Scenario cards use Hive box `scenario_nudge_dismissals` with key format `YYYY-MM-DD:scenarioName` — resets daily
+  - Dynamic step checking on dashboard queries health metrics independently from prescription scenario
+  - `ScenarioNudgeCard` has factory constructors: `.tired()`, `.behindOnSteps()`, `.weightStalling()` — use these instead of manual construction
+  - Weight trend = (newest - oldest weight) / days between — needs at least 2 data points in 14-day window
+  - Prescription engine `weightTrend` threshold is `abs() < 0.05` kg/day — effectively no change over 14 days
 ---

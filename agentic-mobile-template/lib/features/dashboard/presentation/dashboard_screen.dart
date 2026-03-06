@@ -15,6 +15,7 @@ import 'widgets/today_summary_card.dart';
 import 'widgets/trends_preview_card.dart';
 import 'widgets/workouts_card.dart';
 import 'widgets/daily_coach_card.dart';
+import 'widgets/dashboard_scenario_nudges.dart';
 import '../../goals/domain/goal_entity.dart';
 import '../../goals/presentation/goals_provider.dart';
 
@@ -78,7 +79,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   SliverToBoxAdapter(
                     child: DailyCoachCard(profileId: widget.profileId),
                   ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                  const SliverToBoxAdapter(child: SizedBox(height: 8)),
+
+                  // Section 1c: Scenario Nudge Cards
+                  SliverToBoxAdapter(
+                    child: DashboardScenarioNudges(
+                        profileId: widget.profileId),
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
                   // Section 2: Key Signals Grid
                   SliverToBoxAdapter(

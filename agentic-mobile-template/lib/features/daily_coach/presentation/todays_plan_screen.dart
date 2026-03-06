@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../domain/daily_prescription_entity.dart';
 import 'todays_plan_provider.dart';
 import 'widgets/bedtime_reminder_card.dart';
+import 'widgets/scenario_nudge_card.dart';
 import 'widgets/todays_focus_tip.dart';
 import 'widgets/todays_meals_card.dart';
 import 'widgets/todays_steps_ring.dart';
@@ -74,6 +75,25 @@ class TodaysPlanScreen extends ConsumerWidget {
                   child: _FallbackChip(),
                 ),
                 const SizedBox(height: 8),
+              ],
+
+              // Scenario nudge cards (dismissable)
+              if (prescription.scenario ==
+                  PrescriptionScenario.tiredNotSore) ...[
+                ScenarioNudgeCard.tired(),
+                const SizedBox(height: 12),
+              ],
+              if (prescription.scenario ==
+                  PrescriptionScenario.behindSteps) ...[
+                ScenarioNudgeCard.behindOnSteps(
+                  nudgeText: prescription.stepsNudge,
+                ),
+                const SizedBox(height: 12),
+              ],
+              if (prescription.scenario ==
+                  PrescriptionScenario.weightStalling) ...[
+                ScenarioNudgeCard.weightStalling(),
+                const SizedBox(height: 12),
               ],
 
               // 1. Workout card

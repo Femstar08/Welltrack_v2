@@ -331,6 +331,31 @@ class MorningCheckInNotifier
         hadHeavySession = cals > 400;
       } catch (_) {}
 
+      // Fetch weight trend over last 14 days (kg/day rate of change)
+      double? weightTrend;
+      try {
+        final fourteenDaysAgo = startOfDay.subtract(const Duration(days: 14));
+        final weightMetrics = await _healthRepo.getMetrics(
+          _profileId,
+          MetricType.weight,
+          startDate: fourteenDaysAgo,
+          endDate: endOfDay,
+        );
+        if (weightMetrics.length >= 2) {
+          final oldest = weightMetrics.last.valueNum;
+          final newest = weightMetrics.first.valueNum;
+          if (oldest != null && newest != null) {
+            final days = weightMetrics.first.recordedAt
+                .difference(weightMetrics.last.recordedAt)
+                .inDays
+                .abs();
+            if (days > 0) {
+              weightTrend = (newest - oldest) / days;
+            }
+          }
+        }
+      } catch (_) {}
+
       // 3. Build PrescriptionInput and run deterministic engine
       final prescriptionInput = PrescriptionInput(
         profileId: _profileId,
@@ -340,6 +365,7 @@ class MorningCheckInNotifier
         restingHR: restingHR,
         stepsToday: stepsToday,
         stepsGoal: 10000,
+        weightTrend: weightTrend,
         hadHeavySessionYesterday: hadHeavySession,
         currentTime: today,
         recoveryScore: recoveryScore,

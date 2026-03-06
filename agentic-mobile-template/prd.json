@@ -38,7 +38,7 @@
             "id": "US-003",
             "title": "Prescription engine generates correct plan type",
             "priority": 3,
-            "passes": false,
+            "passes": true,
             "acceptanceCriteria": [
                 "Read the existing file first",
                 "prescription_engine.dart reads from real wt_daily_checkins and wt_health_metrics — no stub data",
@@ -58,7 +58,7 @@
             "id": "US-004",
             "title": "Today's Plan screen shows personalised day",
             "priority": 4,
-            "passes": false,
+            "passes": true,
             "acceptanceCriteria": [
                 "Read the existing file first",
                 "Today's Plan screen shows: workout card, meals card, steps ring, focus tip, bedtime time",
@@ -78,7 +78,7 @@
             "id": "US-005",
             "title": "AI narrates the plan, does not decide it",
             "priority": 5,
-            "passes": false,
+            "passes": true,
             "acceptanceCriteria": [
                 "Read the existing file first",
                 "prescription_engine.dart produces plan output using if/else logic only — zero AI calls",
@@ -94,7 +94,7 @@
             "id": "US-006",
             "title": "Scenario handling for tired, behind on steps, weight stalling",
             "priority": 6,
-            "passes": false,
+            "passes": true,
             "acceptanceCriteria": [
                 "Read the existing file first",
                 "Tired scenario (feeling = Tired OR sleep < 6 hrs): workout volume reduced 20%, extra carb note added to breakfast",
