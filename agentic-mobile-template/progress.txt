@@ -1,0 +1,46 @@
+## Codebase Patterns
+- Check-in flow uses PageView with NeverScrollableScrollPhysics + PageController for step navigation
+- State management via StateNotifier + family provider (keyed by profileId)
+- Supabase upsert uses `onConflict: 'profile_id,checkin_date'` for idempotent check-in saves
+- Navigation: `context.go('/daily-coach/plan')` after check-in completion, `context.push('/daily-coach/checkin')` from dashboard
+- ref.listen previous param is nullable (MorningCheckInState?) — always null-check before accessing
+- Route `/daily-coach/checkin` reads profileId from `activeProfileIdProvider`
+- Vitality step (morning erection + weekly quality) is in its own widget `checkin_step_vitality.dart` — currently removed from flow, will be re-added by US-007/US-008
+- Flutter analyze: run via `cmd.exe /c "flutter analyze"` on WSL2 — returns infos/warnings but 0 errors is the target
+
+---
+
+## 2026-03-06 - US-001
+- What was implemented:
+  - Reduced morning check-in from 5 steps to exactly 4: feeling, sleep, schedule, injuries
+  - Removed vitality step import and PageView entry from morning_checkin_screen.dart
+  - Changed totalSteps from 5 to 4 in morning_checkin_provider.dart
+  - Fixed reopen behavior: _loadInitialData now sets isComplete=true when existing check-in found
+  - Added post-frame redirect in build() when state.isComplete is true on mount
+  - Fixed null safety: ref.listen callback now checks `previous != null` before accessing fields
+- Files changed:
+  - lib/features/daily_coach/presentation/morning_checkin_screen.dart
+  - lib/features/daily_coach/presentation/morning_checkin_provider.dart
+- **Learnings for future iterations:**
+  - The checkin_step_vitality.dart widget still exists and is fully functional — US-007/US-008 just need to re-add it to the PageView and bump totalSteps back to 5
+  - `isComplete` flag drives both redirect-on-reopen and post-submit navigation — single source of truth
+  - The `previous` parameter in Riverpod `ref.listen` is nullable (`T?`) — the force unwrap `previous!` was a latent crash
+  - Dashboard card at `daily_coach_card.dart` already handles 3 states: no check-in, plan loading, plan ready — no changes needed there
+---
+
+## 2026-03-06 - US-002
+- What was implemented:
+  - Sleep auto-fill now prefers Health Connect source data from wt_health_metrics
+  - Added optional `source` parameter to `HealthRepository.getMetrics()` for source filtering
+  - Provider queries Health Connect data first, falls back to any source if none found
+  - Changed placeholder text from "Drag to set your sleep hours." to "How long did you sleep?" when no auto data
+- Files changed:
+  - lib/features/health/data/health_repository.dart (added source filter parameter)
+  - lib/features/daily_coach/presentation/morning_checkin_provider.dart (Health Connect preference)
+  - lib/features/daily_coach/presentation/widgets/checkin_step_sleep.dart (placeholder text)
+- **Learnings for future iterations:**
+  - `HealthRepository.getMetrics()` now supports optional `HealthSource? source` parameter — use it when you need source-specific data
+  - Sleep auto-fill logic is in `_loadInitialData()` of MorningCheckInNotifier — queries yesterday-to-now range
+  - The sleep step widget already handles override/reset-to-auto flow — no changes needed for user override behavior
+  - `autoSleepMinutes` is raw minutes from Health Connect; divided by 60 and clamped to 1-10 for slider display
+---

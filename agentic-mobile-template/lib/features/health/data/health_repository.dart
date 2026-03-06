@@ -159,12 +159,14 @@ class HealthRepository {
     return upsertedCount;
   }
 
-  /// Get health metrics for a profile and date range
+  /// Get health metrics for a profile and date range.
+  /// Optionally filter by [source] (e.g. healthconnect).
   Future<List<HealthMetricEntity>> getMetrics(
     String profileId,
     MetricType metricType, {
     DateTime? startDate,
     DateTime? endDate,
+    HealthSource? source,
   }) async {
     if (profileId.isEmpty) return [];
     try {
@@ -174,6 +176,10 @@ class HealthRepository {
           .eq('profile_id', profileId)
           .eq('metric_type', metricType.name)
           .eq('validation_status', ValidationStatus.validated.name);
+
+      if (source != null) {
+        query = query.eq('source', source.name);
+      }
 
       if (startDate != null) {
         query = query.gte('start_time', startDate.toIso8601String());

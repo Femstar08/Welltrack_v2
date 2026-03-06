@@ -144,15 +144,26 @@ class MorningCheckInNotifier
       existing = await _checkinRepo.getTodayCheckIn(_profileId);
     } catch (_) {}
 
-    // Auto-fill sleep from health data (last night's session)
+    // Auto-fill sleep from Health Connect data (last night's session)
     int? sleepMinutes;
     try {
-      final sleepMetrics = await _healthRepo.getMetrics(
+      // Prefer Health Connect source
+      var sleepMetrics = await _healthRepo.getMetrics(
         _profileId,
         MetricType.sleep,
         startDate: yesterday,
         endDate: now,
+        source: HealthSource.healthconnect,
       );
+      // Fall back to any source if no Health Connect data
+      if (sleepMetrics.isEmpty) {
+        sleepMetrics = await _healthRepo.getMetrics(
+          _profileId,
+          MetricType.sleep,
+          startDate: yesterday,
+          endDate: now,
+        );
+      }
       if (sleepMetrics.isNotEmpty) {
         sleepMinutes = sleepMetrics.first.valueNum?.toInt();
       }

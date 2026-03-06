@@ -104,7 +104,7 @@ class _CheckInStepSleepState extends State<CheckInStepSleep> {
                       ),
                     ] else ...[
                       Text(
-                        'Drag to set your sleep hours.',
+                        'How long did you sleep?',
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: colorScheme.onSurfaceVariant,
                         ),

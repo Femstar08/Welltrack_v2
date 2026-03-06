@@ -1,0 +1,143 @@
+{
+    "branchName": "ralph/phase-9-daily-coach-verify",
+    "description": "AI Daily Coach (Phase 9) — Review & Verify. The intelligence layer that ties all WellTrack modules together. Turns raw health data into a personalised daily plan through a morning check-in flow. Extend and fix — do not rewrite from scratch.",
+    "userStories": [
+        {
+            "id": "US-001",
+            "title": "Morning check-in screen renders and saves",
+            "priority": 1,
+            "passes": true,
+            "acceptanceCriteria": [
+                "Read the existing file first",
+                "Morning check-in screen accessible from dashboard and morning notification deep link",
+                "Check-in has exactly 4 questions: feeling (5 options), sleep (auto-filled from Health Connect, overridable), injuries (optional free text), schedule (3 options)",
+                "Entire check-in completable in under 30 seconds on device",
+                "Responses saved to wt_daily_checkins table in Supabase with correct user_id and date",
+                "Check-in marked complete for today — reopening shows today's plan, not the form again",
+                "flutter analyze returns 0 errors",
+                "Verify on Android device"
+            ],
+            "technicalNotes": "Files to audit first: lib/features/daily_coach/. Check-in data table: wt_daily_checkins. Do not rewrite from scratch. Extend and fix."
+        },
+        {
+            "id": "US-002",
+            "title": "Sleep auto-fills from Health Connect",
+            "priority": 2,
+            "passes": true,
+            "acceptanceCriteria": [
+                "Read the existing file first",
+                "Sleep field reads last night's sleep duration from wt_health_metrics (source: health_connect)",
+                "If no Health Connect sleep data exists, field defaults to empty with placeholder 'How long did you sleep?'",
+                "User can override the auto-filled value by tapping the field",
+                "flutter analyze returns 0 errors",
+                "Verify on Android device"
+            ],
+            "technicalNotes": "Read the existing file first. Connect logic to existing health_repository_impl.dart or daily check-in UI."
+        },
+        {
+            "id": "US-003",
+            "title": "Prescription engine generates correct plan type",
+            "priority": 3,
+            "passes": false,
+            "acceptanceCriteria": [
+                "Read the existing file first",
+                "prescription_engine.dart reads from real wt_daily_checkins and wt_health_metrics — no stub data",
+                "Score 80–100: plan_type = push, workout = progressive overload, calorie_adjustment = 0%",
+                "Score 60–79: plan_type = normal, workout = standard, calorie_adjustment = 0%",
+                "Score 40–59: plan_type = easy, workout = light/active recovery, calorie_adjustment = -10%",
+                "Score 0–39: plan_type = rest, workout = mobility/walk only, calorie_adjustment = sleep-focused",
+                "Feeling = 'Unwell': overrides score, sets plan_type = rest regardless",
+                "Feeling = 'Sore': reduces workout volume by 20% from standard plan",
+                "Schedule = 'Busy': swaps to 30-minute workout variant",
+                "Plan output stored in wt_daily_plans with date, user_id, plan_type, workout_id, calorie_target",
+                "flutter analyze returns 0 errors"
+            ],
+            "technicalNotes": "Read the existing file first: lib/features/daily_coach/data/prescription_engine.dart. Prescription logic lives in prescription_engine.dart as pure if/else — no AI calls in this file. If wt_daily_plans table does not exist, create migration to add it."
+        },
+        {
+            "id": "US-004",
+            "title": "Today's Plan screen shows personalised day",
+            "priority": 4,
+            "passes": false,
+            "acceptanceCriteria": [
+                "Read the existing file first",
+                "Today's Plan screen shows: workout card, meals card, steps ring, focus tip, bedtime time",
+                "Workout card shows session name, estimated duration, muscle groups — tapping opens live workout session",
+                "If plan_type = rest, workout card shows rest message and mobility suggestion instead",
+                "Meals card shows breakfast, lunch, dinner, snack names with calorie totals — tapping opens meal detail",
+                "Steps ring shows current steps vs daily target with % complete",
+                "Bedtime calculated as: device wake time + 7 hours back from 11 PM (e.g. wake 6 AM = bedtime 11 PM)",
+                "Focus tip is a single sentence from AI orchestrator explaining today's plan rationale",
+                "Screen refreshes if check-in data changes",
+                "flutter analyze returns 0 errors",
+                "Verify on Android device"
+            ],
+            "technicalNotes": "Read the existing file first. Today's Plan screen is the default landing screen after check-in is complete."
+        },
+        {
+            "id": "US-005",
+            "title": "AI narrates the plan, does not decide it",
+            "priority": 5,
+            "passes": false,
+            "acceptanceCriteria": [
+                "Read the existing file first",
+                "prescription_engine.dart produces plan output using if/else logic only — zero AI calls",
+                "ai_orchestrator_service.dart called after prescription is calculated, receives plan as input",
+                "AI prompt instructs model to explain WHY in 1–2 sentences, not what to do",
+                "AI response labelled 'WellTrack insight' in UI — never presented as a command",
+                "If AI call fails, focus tip shows a hardcoded fallback message — screen does not break",
+                "flutter analyze returns 0 errors"
+            ],
+            "technicalNotes": "Read the existing file first. AI call goes through lib/shared/core/ai/ai_orchestrator_service.dart — never direct from screen. AI called once per day per user for the focus tip — result cached in wt_daily_plans.focus_tip."
+        },
+        {
+            "id": "US-006",
+            "title": "Scenario handling for tired, behind on steps, weight stalling",
+            "priority": 6,
+            "passes": false,
+            "acceptanceCriteria": [
+                "Read the existing file first",
+                "Tired scenario (feeling = Tired OR sleep < 6 hrs): workout volume reduced 20%, extra carb note added to breakfast",
+                "Behind on steps scenario (time > 3 PM AND steps < 40% of daily target): nudge card shown on dashboard 'A 30-min walk puts you on track'",
+                "Weight stalling scenario (no weight change for 14+ days AND goal = weight loss): suggestion card shown 'Consider reducing rest-day calories by 100–200kcal'",
+                "Scenario cards are dismissable — dismissal stored, card does not reappear same day",
+                "flutter analyze returns 0 errors",
+                "Verify on Android device"
+            ],
+            "technicalNotes": "Read the existing file first. Check daily_coach scenario widgets and states."
+        },
+        {
+            "id": "US-007",
+            "title": "Weekly check-in (Sunday) for sensitive metrics",
+            "priority": 7,
+            "passes": false,
+            "acceptanceCriteria": [
+                "Read the existing file first",
+                "Weekly check-in prompt appears on Sunday mornings only (replaces or follows daily check-in)",
+                "Contains single question: erection quality slider 1–10",
+                "Slider value saved to wt_daily_checkins.erection_quality_weekly (integer, 1–10)",
+                "Field marked is_sensitive = true in schema — never included in AI context unless user has explicitly opted in via consent toggle in settings",
+                "Data never visible in any non-encrypted log or debug output",
+                "flutter analyze returns 0 errors",
+                "Verify on Android device"
+            ],
+            "technicalNotes": "Read the existing file first. Does wt_daily_checkins already have erection_quality_weekly? If not, migration needed."
+        },
+        {
+            "id": "US-008",
+            "title": "Morning erection Y/N logged in daily check-in",
+            "priority": 8,
+            "passes": false,
+            "acceptanceCriteria": [
+                "Read the existing file first",
+                "Daily check-in includes Y/N toggle for morning erection (shown after sleep question)",
+                "Response saved to wt_daily_checkins.morning_erection (boolean)",
+                "Field marked is_sensitive = true — never sent to AI without explicit consent",
+                "Toggle is optional — skipping it does not block check-in completion",
+                "flutter analyze returns 0 errors",
+                "Verify on Android device"
+            ],
+            "technicalNotes": "Read the existing file first. Does wt_daily_checkins already have morning_erection (boolean)? If not, migration needed."
+        }
+    ]
+}
