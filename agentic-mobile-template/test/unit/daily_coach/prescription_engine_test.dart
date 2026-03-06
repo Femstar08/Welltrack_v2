@@ -28,6 +28,7 @@ CheckInEntity makeCheckIn({String? feeling, String? schedule}) {
 PrescriptionInput makeInput({
   CheckInEntity? checkIn,
   bool useNullCheckIn = false,
+  double? recoveryScore,
   int? sleepMinutes,
   double? restingHR,
   int? stepsToday,
@@ -41,6 +42,7 @@ PrescriptionInput makeInput({
     profileId: _kProfileId,
     date: _kDate,
     checkIn: useNullCheckIn ? null : (checkIn ?? makeCheckIn()),
+    recoveryScore: recoveryScore,
     sleepMinutes: sleepMinutes,
     restingHR: restingHR,
     stepsToday: stepsToday,
@@ -58,7 +60,96 @@ PrescriptionInput makeInput({
 
 void main() {
   // =========================================================================
-  // Scenario 1: unwell
+  // Score-based plan types (US-003 acceptance criteria)
+  // =========================================================================
+
+  group('PrescriptionEngine — recovery score plan types', () {
+    test('score 80-100 -> planType=push, fullSession, calorieAdj=0%', () {
+      final result = PrescriptionEngine.evaluate(
+        makeInput(recoveryScore: 85),
+      );
+      expect(result.planType, PlanType.push);
+      expect(result.workoutDirective, WorkoutDirective.fullSession);
+      expect(result.calorieAdjustmentPercent, 0.0);
+      expect(result.recoveryScore, 85);
+    });
+
+    test('score exactly 80 -> planType=push', () {
+      final result = PrescriptionEngine.evaluate(
+        makeInput(recoveryScore: 80),
+      );
+      expect(result.planType, PlanType.push);
+    });
+
+    test('score 60-79 -> planType=normal, fullSession, calorieAdj=0%', () {
+      final result = PrescriptionEngine.evaluate(
+        makeInput(recoveryScore: 70),
+      );
+      expect(result.planType, PlanType.normal);
+      expect(result.workoutDirective, WorkoutDirective.fullSession);
+      expect(result.calorieAdjustmentPercent, 0.0);
+    });
+
+    test('score exactly 60 -> planType=normal', () {
+      final result = PrescriptionEngine.evaluate(
+        makeInput(recoveryScore: 60),
+      );
+      expect(result.planType, PlanType.normal);
+    });
+
+    test('score 40-59 -> planType=easy, reducedVolume, calorieAdj=-10%', () {
+      final result = PrescriptionEngine.evaluate(
+        makeInput(recoveryScore: 50),
+      );
+      expect(result.planType, PlanType.easy);
+      expect(result.workoutDirective, WorkoutDirective.reducedVolume);
+      expect(result.calorieAdjustmentPercent, -0.10);
+    });
+
+    test('score exactly 40 -> planType=easy', () {
+      final result = PrescriptionEngine.evaluate(
+        makeInput(recoveryScore: 40),
+      );
+      expect(result.planType, PlanType.easy);
+    });
+
+    test('score 0-39 -> planType=rest, rest directive', () {
+      final result = PrescriptionEngine.evaluate(
+        makeInput(recoveryScore: 30),
+      );
+      expect(result.planType, PlanType.rest);
+      expect(result.workoutDirective, WorkoutDirective.rest);
+    });
+
+    test('score exactly 0 -> planType=rest', () {
+      final result = PrescriptionEngine.evaluate(
+        makeInput(recoveryScore: 0),
+      );
+      expect(result.planType, PlanType.rest);
+    });
+
+    test('score 79 -> planType=normal (boundary below push)', () {
+      final result = PrescriptionEngine.evaluate(
+        makeInput(recoveryScore: 79),
+      );
+      expect(result.planType, PlanType.normal);
+    });
+
+    test('score 39 -> planType=rest (boundary below easy)', () {
+      final result = PrescriptionEngine.evaluate(
+        makeInput(recoveryScore: 39),
+      );
+      expect(result.planType, PlanType.rest);
+    });
+
+    test('null recoveryScore defaults to planType=normal', () {
+      final result = PrescriptionEngine.evaluate(makeInput());
+      expect(result.planType, PlanType.normal);
+    });
+  });
+
+  // =========================================================================
+  // Scenario 1: unwell — overrides score
   // =========================================================================
 
   group('PrescriptionEngine — scenario: unwell', () {
@@ -67,11 +158,23 @@ void main() {
         makeInput(checkIn: makeCheckIn(feeling: 'unwell')),
       );
       expect(result.scenario, PrescriptionScenario.unwell);
+      expect(result.planType, PlanType.rest);
       expect(result.workoutDirective, WorkoutDirective.rest);
       expect(result.workoutVolumeModifier, 0.0);
       expect(result.mealDirective, MealDirective.light);
       expect(result.calorieModifier, -200);
       expect(result.hasWorkout, isFalse);
+    });
+
+    test('unwell overrides high recovery score', () {
+      final result = PrescriptionEngine.evaluate(
+        makeInput(
+          checkIn: makeCheckIn(feeling: 'unwell'),
+          recoveryScore: 95,
+        ),
+      );
+      expect(result.scenario, PrescriptionScenario.unwell);
+      expect(result.planType, PlanType.rest);
     });
 
     test('unwell overrides heavy-session-yesterday signal', () {
@@ -95,11 +198,24 @@ void main() {
   });
 
   // =========================================================================
-  // Scenario 2: verySore
+  // Scenario 2: sore — reduces volume by 20%
   // =========================================================================
 
-  group('PrescriptionEngine — scenario: verySore', () {
-    test('sore + heavy yesterday -> active_recovery + high_protein', () {
+  group('PrescriptionEngine — scenario: sore', () {
+    test('sore WITHOUT heavy yesterday -> reducedVolume 0.8', () {
+      final result = PrescriptionEngine.evaluate(
+        makeInput(
+          checkIn: makeCheckIn(feeling: 'sore'),
+          hadHeavySession: false,
+        ),
+      );
+      expect(result.scenario, PrescriptionScenario.sore);
+      expect(result.workoutDirective, WorkoutDirective.reducedVolume);
+      expect(result.workoutVolumeModifier, 0.8);
+      expect(result.mealDirective, MealDirective.highProtein);
+    });
+
+    test('sore + heavy yesterday -> verySore (active_recovery)', () {
       final result = PrescriptionEngine.evaluate(
         makeInput(
           checkIn: makeCheckIn(feeling: 'sore'),
@@ -110,22 +226,11 @@ void main() {
       expect(result.workoutDirective, WorkoutDirective.activeRecovery);
       expect(result.workoutVolumeModifier, 0.0);
       expect(result.mealDirective, MealDirective.highProtein);
-      expect(result.calorieModifier, 0);
-    });
-
-    test('sore WITHOUT heavy yesterday does NOT trigger verySore', () {
-      final result = PrescriptionEngine.evaluate(
-        makeInput(
-          checkIn: makeCheckIn(feeling: 'sore'),
-          hadHeavySession: false,
-        ),
-      );
-      expect(result.scenario, isNot(PrescriptionScenario.verySore));
     });
   });
 
   // =========================================================================
-  // Scenario 3: busyDay
+  // Scenario 3: busyDay — 30-minute variant
   // =========================================================================
 
   group('PrescriptionEngine — scenario: busyDay', () {
@@ -149,10 +254,21 @@ void main() {
       );
       expect(result.scenario, PrescriptionScenario.busyDay);
     });
+
+    test('busy + high score caps plan type at normal', () {
+      final result = PrescriptionEngine.evaluate(
+        makeInput(
+          checkIn: makeCheckIn(feeling: 'good', schedule: 'busy'),
+          recoveryScore: 90,
+        ),
+      );
+      expect(result.scenario, PrescriptionScenario.busyDay);
+      expect(result.planType, PlanType.normal);
+    });
   });
 
   // =========================================================================
-  // Scenario 4: wellRested
+  // Scenario 4: wellRested (heuristic when no score)
   // =========================================================================
 
   group('PrescriptionEngine — scenario: wellRested', () {
@@ -166,6 +282,7 @@ void main() {
         ),
       );
       expect(result.scenario, PrescriptionScenario.wellRested);
+      expect(result.planType, PlanType.push);
       expect(result.workoutDirective, WorkoutDirective.fullSession);
       expect(result.workoutVolumeModifier, 1.0);
       expect(result.mealDirective, MealDirective.standard);
@@ -211,31 +328,20 @@ void main() {
   // =========================================================================
 
   group('PrescriptionEngine — scenario: tiredNotSore', () {
-    test('<6 h sleep + tired -> reduced_volume + extra_carbs', () {
+    test('feeling=tired -> tiredNotSore scenario', () {
       final result = PrescriptionEngine.evaluate(
         makeInput(
           checkIn: makeCheckIn(feeling: 'tired'),
-          sleepMinutes: 359, // 5 h 59 min → < 6 h
         ),
       );
       expect(result.scenario, PrescriptionScenario.tiredNotSore);
       expect(result.workoutDirective, WorkoutDirective.reducedVolume);
       expect(result.workoutVolumeModifier, 0.8);
       expect(result.mealDirective, MealDirective.extraCarbs);
-      expect(result.calorieModifier, 50);
+      expect(result.calorieAdjustmentPercent, -0.10);
     });
 
-    test('exactly 360 min (6 h) does NOT trigger tiredNotSore', () {
-      final result = PrescriptionEngine.evaluate(
-        makeInput(
-          checkIn: makeCheckIn(feeling: 'tired'),
-          sleepMinutes: 360, // exactly 6 h — NOT < 6 h
-        ),
-      );
-      expect(result.scenario, isNot(PrescriptionScenario.tiredNotSore));
-    });
-
-    test('null feeling + <6 h sleep triggers tiredNotSore', () {
+    test('<6 h sleep + null feeling -> tiredNotSore', () {
       final result = PrescriptionEngine.evaluate(
         makeInput(
           checkIn: makeCheckIn(feeling: null),
@@ -243,6 +349,17 @@ void main() {
         ),
       );
       expect(result.scenario, PrescriptionScenario.tiredNotSore);
+    });
+
+    test('exactly 360 min (6 h) + null feeling does NOT trigger tiredNotSore',
+        () {
+      final result = PrescriptionEngine.evaluate(
+        makeInput(
+          checkIn: makeCheckIn(feeling: null),
+          sleepMinutes: 360, // exactly 6 h — NOT < 6 h
+        ),
+      );
+      expect(result.scenario, isNot(PrescriptionScenario.tiredNotSore));
     });
 
     test('stepsNudge is set for tiredNotSore', () {
@@ -270,7 +387,7 @@ void main() {
           currentTime: _k3PM,
         ),
       );
-      // 40% of 10000 = 4000; 3000 < 4000 → behindSteps
+      // 40% of 10000 = 4000; 3000 < 4000 -> behindSteps
       expect(result.scenario, PrescriptionScenario.behindSteps);
       expect(result.workoutDirective, WorkoutDirective.fullSession);
       expect(result.stepsNudge, isNotNull);
@@ -427,6 +544,13 @@ void main() {
       final result = PrescriptionEngine.evaluate(makeInput());
       expect(result.isFallback, isFalse);
     });
+
+    test('recoveryScore is passed through to output', () {
+      final result = PrescriptionEngine.evaluate(
+        makeInput(recoveryScore: 72.5),
+      );
+      expect(result.recoveryScore, 72.5);
+    });
   });
 
   // =========================================================================
@@ -552,6 +676,12 @@ void main() {
     test('all MealDirectives round-trip', () {
       for (final d in MealDirective.values) {
         expect(MealDirectiveExtension.fromDbValue(d.dbValue), d);
+      }
+    });
+
+    test('all PlanTypes round-trip', () {
+      for (final p in PlanType.values) {
+        expect(PlanTypeExtension.fromDbValue(p.dbValue), p);
       }
     });
   });

@@ -28,6 +28,12 @@ class FallbackNarrative {
       narrative:
           "Not your best sleep, but you can still get a solid session in. Reduced volume will keep you moving forward.",
     ),
+    PrescriptionScenario.sore: FallbackNarrative(
+      focusTip:
+          'Feeling sore is normal after hard training. Reduce volume today and focus on form.',
+      narrative:
+          'Your muscles are recovering. A lighter session keeps momentum while allowing repair.',
+    ),
     PrescriptionScenario.verySore: FallbackNarrative(
       focusTip:
           'Light movement helps recovery more than complete rest. A walk or gentle stretch session works well.',

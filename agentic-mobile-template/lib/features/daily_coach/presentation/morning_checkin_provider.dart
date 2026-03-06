@@ -8,9 +8,9 @@ import '../data/daily_prescription_repository.dart';
 import '../data/fallback_narratives.dart';
 import '../data/prescription_engine.dart';
 import '../domain/checkin_entity.dart';
-import '../domain/daily_prescription_entity.dart';
 import '../../health/data/health_repository.dart';
 import '../../health/domain/health_metric_entity.dart';
+import '../../insights/data/insights_repository.dart';
 import '../../../shared/core/ai/ai_orchestrator_service.dart';
 
 // ---------------------------------------------------------------------------
@@ -120,6 +120,7 @@ class MorningCheckInNotifier
     this._checkinRepo,
     this._prescriptionRepo,
     this._healthRepo,
+    this._insightsRepo,
     this._aiService,
     this._profileId,
   ) : super(const MorningCheckInState()) {
@@ -129,6 +130,7 @@ class MorningCheckInNotifier
   final CheckInRepository _checkinRepo;
   final DailyPrescriptionRepository _prescriptionRepo;
   final HealthRepository _healthRepo;
+  final InsightsRepository _insightsRepo;
   final AiOrchestratorService _aiService;
   final String _profileId;
 
@@ -281,6 +283,19 @@ class MorningCheckInNotifier
       int? stepsToday;
       double? restingHR;
       bool hadHeavySession = false;
+      double? recoveryScore;
+
+      // Fetch today's recovery score (calculated by PerformanceEngine)
+      try {
+        final scores = await _insightsRepo.getRecoveryScores(
+          profileId: _profileId,
+          startDate: startOfDay,
+          endDate: endOfDay,
+        );
+        if (scores.isNotEmpty) {
+          recoveryScore = scores.last.recoveryScore;
+        }
+      } catch (_) {}
 
       try {
         final stepsMetrics = await _healthRepo.getMetrics(
@@ -327,25 +342,13 @@ class MorningCheckInNotifier
         stepsGoal: 10000,
         hadHeavySessionYesterday: hadHeavySession,
         currentTime: today,
+        recoveryScore: recoveryScore,
       );
 
       var prescription = PrescriptionEngine.evaluate(prescriptionInput);
 
       // Attach checkin reference
-      prescription = DailyPrescriptionEntity(
-        profileId: prescription.profileId,
-        checkinId: savedCheckIn.id,
-        prescriptionDate: prescription.prescriptionDate,
-        scenario: prescription.scenario,
-        workoutDirective: prescription.workoutDirective,
-        workoutVolumeModifier: prescription.workoutVolumeModifier,
-        workoutNote: prescription.workoutNote,
-        mealDirective: prescription.mealDirective,
-        calorieModifier: prescription.calorieModifier,
-        stepsNudge: prescription.stepsNudge,
-        bedtimeHour: prescription.bedtimeHour,
-        bedtimeMinute: prescription.bedtimeMinute,
-      );
+      prescription = prescription.copyWith(checkinId: savedCheckIn.id);
 
       // 4. Persist prescription (without AI fields)
       var savedPrescription =
@@ -354,11 +357,14 @@ class MorningCheckInNotifier
       // 5. AI narration — non-fatal; prescription shows regardless
       try {
         final contextOverride = <String, dynamic>{
+          'plan_type': savedPrescription.planType.name,
+          'recovery_score': savedPrescription.recoveryScore,
           'prescription_scenario': savedPrescription.scenario.name,
           'workout_directive': savedPrescription.workoutDirective.name,
           'workout_volume_modifier': savedPrescription.workoutVolumeModifier,
           'meal_directive': savedPrescription.mealDirective.name,
           'calorie_modifier': savedPrescription.calorieModifier,
+          'calorie_adjustment_percent': savedPrescription.calorieAdjustmentPercent,
           'check_in': savedCheckIn.toAiContextJson(includeVitality: false),
           'steps_today': stepsToday,
           'steps_goal': 10000,
@@ -374,23 +380,10 @@ class MorningCheckInNotifier
         final parsed =
             jsonDecode(aiResponse.assistantMessage) as Map<String, dynamic>;
 
-        final withAi = DailyPrescriptionEntity(
-          id: savedPrescription.id,
-          profileId: savedPrescription.profileId,
-          checkinId: savedPrescription.checkinId,
-          prescriptionDate: savedPrescription.prescriptionDate,
-          scenario: savedPrescription.scenario,
-          workoutDirective: savedPrescription.workoutDirective,
-          workoutVolumeModifier: savedPrescription.workoutVolumeModifier,
-          workoutNote: savedPrescription.workoutNote,
-          mealDirective: savedPrescription.mealDirective,
-          calorieModifier: savedPrescription.calorieModifier,
-          stepsNudge: savedPrescription.stepsNudge,
+        final withAi = savedPrescription.copyWith(
           aiFocusTip: parsed['focus_tip'] as String?,
           aiNarrative: parsed['narrative'] as String?,
           aiModel: 'gpt-4o-mini',
-          bedtimeHour: savedPrescription.bedtimeHour,
-          bedtimeMinute: savedPrescription.bedtimeMinute,
           isFallback: false,
         );
         savedPrescription = await _prescriptionRepo.upsertPrescription(withAi);
@@ -398,22 +391,9 @@ class MorningCheckInNotifier
         // Mark as fallback — plan still persisted with pre-written narrative
         final fallbackContent =
             FallbackNarrative.forScenario(savedPrescription.scenario);
-        final fallback = DailyPrescriptionEntity(
-          id: savedPrescription.id,
-          profileId: savedPrescription.profileId,
-          checkinId: savedPrescription.checkinId,
-          prescriptionDate: savedPrescription.prescriptionDate,
-          scenario: savedPrescription.scenario,
-          workoutDirective: savedPrescription.workoutDirective,
-          workoutVolumeModifier: savedPrescription.workoutVolumeModifier,
-          workoutNote: savedPrescription.workoutNote,
-          mealDirective: savedPrescription.mealDirective,
-          calorieModifier: savedPrescription.calorieModifier,
-          stepsNudge: savedPrescription.stepsNudge,
+        final fallback = savedPrescription.copyWith(
           aiFocusTip: fallbackContent.focusTip,
           aiNarrative: fallbackContent.narrative,
-          bedtimeHour: savedPrescription.bedtimeHour,
-          bedtimeMinute: savedPrescription.bedtimeMinute,
           isFallback: true,
         );
         await _prescriptionRepo.upsertPrescription(fallback);
@@ -447,6 +427,7 @@ final morningCheckInProvider = StateNotifierProvider.family<
       ref.watch(checkinRepositoryProvider),
       ref.watch(dailyPrescriptionRepositoryProvider),
       ref.watch(healthRepositoryProvider),
+      ref.watch(insightsRepositoryProvider),
       ref.watch(aiOrchestratorServiceProvider),
       profileId,
     );
