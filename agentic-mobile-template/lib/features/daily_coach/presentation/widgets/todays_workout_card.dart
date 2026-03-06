@@ -11,6 +11,8 @@ class TodaysWorkoutCard extends StatelessWidget {
     this.activePlanId,
     this.planName,
     this.exerciseCount,
+    this.estimatedDurationMinutes,
+    this.muscleGroups = const [],
   });
 
   final DailyPrescriptionEntity prescription;
@@ -18,6 +20,8 @@ class TodaysWorkoutCard extends StatelessWidget {
   final String? activePlanId;
   final String? planName;
   final int? exerciseCount;
+  final int? estimatedDurationMinutes;
+  final List<String> muscleGroups;
 
   @override
   Widget build(BuildContext context) {
@@ -28,59 +32,74 @@ class TodaysWorkoutCard extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  _directiveIcon(directive),
-                  color: theme.colorScheme.primary,
-                  size: 20,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: _cardTapRoute(directive) != null
+            ? () => context.push(_cardTapRoute(directive)!)
+            : null,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    _directiveIcon(directive),
+                    color: theme.colorScheme.primary,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Workout',
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const Spacer(),
+                  if (prescription.workoutVolumeModifier != 1.0 &&
+                      !isRestOrRecovery)
+                    _VolumeBadge(modifier: prescription.workoutVolumeModifier),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                _directiveLabel(directive),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
                 ),
-                const SizedBox(width: 8),
+              ),
+              if (!isRestOrRecovery && planName != null) ...[
+                const SizedBox(height: 4),
                 Text(
-                  'Workout',
-                  style: theme.textTheme.labelLarge?.copyWith(
+                  _buildSubtitle(),
+                  style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
-                const Spacer(),
-                if (prescription.workoutVolumeModifier != 1.0 &&
-                    !isRestOrRecovery)
-                  _VolumeBadge(modifier: prescription.workoutVolumeModifier),
               ],
-            ),
-            const SizedBox(height: 10),
-            Text(
-              _directiveLabel(directive),
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            if (!isRestOrRecovery && planName != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                '$planName${exerciseCount != null ? ' · $exerciseCount exercises' : ''}',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+              if (!isRestOrRecovery && muscleGroups.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  muscleGroups.join(', '),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
-              ),
-            ],
-            if (prescription.workoutNote != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                prescription.workoutNote!,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+              ],
+              if (prescription.workoutNote != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  prescription.workoutNote!,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
-              ),
+              ],
+              const SizedBox(height: 14),
+              _buildActionButton(context, directive),
             ],
-            const SizedBox(height: 14),
-            _buildActionButton(context, directive),
-          ],
+          ),
         ),
       ),
     );
@@ -114,6 +133,21 @@ class TodaysWorkoutCard extends StatelessWidget {
       label: const Text('Start Workout'),
       onPressed: () => context.push('/workouts/plan/$activePlanId'),
     );
+  }
+
+  String _buildSubtitle() {
+    final parts = <String>[];
+    if (planName != null) parts.add(planName!);
+    if (estimatedDurationMinutes != null) parts.add('~$estimatedDurationMinutes min');
+    if (exerciseCount != null) parts.add('$exerciseCount exercises');
+    return parts.join(' · ');
+  }
+
+  /// Route for tapping the card. Opens live workout session when a plan exists.
+  String? _cardTapRoute(WorkoutDirective directive) {
+    if (directive == WorkoutDirective.rest) return null;
+    if (activePlanId != null) return '/workouts/plan/$activePlanId';
+    return '/workouts';
   }
 
   IconData _directiveIcon(WorkoutDirective directive) {

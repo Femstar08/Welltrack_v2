@@ -373,12 +373,12 @@ class PrescriptionEngine {
   // ---------------------------------------------------------------------------
   // Bedtime calculation
   //
-  // Target: wake_hour - 1 (gives ~7 h sleep window before alarm).
+  // Target: 7 hours before wake time (e.g. wake 6 AM → bed 11 PM).
   // Clamped to [21, 23] — never earlier than 9 PM, never later than 11 PM.
   // ---------------------------------------------------------------------------
 
   static int _calcBedtime(int wakeHour) {
-    final target = wakeHour - 1;
+    final target = (wakeHour + 24 - 7) % 24;
     return target.clamp(21, 23);
   }
 }

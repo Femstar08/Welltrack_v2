@@ -120,40 +120,43 @@ class _MealRow extends StatelessWidget {
       badge = _MacroBadge(label: '+ protein', color: Colors.green);
     }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.mealTypeDisplayName,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+    return InkWell(
+      onTap: () => context.push('/meals/plan'),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.mealTypeDisplayName,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
-                ),
-                Text(
-                  item.name,
-                  style: theme.textTheme.bodyMedium,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          if (badge != null) ...[const SizedBox(width: 6), badge],
-          if (item.calories != null) ...[
-            const SizedBox(width: 8),
-            Text(
-              '${item.calories} kcal',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+                  Text(
+                    item.name,
+                    style: theme.textTheme.bodyMedium,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
             ),
+            if (badge != null) ...[const SizedBox(width: 6), badge],
+            if (item.calories != null) ...[
+              const SizedBox(width: 8),
+              Text(
+                '${item.calories} kcal',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

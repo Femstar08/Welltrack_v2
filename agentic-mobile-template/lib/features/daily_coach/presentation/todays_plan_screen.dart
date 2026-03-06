@@ -83,6 +83,8 @@ class TodaysPlanScreen extends ConsumerWidget {
                 activePlanId: state.activePlanId,
                 planName: state.todaysWorkoutName,
                 exerciseCount: state.todaysExerciseCount,
+                estimatedDurationMinutes: state.estimatedDurationMinutes,
+                muscleGroups: state.muscleGroups,
               ),
               const SizedBox(height: 12),
 
