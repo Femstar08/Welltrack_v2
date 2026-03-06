@@ -57,8 +57,8 @@ class MorningCheckInState {
 
   bool get isSundayPrompt => DateTime.now().weekday == DateTime.sunday;
 
-  /// 5 steps always; vitality step handles Sunday content inline.
-  int get totalSteps => 5;
+  /// 4 steps: feeling, sleep, schedule, injuries.
+  int get totalSteps => 4;
 
   /// The sleep quality value to persist (override takes precedence).
   double? get effectiveSleepQuality {
@@ -162,6 +162,7 @@ class MorningCheckInNotifier
     state = state.copyWith(
       todayCheckIn: existing,
       autoSleepMinutes: sleepMinutes,
+      isComplete: existing != null,
     );
   }
 

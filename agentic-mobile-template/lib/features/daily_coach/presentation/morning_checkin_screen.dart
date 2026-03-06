@@ -6,7 +6,6 @@ import 'morning_checkin_provider.dart';
 import 'widgets/checkin_step_feeling.dart';
 import 'widgets/checkin_step_sleep.dart';
 import 'widgets/checkin_step_schedule.dart';
-import 'widgets/checkin_step_vitality.dart';
 import 'widgets/checkin_step_injuries.dart';
 
 class MorningCheckInScreen extends ConsumerStatefulWidget {
@@ -47,15 +46,22 @@ class _MorningCheckInScreenState extends ConsumerState<MorningCheckInScreen> {
     final state = ref.watch(morningCheckInProvider(widget.profileId));
     final notifier = ref.read(morningCheckInProvider(widget.profileId).notifier);
 
+    // Redirect immediately if today's check-in already exists
+    if (state.isComplete) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) context.go('/daily-coach/plan');
+      });
+    }
+
     // Navigate to Today's Plan when submission completes
     ref.listen<MorningCheckInState>(
       morningCheckInProvider(widget.profileId),
       (previous, next) {
-        if (!previous!.isComplete && next.isComplete) {
+        if (previous != null && !previous.isComplete && next.isComplete) {
           context.go('/daily-coach/plan');
         }
         // Sync PageView to currentStep
-        if (previous.currentStep != next.currentStep) {
+        if (previous != null && previous.currentStep != next.currentStep) {
           _animateToStep(next.currentStep);
         }
       },
@@ -126,18 +132,7 @@ class _MorningCheckInScreenState extends ConsumerState<MorningCheckInScreen> {
             },
           ),
 
-          // Step 3 — Vitality check
-          CheckInStepVitality(
-            morningErection: state.morningErection,
-            erectionQualityWeekly: state.erectionQualityWeekly,
-            isSunday: state.isSundayPrompt,
-            onMorningErection: notifier.setMorningErection,
-            onErectionQuality: notifier.setErectionQuality,
-            onNext: notifier.nextStep,
-            onSkip: notifier.nextStep,
-          ),
-
-          // Step 4 — Injuries + Submit
+          // Step 3 — Injuries + Submit
           CheckInStepInjuries(
             injuriesNotes: state.injuriesNotes,
             isSubmitting: state.isSubmitting,
