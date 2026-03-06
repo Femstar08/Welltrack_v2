@@ -374,6 +374,11 @@ class MorningCheckInNotifier
           userId: userId,
           profileId: _profileId,
           workflowType: 'generate_daily_plan',
+          message:
+              'Based on the plan data provided, explain in 1-2 sentences WHY '
+              'today\'s plan is set the way it is. Focus on the reasoning '
+              'behind the recommendation, not what to do. Be encouraging and '
+              'concise. Return JSON with "focus_tip" and "narrative" keys.',
           contextOverride: contextOverride,
         );
 

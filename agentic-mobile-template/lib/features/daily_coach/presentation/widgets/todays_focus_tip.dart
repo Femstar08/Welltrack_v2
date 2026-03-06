@@ -35,7 +35,7 @@ class TodaysFocusTip extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Focus Tip',
+                  'WellTrack insight',
                   style: theme.textTheme.labelLarge?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
