@@ -191,7 +191,7 @@ class _DetailContent extends ConsumerWidget {
                         Icon(Icons.shopping_cart_outlined,
                             size: 64,
                             color: theme.colorScheme.onSurfaceVariant
-                                .withOpacity(0.5)),
+                                .withValues(alpha: 0.5)),
                         const SizedBox(height: 16),
                         Text(
                           'No items yet',
@@ -526,7 +526,7 @@ class _AddEditItemSheetState extends State<_AddEditItemSheet> {
               height: 4,
               margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
-                color: theme.colorScheme.onSurfaceVariant.withOpacity(0.4),
+                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -591,7 +591,7 @@ class _AddEditItemSheetState extends State<_AddEditItemSheet> {
           const SizedBox(height: 12),
           // Aisle dropdown
           DropdownButtonFormField<String>(
-            value: _selectedAisle,
+            initialValue: _selectedAisle,
             decoration: InputDecoration(
               labelText: 'Aisle',
               border: OutlineInputBorder(

@@ -251,7 +251,7 @@ class _WorkoutPlanDetailScreenState
                           (planId: widget.planId, dayOfWeek: day.dow)),
                     );
                   } catch (e) {
-                    if (mounted) {
+                    if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('Error: $e')),
                       );

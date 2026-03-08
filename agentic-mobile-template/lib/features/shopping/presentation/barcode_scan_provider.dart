@@ -74,14 +74,13 @@ class BarcodeScanNotifier extends StateNotifier<BarcodeScanState> {
     this._lookupService,
     this._shoppingRepo,
     this._pantryRepo,
-    this._shoppingListId,
+    String shoppingListId,
     this._shoppingItems,
   ) : super(const BarcodeScanState());
 
   final ProductLookupService _lookupService;
   final ShoppingListRepository _shoppingRepo;
   final PantryRepository _pantryRepo;
-  final String _shoppingListId;
   final List<ShoppingListItemEntity> _shoppingItems;
 
   Future<void> onBarcodeScanned(String barcode) async {

@@ -185,45 +185,47 @@ class NutritionProfilesScreen extends ConsumerWidget {
                 const SizedBox(height: 16),
 
                 Card(
-                  child: Column(
-                    children: _cuisines.asMap().entries.map((entry) {
-                      final idx = entry.key;
-                      final cuisine = entry.value;
-                      final isSelected =
-                          state.cuisinePreference == cuisine.key;
-                      return Column(
-                        children: [
-                          RadioListTile<String>(
-                            value: cuisine.key,
-                            groupValue: state.cuisinePreference,
-                            onChanged: (v) {
-                              if (v != null) notifier.setCuisinePreference(v);
-                            },
-                            title: Text(
-                              cuisine.label,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                fontWeight: isSelected
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
+                  child: RadioGroup<String>(
+                    groupValue: state.cuisinePreference,
+                    onChanged: (String? v) {
+                      if (v != null) notifier.setCuisinePreference(v);
+                    },
+                    child: Column(
+                      children: _cuisines.asMap().entries.map((entry) {
+                        final idx = entry.key;
+                        final cuisine = entry.value;
+                        final isSelected =
+                            state.cuisinePreference == cuisine.key;
+                        return Column(
+                          children: [
+                            RadioListTile<String>(
+                              value: cuisine.key,
+                              title: Text(
+                                cuisine.label,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                ),
+                              ),
+                              subtitle: Text(
+                                cuisine.description,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              activeColor: theme.colorScheme.primary,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 4,
                               ),
                             ),
-                            subtitle: Text(
-                              cuisine.description,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                            activeColor: theme.colorScheme.primary,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 4,
-                            ),
-                          ),
-                          if (idx < _cuisines.length - 1)
-                            const Divider(height: 1, indent: 12, endIndent: 12),
-                        ],
-                      );
-                    }).toList(),
+                            if (idx < _cuisines.length - 1)
+                              const Divider(height: 1, indent: 12, endIndent: 12),
+                          ],
+                        );
+                      }).toList(),
+                    ),
                   ),
                 ),
 
@@ -269,7 +271,7 @@ class _ProfileCard extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: profile.color.withOpacity(0.12),
+                    color: profile.color.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(profile.icon, color: profile.color, size: 22),
@@ -297,7 +299,7 @@ class _ProfileCard extends StatelessWidget {
                 Switch(
                   value: isEnabled,
                   onChanged: (_) => onToggle(),
-                  activeColor: profile.color,
+                  activeThumbColor: profile.color,
                 ),
               ],
             ),
@@ -325,8 +327,8 @@ class _ProfileCard extends StatelessWidget {
                         labelStyle: theme.textTheme.labelSmall?.copyWith(
                           color: profile.color,
                         ),
-                        backgroundColor: profile.color.withOpacity(0.08),
-                        side: BorderSide(color: profile.color.withOpacity(0.3)),
+                        backgroundColor: profile.color.withValues(alpha: 0.08),
+                        side: BorderSide(color: profile.color.withValues(alpha: 0.3)),
                         visualDensity: VisualDensity.compact,
                         padding: EdgeInsets.zero,
                       ),

@@ -495,7 +495,7 @@ class _AddReminderFormState extends ConsumerState<AddReminderForm> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: _selectedModule,
+              initialValue: _selectedModule,
               decoration: const InputDecoration(
                 labelText: 'Category',
                 border: OutlineInputBorder(),
@@ -563,7 +563,7 @@ class _AddReminderFormState extends ConsumerState<AddReminderForm> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: _selectedRepeat,
+              initialValue: _selectedRepeat,
               decoration: const InputDecoration(
                 labelText: 'Repeat',
                 border: OutlineInputBorder(),

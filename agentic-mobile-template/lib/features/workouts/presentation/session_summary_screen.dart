@@ -241,7 +241,7 @@ class _SummaryBody extends ConsumerWidget {
                 _StatCard(
                   icon: Icons.timer_outlined,
                   value: durationMinutes != null
-                      ? '${durationMinutes} min'
+                      ? '$durationMinutes min'
                       : '--',
                   label: 'Duration',
                   color: Theme.of(context).colorScheme.primary,

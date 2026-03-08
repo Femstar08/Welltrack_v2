@@ -46,6 +46,33 @@ class CheckInEntity {
     this.updatedAt,
   });
 
+  factory CheckInEntity.fromJson(Map<String, dynamic> json) {
+    return CheckInEntity(
+      id: json['id'] as String?,
+      profileId: json['profile_id'] as String,
+      checkinDate: DateTime.parse(json['checkin_date'] as String),
+      feelingLevel: json['feeling_level'] as String?,
+      sleepQuality: json['sleep_quality'] != null
+          ? (json['sleep_quality'] as num).toDouble()
+          : null,
+      sleepQualityOverride: json['sleep_quality_override'] as bool? ?? false,
+      morningErection: json['morning_erection'] as bool?,
+      injuriesNotes: json['injuries_notes'] as String?,
+      scheduleType: json['schedule_type'] as String?,
+      isWeekly: json['is_weekly'] as bool? ?? false,
+      erectionQualityWeekly: json['erection_quality_weekly'] != null
+          ? (json['erection_quality_weekly'] as num).toInt()
+          : null,
+      isSensitive: json['is_sensitive'] as bool? ?? true,
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'] as String)
+          : null,
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'] as String)
+          : null,
+    );
+  }
+
   final String? id;
   final String profileId;
   final DateTime checkinDate;
@@ -77,33 +104,6 @@ class CheckInEntity {
 
   final DateTime? createdAt;
   final DateTime? updatedAt;
-
-  factory CheckInEntity.fromJson(Map<String, dynamic> json) {
-    return CheckInEntity(
-      id: json['id'] as String?,
-      profileId: json['profile_id'] as String,
-      checkinDate: DateTime.parse(json['checkin_date'] as String),
-      feelingLevel: json['feeling_level'] as String?,
-      sleepQuality: json['sleep_quality'] != null
-          ? (json['sleep_quality'] as num).toDouble()
-          : null,
-      sleepQualityOverride: json['sleep_quality_override'] as bool? ?? false,
-      morningErection: json['morning_erection'] as bool?,
-      injuriesNotes: json['injuries_notes'] as String?,
-      scheduleType: json['schedule_type'] as String?,
-      isWeekly: json['is_weekly'] as bool? ?? false,
-      erectionQualityWeekly: json['erection_quality_weekly'] != null
-          ? (json['erection_quality_weekly'] as num).toInt()
-          : null,
-      isSensitive: json['is_sensitive'] as bool? ?? true,
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String)
-          : null,
-      updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'] as String)
-          : null,
-    );
-  }
 
   /// Full serialization for DB writes — includes all fields.
   Map<String, dynamic> toJson() {

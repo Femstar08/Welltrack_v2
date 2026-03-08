@@ -490,13 +490,13 @@ class _StatusLegend extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _LegendItem(
-            color: const Color(0xFF4CAF50),
+          const _LegendItem(
+            color: Color(0xFF4CAF50),
             label: '>= 10 sets',
           ),
           const SizedBox(width: 16),
-          _LegendItem(
-            color: const Color(0xFFFFB300),
+          const _LegendItem(
+            color: Color(0xFFFFB300),
             label: '1–9 sets',
           ),
           const SizedBox(width: 16),

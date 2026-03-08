@@ -288,7 +288,7 @@ class _DayTypeCardState extends ConsumerState<_DayTypeCard> {
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
           color: _isCustom
-              ? widget.iconColor.withOpacity(0.4)
+              ? widget.iconColor.withValues(alpha: 0.4)
               : colorScheme.outlineVariant,
         ),
       ),
@@ -299,7 +299,7 @@ class _DayTypeCardState extends ConsumerState<_DayTypeCard> {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: widget.iconColor.withOpacity(0.12),
+            color: widget.iconColor.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(widget.icon, color: widget.iconColor, size: 22),
@@ -350,7 +350,7 @@ class _DayTypeCardState extends ConsumerState<_DayTypeCard> {
               ),
               Switch(
                 value: _isCustom,
-                activeColor: widget.iconColor,
+                activeThumbColor: widget.iconColor,
                 onChanged: (v) {
                   setState(() => _isCustom = v);
                   if (!v && s.custom != null) {
@@ -484,15 +484,15 @@ class _MacroField extends StatelessWidget {
         ),
         filled: true,
         fillColor: enabled
-            ? accentColor.withOpacity(0.06)
-            : colorScheme.surfaceContainerHighest.withOpacity(0.4),
+            ? accentColor.withValues(alpha: 0.06)
+            : colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: accentColor.withOpacity(0.3)),
+          borderSide: BorderSide(color: accentColor.withValues(alpha: 0.3)),
         ),
         disabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
@@ -522,7 +522,7 @@ class _AutoCalculatedInfo extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(

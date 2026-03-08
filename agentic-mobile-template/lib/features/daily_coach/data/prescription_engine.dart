@@ -351,8 +351,6 @@ class PrescriptionEngine {
         );
 
       case PrescriptionScenario.defaultPlan:
-      // ignore: no_default_cases
-      default:
         return DailyPrescriptionEntity(
           profileId: input.profileId,
           prescriptionDate: input.date,

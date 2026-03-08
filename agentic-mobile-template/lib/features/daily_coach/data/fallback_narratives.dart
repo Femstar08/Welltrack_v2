@@ -20,13 +20,13 @@ class FallbackNarrative {
       focusTip:
           'Great energy today — consider pushing for a personal record on your main lift.',
       narrative:
-          "You're well rested and feeling strong. Your body is primed for a full session.",
+          'You\'re well rested and feeling strong. Your body is primed for a full session.',
     ),
     PrescriptionScenario.tiredNotSore: FallbackNarrative(
       focusTip:
           'Prioritise good form over heavy weight today. Quality reps build long-term strength.',
       narrative:
-          "Not your best sleep, but you can still get a solid session in. Reduced volume will keep you moving forward.",
+          'Not your best sleep, but you can still get a solid session in. Reduced volume will keep you moving forward.',
     ),
     PrescriptionScenario.sore: FallbackNarrative(
       focusTip:
@@ -44,7 +44,7 @@ class FallbackNarrative {
       focusTip:
           'A 20-minute walk after your next meal is an easy way to close the gap.',
       narrative:
-          "You're behind on steps today. A short walk can help hit your target and improve digestion.",
+          'You\'re behind on steps today. A short walk can help hit your target and improve digestion.',
     ),
     PrescriptionScenario.weightStalling: FallbackNarrative(
       focusTip:

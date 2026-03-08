@@ -435,7 +435,7 @@ class _ExerciseDetailSheet extends StatelessWidget {
 
               // Primary muscles
               if (exercise.muscleGroups.isNotEmpty) ...[
-                _SheetLabel('Primary Muscles'),
+                const _SheetLabel('Primary Muscles'),
                 const SizedBox(height: 6),
                 Wrap(
                   spacing: 8,
@@ -460,7 +460,7 @@ class _ExerciseDetailSheet extends StatelessWidget {
 
               // Secondary muscles
               if (exercise.secondaryMuscles.isNotEmpty) ...[
-                _SheetLabel('Secondary Muscles'),
+                const _SheetLabel('Secondary Muscles'),
                 const SizedBox(height: 6),
                 Wrap(
                   spacing: 8,
@@ -504,7 +504,7 @@ class _ExerciseDetailSheet extends StatelessWidget {
               // Instructions
               if (exercise.instructions != null &&
                   exercise.instructions!.isNotEmpty) ...[
-                _SheetLabel('Instructions'),
+                const _SheetLabel('Instructions'),
                 const SizedBox(height: 8),
                 Text(
                   exercise.instructions!,
@@ -701,7 +701,7 @@ class _CreateExerciseDialogState
             const SizedBox(height: 16),
 
             DropdownButtonFormField<String>(
-              value: _selectedEquipment,
+              initialValue: _selectedEquipment,
               decoration: const InputDecoration(
                 labelText: 'Equipment Type',
               ),

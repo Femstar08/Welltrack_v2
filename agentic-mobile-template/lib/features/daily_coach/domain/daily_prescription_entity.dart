@@ -202,49 +202,6 @@ class DailyPrescriptionEntity {
     this.updatedAt,
   });
 
-  final String? id;
-  final String profileId;
-  final String? checkinId;
-  final DateTime prescriptionDate;
-  final PlanType planType;
-
-  /// Recovery score 0–100 used to determine plan type.
-  final double? recoveryScore;
-
-  final PrescriptionScenario scenario;
-  final WorkoutDirective workoutDirective;
-  final double workoutVolumeModifier;
-  final String? workoutNote;
-  final MealDirective mealDirective;
-  final int calorieModifier;
-
-  /// Percentage calorie adjustment (e.g. -0.10 = -10%).
-  final double calorieAdjustmentPercent;
-
-  final String? stepsNudge;
-  final String? aiFocusTip;
-  final String? aiNarrative;
-  final int? bedtimeHour;
-  final int? bedtimeMinute;
-  final DateTime? generatedAt;
-  final String? aiModel;
-  final bool isFallback;
-  final DateTime? createdAt;
-  final DateTime? updatedAt;
-
-  bool get hasWorkout => workoutDirective != WorkoutDirective.rest;
-
-  /// e.g. "10:45 PM"
-  String get bedtimeDisplay {
-    if (bedtimeHour == null) return '';
-    final hour = bedtimeHour!;
-    final minute = bedtimeMinute ?? 0;
-    final period = hour >= 12 ? 'PM' : 'AM';
-    final displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
-    final displayMinute = minute.toString().padLeft(2, '0');
-    return '$displayHour:$displayMinute $period';
-  }
-
   factory DailyPrescriptionEntity.fromJson(Map<String, dynamic> json) {
     return DailyPrescriptionEntity(
       id: json['id'] as String?,
@@ -297,6 +254,49 @@ class DailyPrescriptionEntity {
           ? DateTime.parse(json['updated_at'] as String)
           : null,
     );
+  }
+
+  final String? id;
+  final String profileId;
+  final String? checkinId;
+  final DateTime prescriptionDate;
+  final PlanType planType;
+
+  /// Recovery score 0–100 used to determine plan type.
+  final double? recoveryScore;
+
+  final PrescriptionScenario scenario;
+  final WorkoutDirective workoutDirective;
+  final double workoutVolumeModifier;
+  final String? workoutNote;
+  final MealDirective mealDirective;
+  final int calorieModifier;
+
+  /// Percentage calorie adjustment (e.g. -0.10 = -10%).
+  final double calorieAdjustmentPercent;
+
+  final String? stepsNudge;
+  final String? aiFocusTip;
+  final String? aiNarrative;
+  final int? bedtimeHour;
+  final int? bedtimeMinute;
+  final DateTime? generatedAt;
+  final String? aiModel;
+  final bool isFallback;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+
+  bool get hasWorkout => workoutDirective != WorkoutDirective.rest;
+
+  /// e.g. "10:45 PM"
+  String get bedtimeDisplay {
+    if (bedtimeHour == null) return '';
+    final hour = bedtimeHour!;
+    final minute = bedtimeMinute ?? 0;
+    final period = hour >= 12 ? 'PM' : 'AM';
+    final displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+    final displayMinute = minute.toString().padLeft(2, '0');
+    return '$displayHour:$displayMinute $period';
   }
 
   Map<String, dynamic> toJson() {

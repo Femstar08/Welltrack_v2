@@ -115,9 +115,9 @@ class _MealRow extends StatelessWidget {
     Widget? badge;
     if (item.mealType == 'breakfast' &&
         directive == MealDirective.extraCarbs) {
-      badge = _MacroBadge(label: '+ carbs', color: Colors.amber);
+      badge = const _MacroBadge(label: '+ carbs', color: Colors.amber);
     } else if (directive == MealDirective.highProtein) {
-      badge = _MacroBadge(label: '+ protein', color: Colors.green);
+      badge = const _MacroBadge(label: '+ protein', color: Colors.green);
     }
 
     return InkWell(

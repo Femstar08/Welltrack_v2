@@ -3,16 +3,34 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../domain/training_load_entity.dart';
 
 /// Training Load Chart
-/// 7-day bar chart with recovery ratio overlay
+/// 7-day bar chart with 4-week average reference line and load ratio display
 class TrainingLoadChart extends StatelessWidget {
 
   const TrainingLoadChart({
     super.key,
     required this.dailyLoads,
     this.loadRatio,
+    this.weeklyLoadTotal,
+    this.lastWeekLoadTotal,
+    this.fourWeekAverage,
   });
   final List<DailyLoadPoint> dailyLoads;
+
+  /// Ratio of current week load vs 4-week average (null if no history)
   final double? loadRatio;
+
+  /// Current week total load
+  final double? weeklyLoadTotal;
+
+  /// Previous week total load
+  final double? lastWeekLoadTotal;
+
+  /// Average weekly load over past 4 weeks
+  final double? fourWeekAverage;
+
+  /// Daily average derived from 4-week average (used for reference line)
+  double? get _fourWeekDailyAvg =>
+      fourWeekAverage != null ? fourWeekAverage! / 7 : null;
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +39,6 @@ class TrainingLoadChart extends StatelessWidget {
     }
 
     return Container(
-      height: 280,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -33,9 +50,20 @@ class TrainingLoadChart extends StatelessWidget {
         children: [
           _buildHeader(),
           const SizedBox(height: 16),
-          Expanded(
+          SizedBox(
+            height: 200,
             child: BarChart(_buildChartData()),
           ),
+          if (loadRatio != null) ...[
+            const SizedBox(height: 12),
+            _buildLoadRatioRow(),
+          ],
+          if (weeklyLoadTotal != null ||
+              lastWeekLoadTotal != null ||
+              fourWeekAverage != null) ...[
+            const SizedBox(height: 8),
+            _buildWeeklySummary(),
+          ],
         ],
       ),
     );
@@ -44,87 +72,153 @@ class TrainingLoadChart extends StatelessWidget {
   Widget _buildHeader() {
     return Row(
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Daily Load',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey,
-                ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Daily Load',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey,
               ),
-              Text(
-                _getTotalLoad().toStringAsFixed(0),
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+            ),
+            Text(
+              _getTotalLoad().toStringAsFixed(0),
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-        if (loadRatio != null) _buildLoadRatioIndicator(),
       ],
     );
   }
 
-  Widget _buildLoadRatioIndicator() {
+  /// Prominent load ratio display below the chart with colour coding
+  Widget _buildLoadRatioRow() {
     final ratio = loadRatio!;
-    final isWarning = ratio > 1.3;
-    final isModerate = ratio > 1.15;
+    final Color ratioColor;
+    final String ratioLabel;
+    final IconData ratioIcon;
 
-    Color backgroundColor;
-    Color textColor;
-    IconData icon;
-    String label;
-
-    if (isWarning) {
-      backgroundColor = Colors.red.shade100;
-      textColor = Colors.red.shade900;
-      icon = Icons.warning;
-      label = 'Overreaching';
-    } else if (isModerate) {
-      backgroundColor = Colors.orange.shade100;
-      textColor = Colors.orange.shade900;
-      icon = Icons.info;
-      label = 'Increased';
+    if (ratio > 1.5) {
+      ratioColor = Colors.red.shade700;
+      ratioLabel = 'High';
+      ratioIcon = Icons.warning_rounded;
+    } else if (ratio > 1.3) {
+      ratioColor = Colors.orange.shade700;
+      ratioLabel = 'Moderate';
+      ratioIcon = Icons.info_outline_rounded;
     } else {
-      backgroundColor = Colors.green.shade100;
-      textColor = Colors.green.shade900;
-      icon = Icons.check_circle;
-      label = 'Balanced';
+      ratioColor = Colors.green.shade700;
+      ratioLabel = 'Normal';
+      ratioIcon = Icons.check_circle_outline_rounded;
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: backgroundColor,
+        color: ratioColor.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: ratioColor.withValues(alpha: 0.25)),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: textColor),
-          const SizedBox(width: 6),
+          Icon(ratioIcon, size: 18, color: ratioColor),
+          const SizedBox(width: 8),
           Text(
-            label,
+            'Load ratio vs 4-wk avg:',
             style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: textColor,
+              fontSize: 13,
+              color: Colors.grey.shade700,
             ),
           ),
-          const SizedBox(width: 4),
+          const Spacer(),
           Text(
-            '${(ratio * 100).toStringAsFixed(0)}%',
+            '${ratio.toStringAsFixed(2)}x',
             style: TextStyle(
-              fontSize: 11,
-              color: textColor,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: ratioColor,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: ratioColor,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              ratioLabel,
+              style: const TextStyle(
+                fontSize: 11,
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Weekly summary row: This week | Last week | 4-wk avg
+  Widget _buildWeeklySummary() {
+    return Row(
+      children: [
+        _buildSummaryStat(
+          label: 'This week',
+          value: weeklyLoadTotal?.toStringAsFixed(0) ?? '—',
+          color: Colors.blue.shade700,
+        ),
+        const SizedBox(width: 8),
+        _buildSummaryStat(
+          label: 'Last week',
+          value: lastWeekLoadTotal?.toStringAsFixed(0) ?? '—',
+          color: Colors.grey.shade700,
+        ),
+        const SizedBox(width: 8),
+        _buildSummaryStat(
+          label: '4-wk avg',
+          value: fourWeekAverage?.toStringAsFixed(0) ?? '—',
+          color: Colors.orange.shade700,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSummaryStat({
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -153,13 +247,37 @@ class TrainingLoadChart extends StatelessWidget {
   }
 
   BarChartData _buildChartData() {
-    final maxLoad = dailyLoads.isEmpty
-        ? 100.0
+    final rawMax = dailyLoads.isEmpty
+        ? 0.0
         : dailyLoads.map((d) => d.load).reduce((a, b) => a > b ? a : b);
+    final maxLoad = rawMax < 1.0 ? 100.0 : rawMax;
     final upperBound = maxLoad * 1.2;
+    final dailyAvg = _fourWeekDailyAvg;
 
     return BarChartData(
       maxY: upperBound,
+      extraLinesData: dailyAvg != null && dailyAvg > 0
+          ? ExtraLinesData(
+              horizontalLines: [
+                HorizontalLine(
+                  y: dailyAvg,
+                  color: Colors.orange.shade600,
+                  strokeWidth: 1.5,
+                  dashArray: [6, 4],
+                  label: HorizontalLineLabel(
+                    show: true,
+                    alignment: Alignment.topRight,
+                    labelResolver: (_) => '4-wk avg',
+                    style: TextStyle(
+                      fontSize: 9,
+                      color: Colors.orange.shade700,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            )
+          : null,
       barTouchData: BarTouchData(
         enabled: true,
         touchTooltipData: BarTouchTooltipData(
@@ -278,7 +396,6 @@ class TrainingLoadChart extends StatelessWidget {
   }
 
   Color _getColorForLoad(DailyLoadPoint load) {
-    // Color intensity based on load and intensity
     if (load.load == 0) return Colors.grey.shade300;
 
     if (load.avgIntensity >= 1.5) {

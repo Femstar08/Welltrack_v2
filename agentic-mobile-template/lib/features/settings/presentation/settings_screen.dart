@@ -287,31 +287,63 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           ),
 
+          // Reminders Section
+          _buildSectionHeader('Reminders'),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: ListTile(
+              leading: const Icon(Icons.notifications_outlined),
+              title: const Text('Manage Reminders'),
+              subtitle: const Text('Meals, workouts, supplements, custom'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/reminders'),
+            ),
+          ),
+
           // Workout Section
           _buildSectionHeader('Workout'),
           Card(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: ListTile(
-              leading: const Icon(Icons.timer_outlined),
-              title: const Text('Rest Timer Alert'),
-              subtitle: Text(
-                switch (ref.watch(restTimerAlertModeProvider)) {
-                  RestTimerAlertMode.vibrateOnly => 'Vibrate only',
-                  RestTimerAlertMode.soundOnly => 'Sound only',
-                  RestTimerAlertMode.both => 'Vibrate + Sound',
-                  RestTimerAlertMode.silent => 'Silent',
-                },
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => showRestTimerAlertPicker(context, ref),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.hourglass_bottom_outlined),
+                  title: const Text('Default Rest Duration'),
+                  subtitle: Builder(builder: (_) {
+                    final secs = ref.watch(defaultRestTimerSecondsProvider);
+                    return Text(
+                      secs >= 60
+                          ? '${secs ~/ 60}:${(secs % 60).toString().padLeft(2, '0')} min'
+                          : '${secs}s',
+                    );
+                  }),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => showRestTimerDurationPicker(context, ref),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.timer_outlined),
+                  title: const Text('Rest Timer Alert'),
+                  subtitle: Text(
+                    switch (ref.watch(restTimerAlertModeProvider)) {
+                      RestTimerAlertMode.vibrateOnly => 'Vibrate only',
+                      RestTimerAlertMode.soundOnly => 'Sound only',
+                      RestTimerAlertMode.both => 'Vibrate + Sound',
+                      RestTimerAlertMode.silent => 'Silent',
+                    },
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => showRestTimerAlertPicker(context, ref),
+                ),
+              ],
             ),
           ),
 
           // AI Usage Section
           _buildSectionHeader('AI Usage'),
-          Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: const ListTile(
+          const Card(
+            margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: ListTile(
               leading: Icon(Icons.auto_awesome_outlined),
               title: Text('AI Calls Remaining'),
               subtitle: Text('Freemium plan'),
