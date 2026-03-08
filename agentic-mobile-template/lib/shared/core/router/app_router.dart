@@ -74,6 +74,10 @@ import '../../../features/meals/presentation/nutrition_targets_screen.dart'
     as nutrition_targets;
 import '../../../features/meals/presentation/nutrition_profiles_screen.dart'
     as nutrition_profiles;
+import '../../../features/meals/presentation/food_search_screen.dart'
+    as food_search;
+import '../../../features/meals/presentation/weekly_nutrition_summary_screen.dart'
+    as weekly_nutrition;
 
 // Health
 import '../../../features/health/presentation/health_connection_screen.dart'
@@ -92,6 +96,8 @@ import '../../../features/health/presentation/screens/vo2max_entry_screen.dart'
 // Insights
 import '../../../features/insights/presentation/insights_dashboard_screen.dart'
     as insights_screen;
+import '../../../features/insights/presentation/recovery_detail_screen.dart'
+    as recovery_detail;
 
 // Goals
 import '../../../features/goals/domain/goal_entity.dart';
@@ -423,11 +429,33 @@ class AppRouter {
           },
         ),
         GoRoute(
+          path: '/meals/food-search',
+          name: 'foodSearch',
+          builder: (context, state) =>
+              const food_search.FoodSearchScreen(),
+        ),
+        GoRoute(
+          path: '/meals/food-barcode-scan',
+          name: 'foodBarcodeScan',
+          builder: (context, state) =>
+              const food_search.FoodBarcodeScannerScreen(),
+        ),
+        GoRoute(
           path: '/meals/nutrition-profiles',
           name: 'nutritionProfiles',
           builder: (context, state) {
             final profileId = ref.read(activeProfileIdProvider) ?? '';
             return nutrition_profiles.NutritionProfilesScreen(
+              profileId: profileId,
+            );
+          },
+        ),
+        GoRoute(
+          path: '/meals/weekly-summary',
+          name: 'weeklyNutritionSummary',
+          builder: (context, state) {
+            final profileId = ref.read(activeProfileIdProvider) ?? '';
+            return weekly_nutrition.WeeklyNutritionSummaryScreen(
               profileId: profileId,
             );
           },
@@ -492,6 +520,16 @@ class AppRouter {
           builder: (context, state) {
             final profileId = ref.read(activeProfileIdProvider) ?? '';
             return insights_screen.InsightsDashboardScreen(
+              profileId: profileId,
+            );
+          },
+        ),
+        GoRoute(
+          path: '/recovery-detail',
+          name: 'recoveryDetail',
+          builder: (context, state) {
+            final profileId = ref.read(activeProfileIdProvider) ?? '';
+            return recovery_detail.RecoveryDetailScreen(
               profileId: profileId,
             );
           },
@@ -576,9 +614,13 @@ class AppRouter {
           builder: (context, state) {
             final workoutId = state.pathParameters['workoutId']!;
             final profileId = ref.read(activeProfileIdProvider) ?? '';
+            final extra = state.extra as Map<String, dynamic>? ?? {};
             return workout_logging.WorkoutLoggingScreen(
               profileId: profileId,
               workoutId: workoutId,
+              planId: extra['planId'] as String?,
+              dayOfWeek: extra['dayOfWeek'] as int?,
+              planName: extra['planName'] as String?,
             );
           },
         ),
