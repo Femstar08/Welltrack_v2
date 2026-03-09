@@ -3,11 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../shared/core/theme/theme_provider.dart';
 import '../../../shared/core/router/app_router.dart' show activeProfileIdProvider;
 import 'rest_timer_settings.dart';
 import '../../../features/workouts/presentation/rest_timer_provider.dart';
 import '../../../features/profile/data/profile_repository.dart';
+import '../../../features/health/presentation/health_connections_provider.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -138,6 +140,40 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final currentUser = Supabase.instance.client.auth.currentUser;
+    final profileId = ref.watch(activeProfileIdProvider) ?? '';
+
+    // Listen for successful connects so we can show a SnackBar when the deep
+    // link callback completes and the state flips from connecting → connected.
+    if (profileId.isNotEmpty) {
+      ref.listen<HealthConnectionsState>(
+        healthConnectionsProvider(profileId),
+        (prev, next) {
+          if (!mounted) return;
+
+          // Garmin just connected
+          if (!(prev?.garminConnected ?? false) && next.garminConnected) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Garmin connected! Syncing last 14 days of data…',
+                ),
+              ),
+            );
+          }
+
+          // Strava just connected
+          if (!(prev?.stravaConnected ?? false) && next.stravaConnected) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Strava connected! Syncing last 14 days of data…',
+                ),
+              ),
+            );
+          }
+        },
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -223,30 +259,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onTap: () => context.push('/settings/health'),
                 ),
                 const Divider(height: 1),
-                ListTile(
-                  leading: Icon(
-                    Icons.watch_outlined,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  title: const Text('Garmin'),
-                  subtitle: const Text('Coming in Phase 7'),
-                  trailing: Chip(
-                    label: const Text('Coming Soon'),
-                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                  ),
+                _buildProviderTile(
+                  provider: 'garmin',
+                  icon: Icons.watch_outlined,
+                  label: 'Garmin',
                 ),
                 const Divider(height: 1),
-                ListTile(
-                  leading: Icon(
-                    Icons.directions_bike_outlined,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  title: const Text('Strava'),
-                  subtitle: const Text('Coming in Phase 7'),
-                  trailing: Chip(
-                    label: const Text('Coming Soon'),
-                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                  ),
+                _buildProviderTile(
+                  provider: 'strava',
+                  icon: Icons.directions_bike_outlined,
+                  label: 'Strava',
                 ),
               ],
             ),
@@ -468,6 +490,239 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
     );
   }
+
+  // ---------------------------------------------------------------------------
+  // Health connections helpers
+  // ---------------------------------------------------------------------------
+
+  /// Builds a connect/disconnect tile for [provider] ('garmin' or 'strava').
+  Widget _buildProviderTile({
+    required String provider,
+    required IconData icon,
+    required String label,
+  }) {
+    final profileId = ref.watch(activeProfileIdProvider) ?? '';
+    if (profileId.isEmpty) {
+      return ListTile(
+        leading: Icon(icon),
+        title: Text(label),
+        subtitle: const Text('Sign in to connect'),
+      );
+    }
+
+    final connState = ref.watch(healthConnectionsProvider(profileId));
+    final isGarmin = provider == 'garmin';
+    final isConnected =
+        isGarmin ? connState.garminConnected : connState.stravaConnected;
+    final lastSync =
+        isGarmin ? connState.garminLastSync : connState.stravaLastSync;
+
+    final theme = Theme.of(context);
+
+    // Loading skeleton while initial fetch is in progress
+    if (connState.isLoading) {
+      return ListTile(
+        leading: Icon(icon, color: theme.colorScheme.onSurfaceVariant),
+        title: Text(label),
+        subtitle: const Text('Checking connection…'),
+        trailing: const SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
+    }
+
+    if (isConnected) {
+      return ListTile(
+        leading: Icon(icon, color: theme.colorScheme.primary),
+        title: Text(label),
+        subtitle: Text(
+          lastSync != null
+              ? 'Last synced ${_formatLastSync(lastSync)}'
+              : 'Connected',
+        ),
+        trailing: connState.isConnecting
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.check_circle, color: Colors.green[600], size: 20),
+                  const SizedBox(width: 8),
+                  TextButton(
+                    onPressed: () => _confirmDisconnect(provider, label),
+                    style: TextButton.styleFrom(
+                      foregroundColor: theme.colorScheme.error,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                    ),
+                    child: const Text('Disconnect'),
+                  ),
+                ],
+              ),
+      );
+    }
+
+    // Not connected state
+    return ListTile(
+      leading: Icon(icon, color: theme.colorScheme.onSurfaceVariant),
+      title: Text(label),
+      subtitle: const Text('Not connected'),
+      trailing: connState.isConnecting
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : ElevatedButton(
+              onPressed: () => isGarmin ? _connectGarmin() : _connectStrava(),
+              style: ElevatedButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                textStyle: const TextStyle(fontSize: 13),
+              ),
+              child: const Text('Connect'),
+            ),
+    );
+  }
+
+  /// Opens the Garmin OAuth flow in the browser.
+  Future<void> _connectGarmin() async {
+    final profileId = ref.read(activeProfileIdProvider) ?? '';
+    if (profileId.isEmpty) return;
+
+    // Step 1: obtain a request token from the Edge Function
+    final authUrl = await ref
+        .read(healthConnectionsProvider(profileId).notifier)
+        .initiateGarminOAuth();
+
+    if (authUrl == null) {
+      // Error is already stored in state — show it
+      _showConnectionError('garmin');
+      return;
+    }
+
+    // Step 2: open Garmin Connect in the browser
+    final uri = Uri.parse(authUrl);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not open browser. Please try again.'),
+          ),
+        );
+      }
+    }
+    // The OAuth callback deep link is handled in app.dart → _handleOAuthDeepLink
+  }
+
+  /// Opens the Strava OAuth flow in the browser.
+  Future<void> _connectStrava() async {
+    final authUrl = buildStravaAuthorizationUrl();
+    final uri = Uri.parse(authUrl);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not open browser. Please try again.'),
+          ),
+        );
+      }
+    }
+    // The OAuth callback deep link is handled in app.dart → _handleOAuthDeepLink
+  }
+
+  /// Shows a confirmation dialog then disconnects the given provider.
+  Future<void> _confirmDisconnect(String provider, String label) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Disconnect $label?'),
+        content: Text(
+          'This will remove the $label connection. '
+          'Your existing data will be kept, but no new data will be synced.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: const Text('Disconnect'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    final profileId = ref.read(activeProfileIdProvider) ?? '';
+    if (profileId.isEmpty) return;
+
+    if (provider == 'garmin') {
+      await ref
+          .read(healthConnectionsProvider(profileId).notifier)
+          .disconnectGarmin();
+    } else {
+      await ref
+          .read(healthConnectionsProvider(profileId).notifier)
+          .disconnectStrava();
+    }
+
+    if (!mounted) return;
+
+    final connState = ref.read(healthConnectionsProvider(profileId));
+    if (connState.error != null) {
+      _showConnectionError(provider);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Disconnected from ${_capitalise(provider)}'),
+        ),
+      );
+    }
+  }
+
+  /// Shows a SnackBar with the current error from the provider state.
+  void _showConnectionError(String provider) {
+    final profileId = ref.read(activeProfileIdProvider) ?? '';
+    if (profileId.isEmpty || !mounted) return;
+    final err = ref.read(healthConnectionsProvider(profileId)).error;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(err ?? 'Something went wrong. Please try again.'),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ),
+    );
+  }
+
+  /// Returns a human-readable relative time string for a sync timestamp.
+  String _formatLastSync(DateTime lastSync) {
+    final now = DateTime.now();
+    final diff = now.difference(lastSync);
+
+    if (diff.inMinutes < 1) return 'just now';
+    if (diff.inMinutes < 60) {
+      final m = diff.inMinutes;
+      return '$m ${m == 1 ? 'minute' : 'minutes'} ago';
+    }
+    if (diff.inHours < 24) {
+      final h = diff.inHours;
+      return '$h ${h == 1 ? 'hour' : 'hours'} ago';
+    }
+    final d = diff.inDays;
+    return '$d ${d == 1 ? 'day' : 'days'} ago';
+  }
+
+  String _capitalise(String s) =>
+      s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}';
 
   Widget _buildSectionHeader(String title) {
     final theme = Theme.of(context);

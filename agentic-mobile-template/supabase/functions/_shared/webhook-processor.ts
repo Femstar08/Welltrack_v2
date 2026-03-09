@@ -1,5 +1,6 @@
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { encodeHex } from 'https://deno.land/std@0.224.0/encoding/hex.ts'
+import { refreshStravaToken } from './token-refresh.ts'
 
 /**
  * Webhook Event Processor
@@ -203,21 +204,61 @@ async function processStravaEvent(
       return metrics
     }
 
-    // Get access token from wt_health_connections
+    // Get access token (and refresh token) from wt_health_connections
     const { data: connection } = await adminClient
       .from('wt_health_connections')
-      .select('access_token')
+      .select('access_token_encrypted, refresh_token_encrypted, token_expires_at')
       .eq('provider', 'strava')
       .eq('connection_metadata->>athlete_id', event.strava_athlete_id)
       .single()
 
-    if (!connection?.access_token) {
+    if (!connection?.access_token_encrypted) {
       console.warn('[Webhook Processor] No Strava access token found')
       return metrics
     }
 
-    // Fetch activity from Strava API
-    const activityData = await fetchStravaActivity(activityId, connection.access_token)
+    // Refresh the access token if it has expired (or will expire within 60 seconds)
+    let accessToken = connection.access_token_encrypted
+    const expiresAt = connection.token_expires_at ? new Date(connection.token_expires_at) : null
+    const nowPlusBuffer = new Date(Date.now() + 60_000) // 60-second buffer
+
+    if (expiresAt && expiresAt <= nowPlusBuffer) {
+      if (!connection.refresh_token_encrypted) {
+        console.warn('[Webhook Processor] Strava token expired and no refresh token available')
+        return metrics
+      }
+
+      try {
+        console.log('[Webhook Processor] Strava access token expired — refreshing')
+        const refreshed = await refreshStravaToken(connection.refresh_token_encrypted)
+        accessToken = refreshed.accessToken
+
+        // Persist the rotated tokens so the next call uses fresh credentials
+        const { error: updateError } = await adminClient
+          .from('wt_health_connections')
+          .update({
+            access_token_encrypted: refreshed.accessToken,
+            refresh_token_encrypted: refreshed.refreshToken,
+            token_expires_at: refreshed.expiresAt,
+          })
+          .eq('provider', 'strava')
+          .eq('connection_metadata->>athlete_id', event.strava_athlete_id)
+
+        if (updateError) {
+          console.error('[Webhook Processor] Failed to persist refreshed Strava tokens:', updateError)
+          // Continue with the new access token even if the DB write failed — the
+          // current invocation can still succeed; the next invocation will retry.
+        } else {
+          console.log('[Webhook Processor] Strava tokens refreshed and persisted')
+        }
+      } catch (refreshErr) {
+        console.error('[Webhook Processor] Strava token refresh failed:', refreshErr)
+        return metrics
+      }
+    }
+
+    // Fetch activity from Strava API using a valid access token
+    const activityData = await fetchStravaActivity(activityId, accessToken)
     if (activityData) {
       metrics.push(...await normalizeStravaActivity(event, profileId, activityData))
     }
@@ -227,6 +268,125 @@ async function processStravaEvent(
 
   return metrics
 }
+
+// ---------------------------------------------------------------------------
+// Named exports — consumed by backfill-health-data and process-webhooks
+// ---------------------------------------------------------------------------
+
+export type { HealthMetric }
+
+/**
+ * Normalize a raw Garmin dailies payload (array) into HealthMetric rows.
+ * Exported so backfill-health-data can reuse without going through the full
+ * webhook event pipeline.
+ */
+export async function normalizeGarminDailiesPayload(
+  userId: string,
+  profileId: string,
+  payload: any[]
+): Promise<HealthMetric[]> {
+  const fakeEvent: WebhookEvent = {
+    id: 'backfill',
+    source: 'garmin',
+    event_type: 'dailies',
+    payload,
+    user_id: userId,
+    profile_id: profileId,
+    attempts: 0,
+    max_attempts: 1,
+  }
+  return normalizeGarminDailies(fakeEvent, profileId)
+}
+
+/**
+ * Normalize a raw Garmin sleeps payload (array) into HealthMetric rows.
+ */
+export async function normalizeGarminSleepPayload(
+  userId: string,
+  profileId: string,
+  payload: any[]
+): Promise<HealthMetric[]> {
+  const fakeEvent: WebhookEvent = {
+    id: 'backfill',
+    source: 'garmin',
+    event_type: 'sleeps',
+    payload,
+    user_id: userId,
+    profile_id: profileId,
+    attempts: 0,
+    max_attempts: 1,
+  }
+  return normalizeGarminSleep(fakeEvent, profileId)
+}
+
+/**
+ * Normalize a raw Garmin stressDetails payload (array) into HealthMetric rows.
+ */
+export async function normalizeGarminStressPayload(
+  userId: string,
+  profileId: string,
+  payload: any[]
+): Promise<HealthMetric[]> {
+  const fakeEvent: WebhookEvent = {
+    id: 'backfill',
+    source: 'garmin',
+    event_type: 'stressDetails',
+    payload,
+    user_id: userId,
+    profile_id: profileId,
+    attempts: 0,
+    max_attempts: 1,
+  }
+  return normalizeGarminStress(fakeEvent, profileId)
+}
+
+/**
+ * Normalize a raw Garmin userMetrics payload (array) into HealthMetric rows.
+ */
+export async function normalizeGarminUserMetricsPayload(
+  userId: string,
+  profileId: string,
+  payload: any[]
+): Promise<HealthMetric[]> {
+  const fakeEvent: WebhookEvent = {
+    id: 'backfill',
+    source: 'garmin',
+    event_type: 'userMetrics',
+    payload,
+    user_id: userId,
+    profile_id: profileId,
+    attempts: 0,
+    max_attempts: 1,
+  }
+  return normalizeGarminUserMetrics(fakeEvent, profileId)
+}
+
+/**
+ * Normalize a Strava activity API response into HealthMetric rows.
+ * Exported for use by backfill-health-data.
+ */
+export async function normalizeStravaActivityPayload(
+  userId: string,
+  profileId: string,
+  activity: any
+): Promise<HealthMetric[]> {
+  const fakeEvent: WebhookEvent = {
+    id: 'backfill',
+    source: 'strava',
+    event_type: 'activity_create',
+    payload: activity,
+    user_id: userId,
+    profile_id: profileId,
+    strava_object_id: activity.id?.toString(),
+    attempts: 0,
+    max_attempts: 1,
+  }
+  return normalizeStravaActivity(fakeEvent, profileId, activity)
+}
+
+// ---------------------------------------------------------------------------
+// Internal normalizers (private to this module)
+// ---------------------------------------------------------------------------
 
 /**
  * Normalize Garmin sleep data
@@ -651,9 +811,10 @@ async function normalizeStravaActivity(
 }
 
 /**
- * Generate deduplication hash using Web Crypto API (SHA-256)
+ * Generate deduplication hash using Web Crypto API (SHA-256).
+ * Exported for use by backfill-health-data.
  */
-async function generateDedupeHash(
+export async function generateDedupeHash(
   source: string,
   metricType: string,
   startTime: string | null,

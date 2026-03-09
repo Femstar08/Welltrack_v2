@@ -12,6 +12,9 @@ import 'widgets/trend_chart_widget.dart';
 import '../domain/insight_entity.dart';
 import '../domain/forecast_entity.dart';
 import '../../../shared/core/auth/session_manager.dart';
+import '../../health/presentation/health_connections_provider.dart';
+import '../../health/presentation/widgets/garmin_attribution_widget.dart';
+import '../../health/presentation/widgets/strava_attribution_widget.dart';
 
 /// Insights Dashboard Screen
 /// Main performance intelligence dashboard
@@ -55,6 +58,8 @@ class _InsightsDashboardScreenState
     final state = ref.watch(insightsProvider(params));
     final notifier = ref.read(insightsProvider(params).notifier);
     final baselineState = ref.watch(baselineProvider(widget.profileId));
+    final connectionsState =
+        ref.watch(healthConnectionsProvider(widget.profileId));
 
     return Scaffold(
       appBar: AppBar(
@@ -135,6 +140,25 @@ class _InsightsDashboardScreenState
                           ],
                         ] else if (baselineState.isInBaselinePeriod)
                           _buildGatedSection('Recovery Score'),
+
+                        // Brand attribution for recovery data source
+                        if (connectionsState.garminConnected ||
+                            connectionsState.stravaConnected) ...[
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              GarminAttributionWidget(
+                                visible: connectionsState.garminConnected,
+                              ),
+                              if (connectionsState.garminConnected &&
+                                  connectionsState.stravaConnected)
+                                const SizedBox(width: 12),
+                              StravaAttributionWidget(
+                                visible: connectionsState.stravaConnected,
+                              ),
+                            ],
+                          ),
+                        ],
                         const SizedBox(height: 24),
 
                         // Training load chart — 4-week rolling window
@@ -152,6 +176,25 @@ class _InsightsDashboardScreenState
                             lastWeekLoadTotal: state.lastWeekLoadTotal,
                             fourWeekAverage: state.fourWeekAverage,
                           ),
+                          // Training load attribution — shown when a connected
+                          // provider is supplying workout data
+                          if (connectionsState.garminConnected ||
+                              connectionsState.stravaConnected) ...[
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                GarminAttributionWidget(
+                                  visible: connectionsState.garminConnected,
+                                ),
+                                if (connectionsState.garminConnected &&
+                                    connectionsState.stravaConnected)
+                                  const SizedBox(width: 12),
+                                StravaAttributionWidget(
+                                  visible: connectionsState.stravaConnected,
+                                ),
+                              ],
+                            ),
+                          ],
                           const SizedBox(height: 24),
                         ],
 

@@ -8,6 +8,9 @@ import '../data/insights_repository.dart';
 import '../domain/recovery_score_entity.dart';
 import 'insights_provider.dart';
 import '../../../shared/core/auth/session_manager.dart';
+import '../../health/presentation/health_connections_provider.dart';
+import '../../health/presentation/widgets/garmin_attribution_widget.dart';
+import '../../health/presentation/widgets/strava_attribution_widget.dart';
 
 /// Detailed recovery score screen — component breakdown + 7-day sparkline.
 class RecoveryDetailScreen extends ConsumerStatefulWidget {
@@ -65,6 +68,7 @@ class _RecoveryDetailScreenState extends ConsumerState<RecoveryDetailScreen> {
                       const SizedBox(height: 28),
                     ],
                     _buildSparklineSection(context),
+                    _buildDataSourceAttribution(context),
                   ],
                 ),
               ),
@@ -141,6 +145,14 @@ class _RecoveryDetailScreenState extends ConsumerState<RecoveryDetailScreen> {
 
   Widget _buildComponentBreakdown(
       BuildContext context, RecoveryScoreEntity score) {
+    // Extract source attribution map written by PerformanceEngine into rawData.
+    // Keys: 'sleep_duration', 'sleep_quality', 'hr_stress', 'training_load'
+    // Values: 'garmin' | 'healthconnect' | 'internal'
+    final sources =
+        (score.rawData?['sources'] as Map<Object?, Object?>?)
+            ?.cast<String, String>() ??
+        <String, String>{};
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -158,23 +170,32 @@ class _RecoveryDetailScreenState extends ConsumerState<RecoveryDetailScreen> {
               icon: Icons.bedtime_outlined,
               value: score.sleepComponent,
               weight: '30%',
+              sourceKey: sources['sleep_duration'],
             ),
             const SizedBox(height: 12),
             _buildComponentRow(
               context,
-              label: 'Sleep Quality',
+              // Label reflects that Garmin body battery may substitute REM/deep ratio
+              label: sources['sleep_quality'] == 'garmin'
+                  ? 'Body Battery'
+                  : 'Sleep Quality',
               icon: Icons.nights_stay_outlined,
               // stressComponent slot repurposed for sleep quality in the engine
               value: score.stressComponent,
               weight: '20%',
+              sourceKey: sources['sleep_quality'],
             ),
             const SizedBox(height: 12),
             _buildComponentRow(
               context,
-              label: 'Resting Heart Rate',
+              // Label reflects that Garmin stress score may substitute RHR
+              label: sources['hr_stress'] == 'garmin'
+                  ? 'Stress Score'
+                  : 'Resting Heart Rate',
               icon: Icons.favorite_outline,
               value: score.hrComponent,
               weight: '25%',
+              sourceKey: sources['hr_stress'],
             ),
             const SizedBox(height: 12),
             _buildComponentRow(
@@ -183,6 +204,7 @@ class _RecoveryDetailScreenState extends ConsumerState<RecoveryDetailScreen> {
               icon: Icons.fitness_center_outlined,
               value: score.loadComponent,
               weight: '25%',
+              sourceKey: sources['training_load'],
             ),
           ],
         ),
@@ -196,10 +218,14 @@ class _RecoveryDetailScreenState extends ConsumerState<RecoveryDetailScreen> {
     required IconData icon,
     required double? value,
     required String weight,
+    String? sourceKey, // 'garmin' | 'healthconnect' | 'internal' | null
   }) {
     final theme = Theme.of(context);
     final displayValue = value ?? 0.0;
     final barColor = _scoreColor(displayValue);
+
+    // Attribution text — only shown when value is present and source is meaningful
+    final attributionText = value != null ? _sourceLabel(sourceKey) : null;
 
     return Row(
       children: [
@@ -240,16 +266,46 @@ class _RecoveryDetailScreenState extends ConsumerState<RecoveryDetailScreen> {
                 ),
               ),
               const SizedBox(height: 2),
-              Text(
-                'Weight: $weight',
-                style:
-                    const TextStyle(fontSize: 10, color: Colors.grey),
+              Row(
+                children: [
+                  Text(
+                    'Weight: $weight',
+                    style: const TextStyle(fontSize: 10, color: Colors.grey),
+                  ),
+                  if (attributionText != null) ...[
+                    const SizedBox(width: 8),
+                    Text(
+                      attributionText,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.grey.shade500,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ],
           ),
         ),
       ],
     );
+  }
+
+  /// Converts a source key from rawData['sources'] into a human-readable
+  /// attribution string shown below the metric bar.
+  /// Returns null for 'internal' or unknown keys to keep UI clean.
+  String? _sourceLabel(String? sourceKey) {
+    switch (sourceKey) {
+      case 'garmin':
+        return 'via Garmin';
+      case 'healthconnect':
+        return 'via Health Connect';
+      case null:
+      case 'internal':
+      default:
+        return null;
+    }
   }
 
   // ── 7-day sparkline ───────────────────────────────────────────────────────
@@ -303,6 +359,31 @@ class _RecoveryDetailScreenState extends ConsumerState<RecoveryDetailScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // ── Data source attribution ───────────────────────────────────────────────
+
+  /// Renders brand attribution for whichever health provider(s) are connected.
+  /// Returns [SizedBox.shrink] when neither Garmin nor Strava is connected.
+  Widget _buildDataSourceAttribution(BuildContext context) {
+    final connectionsState =
+        ref.watch(healthConnectionsProvider(widget.profileId));
+
+    final garminOn = connectionsState.garminConnected;
+    final stravaOn = connectionsState.stravaConnected;
+
+    if (!garminOn && !stravaOn) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 20),
+      child: Row(
+        children: [
+          GarminAttributionWidget(visible: garminOn),
+          if (garminOn && stravaOn) const SizedBox(width: 12),
+          StravaAttributionWidget(visible: stravaOn),
+        ],
       ),
     );
   }
