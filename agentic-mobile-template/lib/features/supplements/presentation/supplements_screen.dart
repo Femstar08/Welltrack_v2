@@ -1,7 +1,9 @@
 // lib/features/supplements/presentation/supplements_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../domain/supplement_entity.dart';
 import '../domain/supplement_protocol_entity.dart';
 import '../domain/supplement_log_entity.dart';
 import 'supplement_provider.dart';
@@ -354,31 +356,183 @@ class _SupplementsScreenState extends ConsumerState<SupplementsScreen>
   }
 
   void _showAddSupplementDialog(BuildContext context) {
-    // TODO: Implement add supplement dialog
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Add supplement dialog - TODO')),
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (sheetContext) => _AddSupplementSheet(
+        profileId: widget.profileId,
+        onSave: (name, brand, dosage, unit, notes) async {
+          await ref.read(supplementProvider(widget.profileId).notifier).addSupplement(
+                name: name,
+                brand: brand?.isNotEmpty == true ? brand : null,
+                dosage: dosage,
+                unit: unit,
+                notes: notes?.isNotEmpty == true ? notes : null,
+              );
+          if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+          final error = ref.read(supplementProvider(widget.profileId)).error;
+          if (error != null && context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error: $error'), backgroundColor: Theme.of(context).colorScheme.error),
+            );
+          }
+        },
+      ),
     );
   }
 
-  void _showEditSupplementDialog(BuildContext context, supplement) {
-    // TODO: Implement edit supplement dialog
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Edit supplement dialog - TODO')),
+  void _showEditSupplementDialog(BuildContext context, SupplementEntity supplement) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (sheetContext) => _EditSupplementSheet(
+        supplement: supplement,
+        onSave: (name, brand, dosage, unit, notes) async {
+          final updated = supplement.copyWith(
+            name: name,
+            brand: brand?.isNotEmpty == true ? brand : null,
+            dosage: dosage,
+            unit: unit,
+            notes: notes?.isNotEmpty == true ? notes : null,
+          );
+          await ref.read(supplementProvider(widget.profileId).notifier).updateSupplement(updated);
+          if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+          final error = ref.read(supplementProvider(widget.profileId)).error;
+          if (error != null && context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error: $error'), backgroundColor: Theme.of(context).colorScheme.error),
+            );
+          }
+        },
+        onDelete: () async {
+          final confirmed = await _confirmDeleteProtocol(sheetContext, 'supplement');
+          if (!confirmed) return;
+          if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+          await ref.read(supplementProvider(widget.profileId).notifier).deleteSupplement(supplement.id);
+          final error = ref.read(supplementProvider(widget.profileId)).error;
+          if (error != null && context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error: $error'), backgroundColor: Theme.of(context).colorScheme.error),
+            );
+          }
+        },
+      ),
     );
   }
 
   void _showAddProtocolDialog(BuildContext context, String supplementId, String supplementName) {
-    // TODO: Implement add protocol dialog
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Add protocol dialog - TODO')),
+    final state = ref.read(supplementProvider(widget.profileId));
+    final supplement = state.supplements.firstWhere((s) => s.id == supplementId);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (sheetContext) => _AddProtocolSheet(
+        supplementName: supplementName,
+        defaultDosage: supplement.dosage,
+        defaultUnit: supplement.unit,
+        onSave: (timeOfDay, dosage, unit) async {
+          await ref.read(supplementProvider(widget.profileId).notifier).addProtocol(
+                supplementId: supplementId,
+                supplementName: supplementName,
+                timeOfDay: timeOfDay,
+                dosage: dosage,
+                unit: unit,
+              );
+          if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+          final error = ref.read(supplementProvider(widget.profileId)).error;
+          if (error != null && context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error: $error'), backgroundColor: Theme.of(context).colorScheme.error),
+            );
+          }
+        },
+      ),
     );
   }
 
-  void _showEditProtocolDialog(BuildContext context, protocol) {
-    // TODO: Implement edit protocol dialog
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Edit protocol dialog - TODO')),
+  void _showEditProtocolDialog(BuildContext context, SupplementProtocolEntity protocol) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (sheetContext) => _EditProtocolSheet(
+        protocol: protocol,
+        onSave: (isActive, timeOfDay, dosage, unit) async {
+          // Delete old, create updated — keeps the notifier API clean.
+          await ref.read(supplementProvider(widget.profileId).notifier).deleteProtocol(protocol.id);
+          await ref.read(supplementProvider(widget.profileId).notifier).addProtocol(
+                supplementId: protocol.supplementId,
+                supplementName: protocol.supplementName,
+                timeOfDay: timeOfDay,
+                dosage: dosage,
+                unit: unit,
+              );
+          // Toggle active if needed (new protocol defaults to true).
+          if (!isActive) {
+            final state = ref.read(supplementProvider(widget.profileId));
+            final newProtocol = state.protocols
+                .where((p) =>
+                    p.supplementId == protocol.supplementId &&
+                    p.timeOfDay == timeOfDay)
+                .lastOrNull;
+            if (newProtocol != null) {
+              await ref.read(supplementProvider(widget.profileId).notifier).toggleProtocol(newProtocol.id);
+            }
+          }
+          if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+          final error = ref.read(supplementProvider(widget.profileId)).error;
+          if (error != null && context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error: $error'), backgroundColor: Theme.of(context).colorScheme.error),
+            );
+          }
+        },
+        onDelete: () async {
+          final confirmed = await _confirmDeleteProtocol(sheetContext, 'protocol');
+          if (!confirmed) return;
+          if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+          await ref.read(supplementProvider(widget.profileId).notifier).deleteProtocol(protocol.id);
+          final error = ref.read(supplementProvider(widget.profileId)).error;
+          if (error != null && context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error: $error'), backgroundColor: Theme.of(context).colorScheme.error),
+            );
+          }
+        },
+      ),
     );
+  }
+
+  Future<bool> _confirmDeleteProtocol(BuildContext context, String itemType) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Delete ${itemType[0].toUpperCase()}${itemType.substring(1)}'),
+        content: Text(
+          itemType == 'supplement'
+              ? 'Are you sure you want to delete this supplement? This will also delete all associated protocols and logs.'
+              : 'Are you sure you want to delete this protocol?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(dialogContext).colorScheme.error,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
   }
 
   void _confirmDelete(BuildContext context, String supplementId) {
@@ -405,6 +559,803 @@ class _SupplementsScreenState extends ConsumerState<SupplementsScreen>
             child: const Text('Delete'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Shared helpers
+// ---------------------------------------------------------------------------
+
+const _kUnits = ['mg', 'mcg', 'IU', 'g', 'ml'];
+
+Widget _buildSectionLabel(BuildContext context, String label) {
+  return Padding(
+    padding: const EdgeInsets.only(top: 20, bottom: 8),
+    child: Text(label, style: Theme.of(context).textTheme.titleSmall),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// _AddSupplementSheet
+// ---------------------------------------------------------------------------
+
+class _AddSupplementSheet extends StatefulWidget {
+  const _AddSupplementSheet({
+    required this.profileId,
+    required this.onSave,
+  });
+
+  final String profileId;
+  final Future<void> Function(
+    String name,
+    String? brand,
+    double dosage,
+    String unit,
+    String? notes,
+  ) onSave;
+
+  @override
+  State<_AddSupplementSheet> createState() => _AddSupplementSheetState();
+}
+
+class _AddSupplementSheetState extends State<_AddSupplementSheet> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _brandController = TextEditingController();
+  final _dosageController = TextEditingController();
+  final _notesController = TextEditingController();
+
+  String _selectedUnit = 'mg';
+  bool _isSaving = false;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _brandController.dispose();
+    _dosageController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isSaving = true);
+    await widget.onSave(
+      _nameController.text.trim(),
+      _brandController.text.trim(),
+      double.parse(_dosageController.text.trim()),
+      _selectedUnit,
+      _notesController.text.trim(),
+    );
+    if (mounted) setState(() => _isSaving = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 16,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+      ),
+      child: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Add Supplement',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              _buildSectionLabel(context, 'Name *'),
+              TextFormField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+                  hintText: 'e.g. Vitamin D3',
+                  border: OutlineInputBorder(),
+                ),
+                textCapitalization: TextCapitalization.words,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Name is required' : null,
+              ),
+              _buildSectionLabel(context, 'Brand (optional)'),
+              TextFormField(
+                controller: _brandController,
+                decoration: const InputDecoration(
+                  hintText: 'e.g. Solgar',
+                  border: OutlineInputBorder(),
+                ),
+                textCapitalization: TextCapitalization.words,
+              ),
+              _buildSectionLabel(context, 'Dosage *'),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: TextFormField(
+                      controller: _dosageController,
+                      decoration: const InputDecoration(
+                        hintText: 'e.g. 1000',
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+                      ],
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return 'Required';
+                        final parsed = double.tryParse(v.trim());
+                        if (parsed == null || parsed <= 0) return 'Enter a valid number';
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: DropdownButtonFormField<String>(
+                      // ignore: deprecated_member_use
+                      value: _selectedUnit,
+                      decoration: const InputDecoration(border: OutlineInputBorder()),
+                      items: _kUnits
+                          .map((u) => DropdownMenuItem(value: u, child: Text(u)))
+                          .toList(),
+                      onChanged: (v) => setState(() => _selectedUnit = v ?? 'mg'),
+                    ),
+                  ),
+                ],
+              ),
+              _buildSectionLabel(context, 'Notes (optional)'),
+              TextFormField(
+                controller: _notesController,
+                decoration: const InputDecoration(
+                  hintText: 'e.g. Take with food',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: _isSaving ? null : _submit,
+                      child: _isSaving
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('Save'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// _EditSupplementSheet
+// ---------------------------------------------------------------------------
+
+class _EditSupplementSheet extends StatefulWidget {
+  const _EditSupplementSheet({
+    required this.supplement,
+    required this.onSave,
+    required this.onDelete,
+  });
+
+  final SupplementEntity supplement;
+  final Future<void> Function(
+    String name,
+    String? brand,
+    double dosage,
+    String unit,
+    String? notes,
+  ) onSave;
+  final Future<void> Function() onDelete;
+
+  @override
+  State<_EditSupplementSheet> createState() => _EditSupplementSheetState();
+}
+
+class _EditSupplementSheetState extends State<_EditSupplementSheet> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _nameController;
+  late final TextEditingController _brandController;
+  late final TextEditingController _dosageController;
+  late final TextEditingController _notesController;
+
+  late String _selectedUnit;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.supplement.name);
+    _brandController = TextEditingController(text: widget.supplement.brand ?? '');
+    _dosageController = TextEditingController(text: widget.supplement.dosage.toString());
+    _notesController = TextEditingController(text: widget.supplement.notes ?? '');
+    _selectedUnit = _kUnits.contains(widget.supplement.unit) ? widget.supplement.unit : 'mg';
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _brandController.dispose();
+    _dosageController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isSaving = true);
+    await widget.onSave(
+      _nameController.text.trim(),
+      _brandController.text.trim(),
+      double.parse(_dosageController.text.trim()),
+      _selectedUnit,
+      _notesController.text.trim(),
+    );
+    if (mounted) setState(() => _isSaving = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 16,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+      ),
+      child: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Edit Supplement',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              _buildSectionLabel(context, 'Name *'),
+              TextFormField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                ),
+                textCapitalization: TextCapitalization.words,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Name is required' : null,
+              ),
+              _buildSectionLabel(context, 'Brand (optional)'),
+              TextFormField(
+                controller: _brandController,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                ),
+                textCapitalization: TextCapitalization.words,
+              ),
+              _buildSectionLabel(context, 'Dosage *'),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: TextFormField(
+                      controller: _dosageController,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+                      ],
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return 'Required';
+                        final parsed = double.tryParse(v.trim());
+                        if (parsed == null || parsed <= 0) return 'Enter a valid number';
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: DropdownButtonFormField<String>(
+                      // ignore: deprecated_member_use
+                      value: _selectedUnit,
+                      decoration: const InputDecoration(border: OutlineInputBorder()),
+                      items: _kUnits
+                          .map((u) => DropdownMenuItem(value: u, child: Text(u)))
+                          .toList(),
+                      onChanged: (v) => setState(() => _selectedUnit = v ?? 'mg'),
+                    ),
+                  ),
+                ],
+              ),
+              _buildSectionLabel(context, 'Notes (optional)'),
+              TextFormField(
+                controller: _notesController,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+              ),
+              const SizedBox(height: 24),
+              // Delete button
+              OutlinedButton.icon(
+                onPressed: _isSaving ? null : widget.onDelete,
+                icon: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.error),
+                label: Text(
+                  'Delete Supplement',
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: Theme.of(context).colorScheme.error),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: _isSaving ? null : _submit,
+                      child: _isSaving
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('Save'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// _AddProtocolSheet
+// ---------------------------------------------------------------------------
+
+class _AddProtocolSheet extends StatefulWidget {
+  const _AddProtocolSheet({
+    required this.supplementName,
+    required this.defaultDosage,
+    required this.defaultUnit,
+    required this.onSave,
+  });
+
+  final String supplementName;
+  final double defaultDosage;
+  final String defaultUnit;
+  final Future<void> Function(
+    ProtocolTimeOfDay timeOfDay,
+    double dosage,
+    String unit,
+  ) onSave;
+
+  @override
+  State<_AddProtocolSheet> createState() => _AddProtocolSheetState();
+}
+
+class _AddProtocolSheetState extends State<_AddProtocolSheet> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _dosageController;
+
+  ProtocolTimeOfDay _selectedTime = ProtocolTimeOfDay.am;
+  late String _selectedUnit;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _dosageController = TextEditingController(text: widget.defaultDosage.toString());
+    _selectedUnit = _kUnits.contains(widget.defaultUnit) ? widget.defaultUnit : 'mg';
+  }
+
+  @override
+  void dispose() {
+    _dosageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isSaving = true);
+    await widget.onSave(
+      _selectedTime,
+      double.parse(_dosageController.text.trim()),
+      _selectedUnit,
+    );
+    if (mounted) setState(() => _isSaving = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 16,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+      ),
+      child: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Add Protocol',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        Text(
+                          widget.supplementName,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              _buildSectionLabel(context, 'Time of Day'),
+              Wrap(
+                spacing: 8,
+                children: ProtocolTimeOfDay.values.map((time) {
+                  final isSelected = _selectedTime == time;
+                  return ChoiceChip(
+                    label: Text(time.label),
+                    selected: isSelected,
+                    onSelected: (_) => setState(() => _selectedTime = time),
+                  );
+                }).toList(),
+              ),
+              _buildSectionLabel(context, 'Dosage'),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: TextFormField(
+                      controller: _dosageController,
+                      decoration: const InputDecoration(
+                        hintText: 'Dosage',
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+                      ],
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return 'Required';
+                        final parsed = double.tryParse(v.trim());
+                        if (parsed == null || parsed <= 0) return 'Enter a valid number';
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: DropdownButtonFormField<String>(
+                      // ignore: deprecated_member_use
+                      value: _selectedUnit,
+                      decoration: const InputDecoration(border: OutlineInputBorder()),
+                      items: _kUnits
+                          .map((u) => DropdownMenuItem(value: u, child: Text(u)))
+                          .toList(),
+                      onChanged: (v) => setState(() => _selectedUnit = v ?? 'mg'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: _isSaving ? null : _submit,
+                      child: _isSaving
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('Save'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// _EditProtocolSheet
+// ---------------------------------------------------------------------------
+
+class _EditProtocolSheet extends StatefulWidget {
+  const _EditProtocolSheet({
+    required this.protocol,
+    required this.onSave,
+    required this.onDelete,
+  });
+
+  final SupplementProtocolEntity protocol;
+  final Future<void> Function(
+    bool isActive,
+    ProtocolTimeOfDay timeOfDay,
+    double dosage,
+    String unit,
+  ) onSave;
+  final Future<void> Function() onDelete;
+
+  @override
+  State<_EditProtocolSheet> createState() => _EditProtocolSheetState();
+}
+
+class _EditProtocolSheetState extends State<_EditProtocolSheet> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _dosageController;
+
+  late ProtocolTimeOfDay _selectedTime;
+  late String _selectedUnit;
+  late bool _isActive;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _dosageController = TextEditingController(text: widget.protocol.dosage.toString());
+    _selectedTime = widget.protocol.timeOfDay;
+    _selectedUnit = _kUnits.contains(widget.protocol.unit) ? widget.protocol.unit : 'mg';
+    _isActive = widget.protocol.isActive;
+  }
+
+  @override
+  void dispose() {
+    _dosageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isSaving = true);
+    await widget.onSave(
+      _isActive,
+      _selectedTime,
+      double.parse(_dosageController.text.trim()),
+      _selectedUnit,
+    );
+    if (mounted) setState(() => _isSaving = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 16,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+      ),
+      child: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Edit Protocol',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        Text(
+                          widget.protocol.supplementName,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              // Active toggle
+              Card(
+                child: SwitchListTile(
+                  title: const Text('Active'),
+                  subtitle: Text(
+                    _isActive ? 'Appears in today\'s protocol' : 'Paused — will not appear today',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  value: _isActive,
+                  onChanged: (v) => setState(() => _isActive = v),
+                ),
+              ),
+              _buildSectionLabel(context, 'Time of Day'),
+              Wrap(
+                spacing: 8,
+                children: ProtocolTimeOfDay.values.map((time) {
+                  final isSelected = _selectedTime == time;
+                  return ChoiceChip(
+                    label: Text(time.label),
+                    selected: isSelected,
+                    onSelected: (_) => setState(() => _selectedTime = time),
+                  );
+                }).toList(),
+              ),
+              _buildSectionLabel(context, 'Dosage'),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: TextFormField(
+                      controller: _dosageController,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+                      ],
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return 'Required';
+                        final parsed = double.tryParse(v.trim());
+                        if (parsed == null || parsed <= 0) return 'Enter a valid number';
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: DropdownButtonFormField<String>(
+                      // ignore: deprecated_member_use
+                      value: _selectedUnit,
+                      decoration: const InputDecoration(border: OutlineInputBorder()),
+                      items: _kUnits
+                          .map((u) => DropdownMenuItem(value: u, child: Text(u)))
+                          .toList(),
+                      onChanged: (v) => setState(() => _selectedUnit = v ?? 'mg'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              // Delete button
+              OutlinedButton.icon(
+                onPressed: _isSaving ? null : widget.onDelete,
+                icon: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.error),
+                label: Text(
+                  'Delete Protocol',
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: Theme.of(context).colorScheme.error),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: _isSaving ? null : _submit,
+                      child: _isSaving
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('Save'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -132,6 +132,18 @@ import '../../../features/daily_coach/presentation/morning_checkin_screen.dart'
 import '../../../features/daily_coach/presentation/todays_plan_screen.dart'
     as todays_plan;
 
+// Bloodwork
+import '../../../features/bloodwork/presentation/bloodwork_screen.dart'
+    as bloodwork_screen;
+import '../../../features/bloodwork/presentation/bloodwork_detail_screen.dart'
+    as bloodwork_detail;
+
+// Habits
+import '../../../features/habits/presentation/habits_screen.dart'
+    as habits_screen;
+import '../../../features/habits/presentation/kegel_timer_screen.dart'
+    as kegel_timer;
+
 // Reminders
 import '../../../features/reminders/presentation/reminders_screen.dart'
     as reminders_screen;
@@ -218,7 +230,11 @@ class AppRouter {
             requestedPath.startsWith('/workouts/') ||
             requestedPath.startsWith('/goals') ||
             requestedPath.startsWith('/meals/') ||
-            requestedPath.startsWith('/daily-coach/');
+            requestedPath.startsWith('/daily-coach/') ||
+            requestedPath == '/bloodwork' ||
+            requestedPath.startsWith('/bloodwork/') ||
+            requestedPath == '/habits' ||
+            requestedPath == '/habits/kegel-timer';
         if (needsProfile &&
             (profileId == null || profileId.isEmpty) &&
             isAuthenticated) {
@@ -575,6 +591,45 @@ class AppRouter {
               profileId: profileId,
             );
           },
+        ),
+
+        // ── Bloodwork ──────────────────────────────────────
+        GoRoute(
+          path: '/bloodwork',
+          name: 'bloodwork',
+          builder: (context, state) {
+            final profileId = ref.read(activeProfileIdProvider) ?? '';
+            return bloodwork_screen.BloodworkScreen(profileId: profileId);
+          },
+        ),
+        GoRoute(
+          path: '/bloodwork/:testName',
+          name: 'bloodworkDetail',
+          builder: (context, state) {
+            final profileId = ref.read(activeProfileIdProvider) ?? '';
+            final testName = Uri.decodeComponent(
+              state.pathParameters['testName'] ?? '',
+            );
+            return bloodwork_detail.BloodworkDetailScreen(
+              profileId: profileId,
+              testName: testName,
+            );
+          },
+        ),
+
+        // ── Habits ─────────────────────────────────────────
+        GoRoute(
+          path: '/habits',
+          name: 'habits',
+          builder: (context, state) {
+            final profileId = ref.read(activeProfileIdProvider) ?? '';
+            return habits_screen.HabitsScreen(profileId: profileId);
+          },
+        ),
+        GoRoute(
+          path: '/habits/kegel-timer',
+          name: 'kegelTimer',
+          builder: (context, state) => const kegel_timer.KegelTimerScreen(),
         ),
 
         // ── Workouts ───────────────────────────────────────

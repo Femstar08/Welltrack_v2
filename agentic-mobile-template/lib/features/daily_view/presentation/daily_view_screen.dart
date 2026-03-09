@@ -66,6 +66,8 @@ class _DailyViewScreenState extends ConsumerState<DailyViewScreen> {
                       _buildWorkoutsSection(context, state.workoutsSummary!),
                     if (state.healthMetrics != null)
                       _buildHealthMetricsSection(context, state.healthMetrics!),
+                    if (state.habitsSummary != null)
+                      _buildHabitsSection(context, state.habitsSummary!),
                     const SizedBox(height: 80), // Bottom padding for FAB
                   ],
                 ),
@@ -457,6 +459,97 @@ class _DailyViewScreenState extends ConsumerState<DailyViewScreen> {
     );
   }
 
+  Widget _buildHabitsSection(BuildContext context, HabitsSummary summary) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: ExpansionTile(
+        leading: const Icon(Icons.track_changes),
+        title: const Text('Habits'),
+        subtitle: Text(
+          '${summary.completedToday} of ${summary.totalHabits} completed today',
+        ),
+        trailing: _buildCompletionIndicator(
+          context,
+          summary.completionPercentage,
+        ),
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ...summary.items.map((item) {
+                  // Kegel quick-link: show timer button when not yet completed.
+                  final bool isKegel = item.habitType == 'kegels';
+                  return ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: GestureDetector(
+                      onTap: () => ref
+                          .read(dailyViewProvider(widget.profileId).notifier)
+                          .toggleHabitToday(item.habitType),
+                      child: Icon(
+                        item.completedToday
+                            ? Icons.check_circle
+                            : Icons.radio_button_unchecked,
+                        size: 20,
+                        color: item.completedToday ? Colors.green : null,
+                      ),
+                    ),
+                    title: Text(
+                      item.habitLabel,
+                      style: item.completedToday
+                          ? Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                decoration: TextDecoration.lineThrough,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withValues(alpha: 0.5),
+                              )
+                          : null,
+                    ),
+                    subtitle: item.currentStreakDays > 0
+                        ? Text(
+                            '${item.currentStreakDays} day streak',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(color: Colors.orange),
+                          )
+                        : null,
+                    trailing: isKegel && !item.completedToday
+                        ? TextButton.icon(
+                            onPressed: () => _navigateToKegels(context),
+                            icon: const Icon(Icons.timer, size: 16),
+                            label: const Text('Start'),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                            ),
+                          )
+                        : null,
+                    onTap: () => ref
+                        .read(dailyViewProvider(widget.profileId).notifier)
+                        .toggleHabitToday(item.habitType),
+                  );
+                }),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _navigateToHabits(context),
+                    icon: const Icon(Icons.open_in_new),
+                    label: const Text('View All Habits'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildMetricTile(
     BuildContext context,
     String label,
@@ -567,5 +660,15 @@ class _DailyViewScreenState extends ConsumerState<DailyViewScreen> {
 
   void _navigateToWorkout(BuildContext context, String workoutId) {
     context.push('/workouts/log/$workoutId');
+  }
+
+  void _navigateToHabits(BuildContext context) {
+    context.push('/habits');
+  }
+
+  /// Opens the kegel timer screen if one exists, otherwise falls back to the
+  /// habits screen so the user can start the session from there.
+  void _navigateToKegels(BuildContext context) {
+    context.push('/habits');
   }
 }

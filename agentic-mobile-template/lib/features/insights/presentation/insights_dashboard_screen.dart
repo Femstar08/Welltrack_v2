@@ -15,6 +15,8 @@ import '../../../shared/core/auth/session_manager.dart';
 import '../../health/presentation/health_connections_provider.dart';
 import '../../health/presentation/widgets/garmin_attribution_widget.dart';
 import '../../health/presentation/widgets/strava_attribution_widget.dart';
+import '../../bloodwork/presentation/bloodwork_provider.dart';
+import '../../bloodwork/presentation/widgets/bloodwork_summary_card.dart';
 
 /// Insights Dashboard Screen
 /// Main performance intelligence dashboard
@@ -261,6 +263,11 @@ class _InsightsDashboardScreenState
                         ],
                         const SizedBox(height: 24),
 
+                        // Bloodwork summary — only shown when the user has
+                        // at least one result logged.
+                        _buildBloodworkSection(),
+                        const SizedBox(height: 24),
+
                         // Baseline comparison (shown after baseline is complete)
                         if (!baselineState.isInBaselinePeriod &&
                             baselineState.calibrationStatus == 'complete')
@@ -443,6 +450,38 @@ class _InsightsDashboardScreenState
         fontSize: 18,
         fontWeight: FontWeight.bold,
       ),
+    );
+  }
+
+  /// Bloodwork summary card — shown only when the user has logged at least one
+  /// bloodwork result (avoids an empty section for new users).
+  Widget _buildBloodworkSection() {
+    final bloodworkState =
+        ref.watch(bloodworkProvider(widget.profileId));
+
+    // Trigger a load if the state is still pristine (no results, not loading).
+    if (!bloodworkState.isLoading && bloodworkState.results.isEmpty &&
+        bloodworkState.error == null) {
+      Future.microtask(() {
+        ref
+            .read(bloodworkProvider(widget.profileId).notifier)
+            .loadResults();
+      });
+    }
+
+    // If the user has never logged any bloodwork AND the load has completed,
+    // hide the section entirely to keep the dashboard uncluttered.
+    if (!bloodworkState.isLoading && bloodworkState.latestByTest.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('Bloodwork'),
+        const SizedBox(height: 12),
+        BloodworkSummaryCard(profileId: widget.profileId),
+      ],
     );
   }
 
