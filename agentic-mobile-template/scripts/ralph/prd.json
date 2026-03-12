@@ -41,51 +41,51 @@
     {
       "id": "US-006",
       "title": "Add debounce to AI calls (bloodwork, insights, check-in)",
-      "passes": false,
+      "passes": true,
       "priority": 2,
-      "notes": "No debounce on AI-calling methods. Double-tap fires duplicate API calls, wastes quota. Add debounce/mutex to: (1) bloodworkProvider.requestAiInterpretation() (2) insightsProvider.generateInsightNarrative() (3) morningCheckInProvider.submit() AI narration call. Use a DateTime-based guard: if last call was < 2 seconds ago, return early."
+      "notes": "DONE. No debounce on AI-calling methods. Double-tap fires duplicate API calls, wastes quota. Add debounce/mutex to: (1) bloodworkProvider.requestAiInterpretation() (2) insightsProvider.generateInsightNarrative() (3) morningCheckInProvider.submit() AI narration call. Use a DateTime-based guard: if last call was < 2 seconds ago, return early."
     },
     {
       "id": "US-007",
       "title": "Convert sequential Supabase queries to Future.wait in MorningCheckInNotifier.submit()",
-      "passes": false,
+      "passes": true,
       "priority": 2,
-      "notes": "morning_checkin_provider.dart lines 289-357: submit() makes 5 sequential getMetrics calls (recovery, steps, HR, calories, weight) that are independent. Convert to Future.wait([...]) to run concurrently. This will reduce check-in submission latency by ~4x."
+      "notes": "DONE. morning_checkin_provider.dart lines 289-357: submit() makes 5 sequential getMetrics calls (recovery, steps, HR, calories, weight) that are independent. Convert to Future.wait([...]) to run concurrently. This will reduce check-in submission latency by ~4x."
     },
     {
       "id": "US-008",
       "title": "Move direct Supabase calls from providers into repositories",
-      "passes": false,
+      "passes": true,
       "priority": 2,
-      "notes": "bloodwork_provider.dart lines 221-236: directly calls Supabase.instance.client to check ai_consent_bloodwork. This bypasses the repository pattern. Move this consent check into ProfileRepository (add getAiConsentBloodwork(profileId) method). Similarly, morning_checkin_provider.dart line 255 accesses Supabase.instance.client.auth.currentUser?.id directly — use the auth provider instead."
+      "notes": "DONE. bloodwork_provider.dart lines 221-236: directly calls Supabase.instance.client to check ai_consent_bloodwork. This bypasses the repository pattern. Move this consent check into ProfileRepository (add getAiConsentBloodwork(profileId) method). Similarly, morning_checkin_provider.dart line 255 accesses Supabase.instance.client.auth.currentUser?.id directly — use the auth provider instead."
     },
     {
       "id": "US-009",
       "title": "Add confirmation dialogs to destructive actions",
-      "passes": false,
+      "passes": true,
       "priority": 2,
-      "notes": "No confirmation before: delete goal, archive shopping list, remove bloodwork entry, delete habit. Add showDialog with 'Are you sure?' confirmation before each destructive operation. Pattern: AlertDialog with Cancel and Delete actions. Use red color for delete button."
+      "notes": "DONE. No confirmation before: delete goal, archive shopping list, remove bloodwork entry, delete habit. Add showDialog with 'Are you sure?' confirmation before each destructive operation. Pattern: AlertDialog with Cancel and Delete actions. Use red color for delete button."
     },
     {
       "id": "US-010",
       "title": "Create error message mapping utility for user-friendly errors",
-      "passes": false,
+      "passes": true,
       "priority": 2,
-      "notes": "Raw exceptions shown to users (e.g. type 'Null' is not a type of 'Map'). Create shared/core/utils/error_mapper.dart with static mapError(dynamic error) -> String method. Map common errors: network errors -> 'No internet connection', timeout -> 'Request timed out', 404 -> 'Not found', auth errors -> 'Please sign in again', generic -> 'Something went wrong. Please try again.' Apply in all providers that show errors via SnackBar."
+      "notes": "DONE. Raw exceptions shown to users (e.g. type 'Null' is not a type of 'Map'). Create shared/core/utils/error_mapper.dart with static mapError(dynamic error) -> String method. Map common errors: network errors -> 'No internet connection', timeout -> 'Request timed out', 404 -> 'Not found', auth errors -> 'Please sign in again', generic -> 'Something went wrong. Please try again.' Apply in all providers that show errors via SnackBar."
     },
     {
       "id": "US-011",
       "title": "Fix N+1 query in OverloadDetectionService and push workout filter to DB",
-      "passes": false,
+      "passes": true,
       "priority": 2,
-      "notes": "Two performance issues: (1) overload_detection_service.dart lines 85-103: detectPlateausForExercises iterates exercises making 1 query per exercise. Batch into single query with IN clause. (2) workouts_card.dart lines 37-41: fetches 50 completed workouts and filters client-side for this week. Add startDate parameter to getCompletedWorkouts and push filter to DB."
+      "notes": "DONE. Two performance issues: (1) overload_detection_service.dart lines 85-103: detectPlateausForExercises iterates exercises making 1 query per exercise. Batch into single query with IN clause. (2) workouts_card.dart lines 37-41: fetches 50 completed workouts and filters client-side for this week. Add startDate parameter to getCompletedWorkouts and push filter to DB."
     },
     {
       "id": "US-012",
       "title": "Add semantic labels and tooltips to all icon buttons for accessibility",
-      "passes": false,
+      "passes": true,
       "priority": 3,
-      "notes": "Only 35 semantic labels in entire app. All IconButton widgets need tooltip parameter. All GestureDetector/InkWell widgets wrapping icons need Semantics wrapper. Focus on: dashboard action buttons, navigation icons, form action buttons, timer controls, chart interactions. This is required for Play Store accessibility compliance."
+      "notes": "DONE. Only 35 semantic labels in entire app. All IconButton widgets need tooltip parameter. All GestureDetector/InkWell widgets wrapping icons need Semantics wrapper. Focus on: dashboard action buttons, navigation icons, form action buttons, timer controls, chart interactions. This is required for Play Store accessibility compliance."
     }
   ]
 }
