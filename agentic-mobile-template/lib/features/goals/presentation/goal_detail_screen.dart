@@ -62,6 +62,7 @@ class _GoalDetailContent extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_outlined),
+            tooltip: 'Edit goal',
             onPressed: () {
               // Navigate to edit screen - push with goal data
               context.push('/goals/create', extra: goal);
@@ -69,6 +70,7 @@ class _GoalDetailContent extends ConsumerWidget {
           ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
+            tooltip: 'Delete goal',
             onPressed: () => _confirmDelete(context, ref),
           ),
         ],

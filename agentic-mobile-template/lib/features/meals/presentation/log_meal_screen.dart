@@ -277,6 +277,7 @@ class _LogMealScreenState extends ConsumerState<LogMealScreen> {
                             index < _rating ? Icons.star : Icons.star_border,
                             size: 36,
                           ),
+                          tooltip: '${index + 1} star${index == 0 ? '' : 's'}',
                           color: Colors.amber,
                           onPressed: () {
                             setState(() {

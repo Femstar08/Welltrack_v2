@@ -72,6 +72,7 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
                 suffixIcon: _controller.text.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear),
+                        tooltip: 'Clear search',
                         onPressed: () {
                           _controller.clear();
                           ref

@@ -317,25 +317,29 @@ class _HabitCard extends StatelessWidget {
                 ),
 
                 // Completion toggle
-                GestureDetector(
-                  onTap: onToggle,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: isCompletedToday
-                          ? accentColor
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: accentColor,
-                        width: 2,
+                Semantics(
+                  label: isCompletedToday ? 'Mark habit incomplete' : 'Mark habit complete',
+                  button: true,
+                  child: GestureDetector(
+                    onTap: onToggle,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: isCompletedToday
+                            ? accentColor
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: accentColor,
+                          width: 2,
+                        ),
                       ),
+                      child: isCompletedToday
+                          ? const Icon(Icons.check, color: Colors.white, size: 20)
+                          : null,
                     ),
-                    child: isCompletedToday
-                        ? const Icon(Icons.check, color: Colors.white, size: 20)
-                        : null,
                   ),
                 ),
 

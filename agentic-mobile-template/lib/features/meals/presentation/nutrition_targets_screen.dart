@@ -617,6 +617,7 @@ class _ErrorBanner extends StatelessWidget {
           ),
           IconButton(
             icon: const Icon(Icons.refresh_rounded, size: 20),
+            tooltip: 'Retry',
             onPressed: onDismiss,
             color: Theme.of(context).colorScheme.onErrorContainer,
             padding: EdgeInsets.zero,

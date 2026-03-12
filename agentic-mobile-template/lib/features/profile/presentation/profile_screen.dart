@@ -154,6 +154,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           if (!_isEditing)
             IconButton(
               icon: const Icon(Icons.edit_outlined),
+              tooltip: 'Edit profile',
               onPressed: () {
                 profileAsync.whenData((profile) {
                   if (profile != null) {
@@ -164,6 +165,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Settings',
             onPressed: () => context.push('/settings'),
           ),
         ],

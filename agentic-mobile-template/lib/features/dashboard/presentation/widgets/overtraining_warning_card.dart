@@ -132,12 +132,16 @@ class _OvertTrainingWarningCardState
                   ),
                 ),
               ),
-              GestureDetector(
-                onTap: _dismiss,
-                child: Icon(
-                  Icons.close,
-                  size: 18,
-                  color: Colors.orange.shade700,
+              Semantics(
+                label: 'Dismiss overtraining warning',
+                button: true,
+                child: GestureDetector(
+                  onTap: _dismiss,
+                  child: Icon(
+                    Icons.close,
+                    size: 18,
+                    color: Colors.orange.shade700,
+                  ),
                 ),
               ),
             ],

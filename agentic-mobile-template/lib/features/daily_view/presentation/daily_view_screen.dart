@@ -36,6 +36,7 @@ class _DailyViewScreenState extends ConsumerState<DailyViewScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
+          tooltip: 'Go back',
           onPressed: () => context.pop(),
         ),
         title: const Text('Daily View'),
@@ -90,6 +91,7 @@ class _DailyViewScreenState extends ConsumerState<DailyViewScreen> {
           children: [
             IconButton(
               icon: const Icon(Icons.chevron_left),
+              tooltip: 'Previous day',
               onPressed: () {
                 ref.read(dailyViewProvider(widget.profileId).notifier).goToPreviousDay();
               },
@@ -115,6 +117,7 @@ class _DailyViewScreenState extends ConsumerState<DailyViewScreen> {
             ),
             IconButton(
               icon: const Icon(Icons.chevron_right),
+              tooltip: 'Next day',
               onPressed: () {
                 ref.read(dailyViewProvider(widget.profileId).notifier).goToNextDay();
               },
@@ -306,12 +309,14 @@ class _DailyViewScreenState extends ConsumerState<DailyViewScreen> {
                           children: [
                             IconButton(
                               icon: const Icon(Icons.check, color: Colors.green),
+                              tooltip: 'Mark as taken',
                               onPressed: () {
                                 // TODO: Mark as taken
                               },
                             ),
                             IconButton(
                               icon: const Icon(Icons.close, color: Colors.orange),
+                              tooltip: 'Mark as skipped',
                               onPressed: () {
                                 // TODO: Mark as skipped
                               },

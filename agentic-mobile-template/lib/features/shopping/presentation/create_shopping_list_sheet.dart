@@ -116,6 +116,7 @@ class _CreateShoppingListSheetState
                   children: [
                     IconButton(
                       icon: const Icon(Icons.arrow_back),
+                      tooltip: 'Go back',
                       onPressed: () => setState(() => _isFromMealPlan = false),
                     ),
                     Text('Select Date Range',
@@ -181,6 +182,7 @@ class _CreateShoppingListSheetState
                   children: [
                     IconButton(
                       icon: const Icon(Icons.arrow_back),
+                      tooltip: 'Go back',
                       onPressed: () => setState(() => _isFromRecipes = false),
                     ),
                     Text('Select Recipes',

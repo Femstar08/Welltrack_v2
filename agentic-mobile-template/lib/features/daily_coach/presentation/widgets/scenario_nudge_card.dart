@@ -72,6 +72,7 @@ class ScenarioNudgeCard extends ConsumerWidget {
                 size: 18,
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
               ),
+              tooltip: 'Dismiss',
               onPressed: () {
                 ref
                     .read(scenarioNudgeDismissalProvider.notifier)

@@ -661,11 +661,13 @@ class _IngredientTile extends StatelessWidget {
         children: [
           IconButton(
             icon: const Icon(Icons.edit, size: 20),
+            tooltip: 'Edit',
             onPressed: onEdit,
           ),
           IconButton(
             icon: Icon(Icons.delete, size: 20,
                 color: theme.colorScheme.error),
+            tooltip: 'Delete',
             onPressed: onDelete,
           ),
         ],
@@ -709,11 +711,13 @@ class _StepTile extends StatelessWidget {
         children: [
           IconButton(
             icon: const Icon(Icons.edit, size: 20),
+            tooltip: 'Edit',
             onPressed: onEdit,
           ),
           IconButton(
             icon: Icon(Icons.delete, size: 20,
                 color: theme.colorScheme.error),
+            tooltip: 'Delete',
             onPressed: onDelete,
           ),
           const Icon(Icons.drag_handle),

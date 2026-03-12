@@ -31,7 +31,10 @@ class BloodworkSummaryCard extends ConsumerWidget {
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(color: theme.colorScheme.outline.withAlpha(30)),
       ),
-      child: InkWell(
+      child: Semantics(
+        label: 'View bloodwork results',
+        button: true,
+        child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () => context.push('/bloodwork'),
         child: Padding(
@@ -48,6 +51,7 @@ class BloodworkSummaryCard extends ConsumerWidget {
                         )
                       : const _AllNormalBody(),
         ),
+      ),
       ),
     );
   }

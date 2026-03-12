@@ -178,7 +178,11 @@ class _ProtocolCard extends StatelessWidget {
     final theme = Theme.of(context);
     final accent = theme.colorScheme.primary;
 
-    return GestureDetector(
+    return Semantics(
+      label: 'Select ${protocol.name} protocol',
+      button: true,
+      selected: isSelected,
+      child: GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
@@ -259,6 +263,7 @@ class _ProtocolCard extends StatelessWidget {
           ],
         ),
       ),
+    ),
     );
   }
 }

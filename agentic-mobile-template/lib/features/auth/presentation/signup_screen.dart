@@ -125,6 +125,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: AppColors.textPrimaryLight),
+          tooltip: 'Go back',
           onPressed: isLoading ? null : () => context.go('/login'),
         ),
       ),
@@ -235,6 +236,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                               ? Icons.visibility_outlined
                               : Icons.visibility_off_outlined,
                         ),
+                        tooltip: _obscurePassword ? 'Show password' : 'Hide password',
                         onPressed: () {
                           setState(() {
                             _obscurePassword = !_obscurePassword;
@@ -303,6 +305,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                               ? Icons.visibility_outlined
                               : Icons.visibility_off_outlined,
                         ),
+                        tooltip: _obscureConfirmPassword ? 'Show password' : 'Hide password',
                         onPressed: () {
                           setState(() {
                             _obscureConfirmPassword = !_obscureConfirmPassword;

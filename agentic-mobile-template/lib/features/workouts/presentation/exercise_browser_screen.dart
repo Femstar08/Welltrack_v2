@@ -129,6 +129,7 @@ class _ExerciseBrowserScreenState
                 if (searchQuery.isNotEmpty)
                   IconButton(
                     icon: const Icon(Icons.clear),
+                    tooltip: 'Clear search',
                     onPressed: _clearSearch,
                   ),
               ],

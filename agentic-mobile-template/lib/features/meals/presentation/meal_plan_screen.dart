@@ -639,12 +639,12 @@ class _DateSelector extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          IconButton(icon: const Icon(Icons.chevron_left), onPressed: onPrevious),
+          IconButton(icon: const Icon(Icons.chevron_left), tooltip: 'Previous day', onPressed: onPrevious),
           Text(
             formattedDate,
             style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
-          IconButton(icon: const Icon(Icons.chevron_right), onPressed: onNext),
+          IconButton(icon: const Icon(Icons.chevron_right), tooltip: 'Next day', onPressed: onNext),
         ],
       ),
     );

@@ -25,6 +25,7 @@ class HealthConnectionScreen extends ConsumerWidget {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
+          tooltip: 'Go back',
           onPressed: () => context.pop(),
         ),
         title: const Text('Health Connections'),
