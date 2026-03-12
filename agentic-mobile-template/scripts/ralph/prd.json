@@ -6,37 +6,37 @@
     {
       "id": "US-001",
       "title": "Initialize NotificationService in main.dart and request POST_NOTIFICATIONS permission",
-      "passes": false,
+      "passes": true,
       "priority": 1,
-      "notes": "NotificationService.initialize() is never called at app startup. Channel not created, tz.local not set, no permission requested. All reminders are silently broken. In main.dart after Supabase init, call NotificationService.initialize(). Request POST_NOTIFICATIONS on Android 13+. Verify a test reminder actually fires on device."
+      "notes": "DONE. NotificationService.initialize() is never called at app startup. Channel not created, tz.local not set, no permission requested. All reminders are silently broken. In main.dart after Supabase init, call NotificationService.initialize(). Request POST_NOTIFICATIONS on Android 13+. Verify a test reminder actually fires on device."
     },
     {
       "id": "US-002",
       "title": "Wire dashboard recovery score to PerformanceEngine (remove Future.delayed stub)",
-      "passes": false,
+      "passes": true,
       "priority": 1,
-      "notes": "dashboard_provider.dart lines 81-102: _loadRecoveryScore does nothing except Future.delayed(500ms). PerformanceEngine and InsightsRepository already compute recovery scores. Wire _loadRecoveryScore to call insightsRepository.getLatestRecoveryScore() or calculate via PerformanceEngine. Remove the artificial 500ms delay. recoveryScoreColorProvider should reflect real data."
+      "notes": "DONE. dashboard_provider.dart lines 81-102: _loadRecoveryScore does nothing except Future.delayed(500ms). PerformanceEngine and InsightsRepository already compute recovery scores. Wire _loadRecoveryScore to call insightsRepository.getLatestRecoveryScore() or calculate via PerformanceEngine. Remove the artificial 500ms delay. recoveryScoreColorProvider should reflect real data."
     },
     {
       "id": "US-003",
       "title": "Add back buttons to all pushed screens missing them",
-      "passes": false,
+      "passes": true,
       "priority": 1,
-      "notes": "6 screens pushed via context.push() have no AppBar back button: reminders_screen.dart, supplements_screen.dart, insights_dashboard_screen.dart, health_connection_screen.dart, recovery_detail_screen.dart, daily_view_screen.dart. Add leading IconButton(icon: Icon(Icons.arrow_back), onPressed: () => context.pop()) to each AppBar. Users currently must use Android system back gesture."
+      "notes": "DONE. 6 screens pushed via context.push() have no AppBar back button: reminders_screen.dart, supplements_screen.dart, insights_dashboard_screen.dart, health_connection_screen.dart, recovery_detail_screen.dart, daily_view_screen.dart. Add leading IconButton(icon: Icon(Icons.arrow_back), onPressed: () => context.pop()) to each AppBar. Users currently must use Android system back gesture."
     },
     {
       "id": "US-004",
       "title": "Add provider invalidation after mutations (fix stale state)",
-      "passes": false,
+      "passes": true,
       "priority": 1,
-      "notes": "After mutations, downstream providers are never refreshed. Fix these chains: (1) liveSessionProvider.completeSession() must invalidate insightsProvider and dashboardHomeProvider. (2) morningCheckInProvider.submit() must invalidate insightsProvider to recalculate recovery. (3) bloodworkProvider add/update/delete must invalidate insightsProvider. (4) habitProvider toggle must invalidate dashboardHomeProvider. Add ref.invalidate() or ref.refresh() calls after each mutation."
+      "notes": "DONE. After mutations, downstream providers are never refreshed. Fix these chains: (1) liveSessionProvider.completeSession() must invalidate insightsProvider and dashboardHomeProvider. (2) morningCheckInProvider.submit() must invalidate insightsProvider to recalculate recovery. (3) bloodworkProvider add/update/delete must invalidate insightsProvider. (4) habitProvider toggle must invalidate dashboardHomeProvider. Add ref.invalidate() or ref.refresh() calls after each mutation."
     },
     {
       "id": "US-005",
       "title": "Fix bedtime calculation off-by-one for wakeHour >= 7",
-      "passes": false,
+      "passes": true,
       "priority": 1,
-      "notes": "prescription_engine_test.dart line 515-518 documents this bug: wakeHour=7 calculates bedtime as 21:00 (9PM) instead of expected 23:00 (11PM). The clamping formula in PrescriptionEngine has an off-by-one on the lower bound. Fix the formula so bedtime = wakeHour - sleepTarget (typically 7-8hrs) and update the test to assert the correct value."
+      "notes": "DONE. prescription_engine_test.dart line 515-518 documents this bug: wakeHour=7 calculates bedtime as 21:00 (9PM) instead of expected 23:00 (11PM). The clamping formula in PrescriptionEngine has an off-by-one on the lower bound. Fix the formula so bedtime = wakeHour - sleepTarget (typically 7-8hrs) and update the test to assert the correct value."
     },
     {
       "id": "US-006",

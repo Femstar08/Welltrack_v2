@@ -181,6 +181,8 @@ class InsightsNotifier extends StateNotifier<InsightsState> {
   final String _profileId;
   final String _userId;
 
+  DateTime? _lastAiCall;
+
   /// Initialize insights for profile
   Future<void> initialize() async {
     state = state.copyWith(isLoading: true, error: null);
@@ -437,6 +439,11 @@ class InsightsNotifier extends StateNotifier<InsightsState> {
   /// save to DB. On any AI failure, fall back to a deterministic summary
   /// built directly from state data so the user always sees something useful.
   Future<void> generateInsightNarrative() async {
+    final now = DateTime.now();
+    if (_lastAiCall != null && now.difference(_lastAiCall!).inSeconds < 3) {
+      return; // Debounce: skip if called within 3 seconds
+    }
+    _lastAiCall = now;
     // --- Once-per-day cache guard (day-period only) ---
     // Skip the AI call when we already generated a narrative for today.
     if (state.selectedPeriod == PeriodType.day) {
@@ -460,7 +467,6 @@ class InsightsNotifier extends StateNotifier<InsightsState> {
     state = state.copyWith(isGeneratingNarrative: true, error: null);
 
     final dateRange = _getDateRangeForPeriod(state.selectedPeriod);
-    final now = DateTime.now();
 
     // Pre-compute metrics needed for both AI context and fallback text
     final latestScore = state.latestRecoveryScore;

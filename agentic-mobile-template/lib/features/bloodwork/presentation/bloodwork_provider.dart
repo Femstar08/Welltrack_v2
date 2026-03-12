@@ -2,13 +2,15 @@
 
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/bloodwork_repository.dart';
 import '../domain/bloodwork_entity.dart';
 import '../../insights/presentation/insights_provider.dart';
+import '../../profile/data/profile_repository.dart';
+import '../../../features/auth/presentation/auth_provider.dart';
 import '../../../shared/core/ai/ai_orchestrator_service.dart';
 import '../../../shared/core/ai/ai_providers.dart';
 import '../../../shared/core/logging/app_logger.dart';
+import '../../../shared/core/utils/error_mapper.dart';
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -91,6 +93,8 @@ class BloodworkNotifier extends StateNotifier<BloodworkState> {
   final String _profileId;
   final AppLogger _logger = AppLogger();
 
+  DateTime? _lastAiCall;
+
   // ── Load ──────────────────────────────────────────────────────────────────
 
   /// Fetches full history + latest-per-test snapshot.
@@ -114,9 +118,10 @@ class BloodworkNotifier extends StateNotifier<BloodworkState> {
         isLoading: false,
       );
     } catch (e) {
+      _logger.error('loadResults failed', e);
       state = state.copyWith(
         isLoading: false,
-        error: e.toString(),
+        error: ErrorMapper.mapError(e),
       );
     }
   }
@@ -150,7 +155,8 @@ class BloodworkNotifier extends StateNotifier<BloodworkState> {
       // Invalidate insights so recovery and trend data reflect the new result.
       _ref.invalidate(insightsProvider);
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      _logger.error('addResult failed', e);
+      state = state.copyWith(isLoading: false, error: ErrorMapper.mapError(e));
     }
   }
 
@@ -181,7 +187,8 @@ class BloodworkNotifier extends StateNotifier<BloodworkState> {
       // Invalidate insights so downstream views reflect the updated result.
       _ref.invalidate(insightsProvider);
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      _logger.error('updateResult failed', e);
+      state = state.copyWith(isLoading: false, error: ErrorMapper.mapError(e));
     }
   }
 
@@ -208,7 +215,8 @@ class BloodworkNotifier extends StateNotifier<BloodworkState> {
       // Invalidate insights so downstream views no longer reference the deleted result.
       _ref.invalidate(insightsProvider);
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      _logger.error('deleteResult failed', e);
+      state = state.copyWith(isLoading: false, error: ErrorMapper.mapError(e));
     }
   }
 
@@ -224,18 +232,18 @@ class BloodworkNotifier extends StateNotifier<BloodworkState> {
   /// 5. On any AI failure, build a deterministic fallback from the results and
   ///    store that instead — the user always sees something useful.
   Future<void> requestAiInterpretation() async {
+    final now = DateTime.now();
+    if (_lastAiCall != null && now.difference(_lastAiCall!).inSeconds < 3) {
+      return; // Debounce: skip if called within 3 seconds
+    }
+    _lastAiCall = now;
     state = state.copyWith(isLoadingAi: true, clearAiError: true);
 
     // ── 1. Consent check ────────────────────────────────────────────────────
     try {
-      final profileRow = await Supabase.instance.client
-          .from('wt_profiles')
-          .select('ai_consent_bloodwork')
-          .eq('id', _profileId)
-          .maybeSingle();
-
-      final consentGranted =
-          profileRow?['ai_consent_bloodwork'] as bool? ?? false;
+      final consentGranted = await _ref
+          .read(profileRepositoryProvider)
+          .getAiConsentBloodwork(_profileId);
 
       if (!consentGranted) {
         state = state.copyWith(
@@ -299,7 +307,7 @@ class BloodworkNotifier extends StateNotifier<BloodworkState> {
     }
 
     // ── 4. AI call ──────────────────────────────────────────────────────────
-    final userId = Supabase.instance.client.auth.currentUser?.id;
+    final userId = _ref.read(currentUserProvider)?.id;
     if (userId == null) {
       state = state.copyWith(
         isLoadingAi: false,

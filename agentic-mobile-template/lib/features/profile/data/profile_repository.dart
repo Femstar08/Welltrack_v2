@@ -174,4 +174,19 @@ class ProfileRepository {
       throw Exception('Failed to mark onboarding complete: $e');
     }
   }
+
+  /// Returns the value of `ai_consent_bloodwork` for the given profile.
+  /// Returns `false` when the field is null or the row cannot be found.
+  Future<bool> getAiConsentBloodwork(String profileId) async {
+    try {
+      final row = await _client
+          .from('wt_profiles')
+          .select('ai_consent_bloodwork')
+          .eq('id', profileId)
+          .maybeSingle();
+      return row?['ai_consent_bloodwork'] as bool? ?? false;
+    } catch (e) {
+      throw Exception('Failed to fetch bloodwork AI consent: $e');
+    }
+  }
 }

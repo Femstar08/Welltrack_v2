@@ -1,8 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../auth/presentation/auth_provider.dart';
 import '../data/checkin_repository.dart';
 import '../data/daily_prescription_repository.dart';
 import '../data/fallback_narratives.dart';
@@ -138,6 +138,8 @@ class MorningCheckInNotifier
   final Ref _ref;
   final String _profileId;
 
+  DateTime? _lastAiCall;
+
   // ── Init ─────────────────────────────────────────────────────────────────
 
   Future<void> _loadInitialData() async {
@@ -256,7 +258,7 @@ class MorningCheckInNotifier
     state = state.copyWith(isSubmitting: true, clearError: true);
 
     try {
-      final userId = Supabase.instance.client.auth.currentUser?.id;
+      final userId = _ref.read(currentUserProvider)?.id;
       if (userId == null) throw Exception('Not authenticated');
 
       final today = DateTime.now();
@@ -280,85 +282,111 @@ class MorningCheckInNotifier
 
       final savedCheckIn = await _checkinRepo.upsertCheckIn(checkIn);
 
-      // 2. Load health signals for PrescriptionInput
+      // 2. Load health signals for PrescriptionInput (all fetches run concurrently)
       final startOfDay = DateTime(today.year, today.month, today.day);
       final endOfDay = startOfDay.add(const Duration(days: 1));
 
-      int? stepsToday;
-      double? restingHR;
-      bool hadHeavySession = false;
-      double? recoveryScore;
-
-      // Fetch today's recovery score (calculated by PerformanceEngine)
-      try {
-        final scores = await _insightsRepo.getRecoveryScores(
-          profileId: _profileId,
-          startDate: startOfDay,
-          endDate: endOfDay,
-        );
-        if (scores.isNotEmpty) {
-          recoveryScore = scores.last.recoveryScore;
-        }
-      } catch (_) {}
-
-      try {
-        final stepsMetrics = await _healthRepo.getMetrics(
-          _profileId,
-          MetricType.steps,
-          startDate: startOfDay,
-          endDate: endOfDay,
-        );
-        stepsToday =
-            stepsMetrics.isNotEmpty ? stepsMetrics.first.valueNum?.toInt() : null;
-      } catch (_) {}
-
-      try {
-        final hrMetrics = await _healthRepo.getMetrics(
-          _profileId,
-          MetricType.hr,
-          startDate: startOfDay.subtract(const Duration(hours: 6)),
-          endDate: startOfDay.add(const Duration(hours: 8)),
-        );
-        restingHR = hrMetrics.isNotEmpty ? hrMetrics.first.valueNum : null;
-      } catch (_) {}
-
-      try {
-        // Approximate heavy session: active calories > 400 yesterday
-        final yesterday = startOfDay.subtract(const Duration(days: 1));
-        final calMetrics = await _healthRepo.getMetrics(
-          _profileId,
-          MetricType.calories,
-          startDate: yesterday,
-          endDate: startOfDay,
-        );
-        final cals = calMetrics.isNotEmpty ? (calMetrics.first.valueNum ?? 0) : 0;
-        hadHeavySession = cals > 400;
-      } catch (_) {}
-
-      // Fetch weight trend over last 14 days (kg/day rate of change)
-      double? weightTrend;
-      try {
-        final fourteenDaysAgo = startOfDay.subtract(const Duration(days: 14));
-        final weightMetrics = await _healthRepo.getMetrics(
-          _profileId,
-          MetricType.weight,
-          startDate: fourteenDaysAgo,
-          endDate: endOfDay,
-        );
-        if (weightMetrics.length >= 2) {
-          final oldest = weightMetrics.last.valueNum;
-          final newest = weightMetrics.first.valueNum;
-          if (oldest != null && newest != null) {
-            final days = weightMetrics.first.recordedAt
-                .difference(weightMetrics.last.recordedAt)
-                .inDays
-                .abs();
-            if (days > 0) {
-              weightTrend = (newest - oldest) / days;
-            }
+      // Each closure is independent — one failure does not block the others.
+      final healthResults = await Future.wait([
+        // [0] Recovery score (calculated by PerformanceEngine)
+        () async {
+          try {
+            final scores = await _insightsRepo.getRecoveryScores(
+              profileId: _profileId,
+              startDate: startOfDay,
+              endDate: endOfDay,
+            );
+            return scores.isNotEmpty ? scores.last.recoveryScore : null;
+          } catch (_) {
+            return null;
           }
-        }
-      } catch (_) {}
+        }(),
+
+        // [1] Steps today
+        () async {
+          try {
+            final stepsMetrics = await _healthRepo.getMetrics(
+              _profileId,
+              MetricType.steps,
+              startDate: startOfDay,
+              endDate: endOfDay,
+            );
+            return stepsMetrics.isNotEmpty
+                ? stepsMetrics.first.valueNum?.toInt().toDouble()
+                : null;
+          } catch (_) {
+            return null;
+          }
+        }(),
+
+        // [2] Resting HR (morning window: 6 h before → 8 h after midnight)
+        () async {
+          try {
+            final hrMetrics = await _healthRepo.getMetrics(
+              _profileId,
+              MetricType.hr,
+              startDate: startOfDay.subtract(const Duration(hours: 6)),
+              endDate: startOfDay.add(const Duration(hours: 8)),
+            );
+            return hrMetrics.isNotEmpty ? hrMetrics.first.valueNum : null;
+          } catch (_) {
+            return null;
+          }
+        }(),
+
+        // [3] Active calories yesterday — used to flag heavy session (>400 kcal)
+        () async {
+          try {
+            final yesterday = startOfDay.subtract(const Duration(days: 1));
+            final calMetrics = await _healthRepo.getMetrics(
+              _profileId,
+              MetricType.calories,
+              startDate: yesterday,
+              endDate: startOfDay,
+            );
+            final cals =
+                calMetrics.isNotEmpty ? (calMetrics.first.valueNum ?? 0) : 0;
+            // Encode bool as 1.0 / 0.0 so it fits the Future<double?> list type.
+            return cals > 400 ? 1.0 : 0.0;
+          } catch (_) {
+            return null;
+          }
+        }(),
+
+        // [4] Weight trend over last 14 days (kg/day rate of change)
+        () async {
+          try {
+            final fourteenDaysAgo = startOfDay.subtract(const Duration(days: 14));
+            final weightMetrics = await _healthRepo.getMetrics(
+              _profileId,
+              MetricType.weight,
+              startDate: fourteenDaysAgo,
+              endDate: endOfDay,
+            );
+            if (weightMetrics.length >= 2) {
+              final oldest = weightMetrics.last.valueNum;
+              final newest = weightMetrics.first.valueNum;
+              if (oldest != null && newest != null) {
+                final days = weightMetrics.first.recordedAt
+                    .difference(weightMetrics.last.recordedAt)
+                    .inDays
+                    .abs();
+                if (days > 0) return (newest - oldest) / days;
+              }
+            }
+            return null;
+          } catch (_) {
+            return null;
+          }
+        }(),
+      ]);
+
+      final double? recoveryScore = healthResults[0];
+      // Steps were cast to double? above to satisfy the list type; convert back.
+      final int? stepsToday = healthResults[1]?.toInt();
+      final double? restingHR = healthResults[2];
+      final bool hadHeavySession = (healthResults[3] ?? 0.0) == 1.0;
+      final double? weightTrend = healthResults[4];
 
       // 3. Build PrescriptionInput and run deterministic engine
       final prescriptionInput = PrescriptionInput(
@@ -386,6 +414,11 @@ class MorningCheckInNotifier
 
       // 5. AI narration — non-fatal; prescription shows regardless
       try {
+        final aiNow = DateTime.now();
+        if (_lastAiCall != null && aiNow.difference(_lastAiCall!).inSeconds < 3) {
+          // Debounce: skip if called within 3 seconds
+        } else {
+          _lastAiCall = aiNow;
         final contextOverride = <String, dynamic>{
           'plan_type': savedPrescription.planType.name,
           'recovery_score': savedPrescription.recoveryScore,
@@ -431,6 +464,7 @@ class MorningCheckInNotifier
           isFallback: false,
         );
         savedPrescription = await _prescriptionRepo.upsertPrescription(withAi);
+        } // end else (debounce guard)
       } on AiException {
         // Mark as fallback — plan still persisted with pre-written narrative
         final fallbackContent =

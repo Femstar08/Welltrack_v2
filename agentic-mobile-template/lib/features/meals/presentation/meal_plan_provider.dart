@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../shared/core/utils/error_mapper.dart';
 import '../data/food_database_service.dart';
 import '../data/macro_calculator.dart';
 import '../data/meal_plan_repository.dart';
@@ -128,7 +129,7 @@ class MealPlanNotifier extends StateNotifier<MealPlanState> {
         clearRecoveryLabel: recoveryLabel == null,
       );
     } catch (e) {
-      state = state.copyWith(error: 'Failed to load meal plan: $e');
+      state = state.copyWith(error: ErrorMapper.mapError(e));
     }
   }
 
@@ -292,7 +293,7 @@ class MealPlanNotifier extends StateNotifier<MealPlanState> {
     } catch (e) {
       state = state.copyWith(
         isGenerating: false,
-        error: e.toString(),
+        error: ErrorMapper.mapError(e),
       );
     }
   }
@@ -325,7 +326,7 @@ class MealPlanNotifier extends StateNotifier<MealPlanState> {
         state = state.copyWith(plan: plan.copyWith(items: updatedItems));
       }
     } catch (e) {
-      state = state.copyWith(error: 'Failed to update meal: $e');
+      state = state.copyWith(error: ErrorMapper.mapError(e));
     }
   }
 
@@ -406,7 +407,7 @@ class MealPlanNotifier extends StateNotifier<MealPlanState> {
       state = state.copyWith(
         isSwapping: false,
         clearSwappingItemId: true,
-        error: 'Failed to load alternatives: $e',
+        error: ErrorMapper.mapError(e),
       );
       return [];
     }
@@ -442,7 +443,7 @@ class MealPlanNotifier extends StateNotifier<MealPlanState> {
       );
       state = state.copyWith(plan: refreshed);
     } catch (e) {
-      state = state.copyWith(error: 'Swap failed: $e');
+      state = state.copyWith(error: ErrorMapper.mapError(e));
     }
   }
 
@@ -541,7 +542,7 @@ class MealPlanNotifier extends StateNotifier<MealPlanState> {
       state = state.copyWith(
         isSwapping: false,
         clearSwappingItemId: true,
-        error: 'Regenerate failed: $e',
+        error: ErrorMapper.mapError(e),
       );
     }
   }
@@ -583,7 +584,7 @@ class MealPlanNotifier extends StateNotifier<MealPlanState> {
         ));
         state = state.copyWith(plan: plan);
       } catch (e) {
-        state = state.copyWith(error: 'Could not create meal log: $e');
+        state = state.copyWith(error: ErrorMapper.mapError(e));
         return;
       }
     }
@@ -618,7 +619,7 @@ class MealPlanNotifier extends StateNotifier<MealPlanState> {
         isSaving: false,
       );
     } catch (e) {
-      state = state.copyWith(isSaving: false, error: 'Could not log food: $e');
+      state = state.copyWith(isSaving: false, error: ErrorMapper.mapError(e));
     }
   }
 
@@ -636,7 +637,7 @@ class MealPlanNotifier extends StateNotifier<MealPlanState> {
       try {
         await _repository.deleteMealPlan(plan.id);
       } catch (e) {
-        state = state.copyWith(error: 'Failed to delete plan: $e');
+        state = state.copyWith(error: ErrorMapper.mapError(e));
         return;
       }
     }

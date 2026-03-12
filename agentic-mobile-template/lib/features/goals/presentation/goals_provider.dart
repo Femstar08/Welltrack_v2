@@ -3,6 +3,7 @@ import '../data/goal_repository.dart';
 import '../domain/goal_entity.dart';
 import '../../insights/data/insights_repository.dart';
 import '../../insights/domain/forecast_entity.dart';
+import '../../../shared/core/utils/error_mapper.dart';
 
 /// Maps goal metric type to health metric type stored in wt_health_metrics.
 /// Goal types can differ from DB column values (e.g. 'hr' → 'resting_hr').
@@ -64,7 +65,10 @@ class GoalsNotifier extends StateNotifier<AsyncValue<List<GoalEntity>>> {
       final goals = await _repository.getGoals(_profileId);
       state = AsyncValue.data(goals);
     } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
+      state = AsyncValue.error(
+        Exception(ErrorMapper.mapError(e)),
+        stack,
+      );
     }
   }
 
@@ -90,7 +94,10 @@ class GoalsNotifier extends StateNotifier<AsyncValue<List<GoalEntity>>> {
       );
       await loadGoals();
     } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
+      state = AsyncValue.error(
+        Exception(ErrorMapper.mapError(e)),
+        stack,
+      );
     }
   }
 
@@ -99,7 +106,10 @@ class GoalsNotifier extends StateNotifier<AsyncValue<List<GoalEntity>>> {
       await _repository.updateGoal(goalId, fields);
       await loadGoals();
     } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
+      state = AsyncValue.error(
+        Exception(ErrorMapper.mapError(e)),
+        stack,
+      );
     }
   }
 
@@ -108,7 +118,10 @@ class GoalsNotifier extends StateNotifier<AsyncValue<List<GoalEntity>>> {
       await _repository.deleteGoal(goalId);
       await loadGoals();
     } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
+      state = AsyncValue.error(
+        Exception(ErrorMapper.mapError(e)),
+        stack,
+      );
     }
   }
 
@@ -117,7 +130,10 @@ class GoalsNotifier extends StateNotifier<AsyncValue<List<GoalEntity>>> {
       await _repository.recalculateForecast(goalId, _insightsRepository);
       await loadGoals();
     } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
+      state = AsyncValue.error(
+        Exception(ErrorMapper.mapError(e)),
+        stack,
+      );
     }
   }
 

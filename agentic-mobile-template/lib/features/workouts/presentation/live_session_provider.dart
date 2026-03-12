@@ -13,6 +13,7 @@ import '../../insights/data/performance_engine.dart';
 import '../../insights/domain/training_load_entity.dart';
 import '../../insights/presentation/insights_provider.dart';
 import '../../dashboard/presentation/dashboard_home_provider.dart';
+import '../../../shared/core/utils/error_mapper.dart';
 
 // ---------------------------------------------------------------------------
 // LiveExerciseData — per-exercise state within an active session
@@ -282,7 +283,7 @@ class LiveSessionNotifier extends StateNotifier<LiveSessionState> {
         isLoading: false,
       );
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(isLoading: false, error: ErrorMapper.mapError(e));
     }
   }
 
@@ -311,7 +312,7 @@ class LiveSessionNotifier extends StateNotifier<LiveSessionState> {
         isLoading: false,
       );
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(isLoading: false, error: ErrorMapper.mapError(e));
     }
   }
 
@@ -388,7 +389,7 @@ class LiveSessionNotifier extends StateNotifier<LiveSessionState> {
 
       return isNewPR;
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = state.copyWith(error: ErrorMapper.mapError(e));
       return false;
     }
   }
@@ -450,7 +451,7 @@ class LiveSessionNotifier extends StateNotifier<LiveSessionState> {
 
       return isNewPR;
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = state.copyWith(error: ErrorMapper.mapError(e));
       return false;
     }
   }

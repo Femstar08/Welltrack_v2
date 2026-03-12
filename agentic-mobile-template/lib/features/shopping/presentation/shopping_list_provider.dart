@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/shopping_list_repository.dart';
 import '../domain/shopping_list_entity.dart';
 import '../domain/shopping_list_item_entity.dart';
+import '../../../shared/core/utils/error_mapper.dart';
 
 class ShoppingListsState {
   const ShoppingListsState({
@@ -40,7 +41,7 @@ class ShoppingListsNotifier extends StateNotifier<ShoppingListsState> {
       final lists = await _repository.getLists(_profileId);
       state = state.copyWith(lists: lists, isLoading: false);
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(isLoading: false, error: ErrorMapper.mapError(e));
     }
   }
 
@@ -57,7 +58,7 @@ class ShoppingListsNotifier extends StateNotifier<ShoppingListsState> {
       await loadLists();
       return list;
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = state.copyWith(error: ErrorMapper.mapError(e));
       return null;
     }
   }
@@ -75,7 +76,7 @@ class ShoppingListsNotifier extends StateNotifier<ShoppingListsState> {
       await loadLists();
       return list;
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = state.copyWith(error: ErrorMapper.mapError(e));
       return null;
     }
   }
@@ -97,7 +98,7 @@ class ShoppingListsNotifier extends StateNotifier<ShoppingListsState> {
       await loadLists();
       return list;
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = state.copyWith(error: ErrorMapper.mapError(e));
       return null;
     }
   }
@@ -109,7 +110,7 @@ class ShoppingListsNotifier extends StateNotifier<ShoppingListsState> {
         lists: state.lists.where((l) => l.id != listId).toList(),
       );
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = state.copyWith(error: ErrorMapper.mapError(e));
     }
   }
 
@@ -120,7 +121,7 @@ class ShoppingListsNotifier extends StateNotifier<ShoppingListsState> {
         lists: state.lists.where((l) => l.id != listId).toList(),
       );
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = state.copyWith(error: ErrorMapper.mapError(e));
     }
   }
 

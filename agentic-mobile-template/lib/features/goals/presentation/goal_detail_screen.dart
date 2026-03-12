@@ -400,6 +400,7 @@ class _GoalDetailContent extends ConsumerWidget {
                   .deleteGoal(goal.id);
               if (context.mounted) context.pop();
             },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Delete'),
           ),
         ],
