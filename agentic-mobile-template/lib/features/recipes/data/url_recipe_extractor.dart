@@ -74,9 +74,14 @@ class UrlRecipeExtractor {
       contextOverride: {'url': url},
     );
 
-    final recipeData = _extractJsonFromMessage(response.assistantMessage);
+    var recipeData = _extractJsonFromMessage(response.assistantMessage);
     if (recipeData == null) {
       throw Exception('No recipe data found in AI response');
+    }
+
+    // Support new schema (recipe wrapper) and legacy (flat)
+    if (recipeData.containsKey('recipe') && recipeData['recipe'] is Map) {
+      recipeData = recipeData['recipe'] as Map<String, dynamic>;
     }
 
     // Parse ingredients
@@ -142,8 +147,19 @@ class UrlRecipeExtractor {
   // Helpers
   // ---------------------------------------------------------------------------
 
-  /// Extracts the first ```json ... ``` block from an AI assistant message.
+  /// Extracts JSON from an AI assistant message.
+  /// Tries bare JSON first, then falls back to ```json code blocks.
   Map<String, dynamic>? _extractJsonFromMessage(String message) {
+    // Try bare JSON first
+    try {
+      final decoded = jsonDecode(message.trim());
+      if (decoded is Map<String, dynamic>) return decoded;
+      if (decoded is List && decoded.isNotEmpty && decoded.first is Map) {
+        return decoded.first as Map<String, dynamic>;
+      }
+    } catch (_) {}
+
+    // Fall back to code-fenced JSON block
     final regex = RegExp(r'```json\n([\s\S]*?)\n```');
     final match = regex.firstMatch(message);
     if (match == null) return null;

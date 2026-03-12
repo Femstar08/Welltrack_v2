@@ -102,10 +102,45 @@ class InsightEntity {
     return DateTime.now().difference(createdAt).inHours < 24;
   }
 
+  /// Check if insight was created within the last 7 days
+  bool get isWithinLast7Days {
+    return DateTime.now().difference(createdAt).inDays < 7;
+  }
+
   /// Check if insight is for current period
   bool get isCurrent {
     final now = DateTime.now();
     return now.isAfter(periodStart) && now.isBefore(periodEnd);
+  }
+
+  /// Whether this insight is a deterministic fallback (AI was unavailable)
+  bool get isFallback => metricsSnapshot?['is_fallback'] == true;
+
+  /// Key patterns from structured AI response
+  List<Map<String, dynamic>> get keyPatterns {
+    final list = metricsSnapshot?['key_patterns'];
+    if (list is List) {
+      return list.whereType<Map<String, dynamic>>().toList();
+    }
+    return [];
+  }
+
+  /// Recommendations from structured AI response
+  List<Map<String, dynamic>> get recommendations {
+    final list = metricsSnapshot?['recommendations'];
+    if (list is List) {
+      return list.whereType<Map<String, dynamic>>().toList();
+    }
+    return [];
+  }
+
+  /// Warning flags from structured AI response (e.g., "Overtraining risk")
+  List<String> get flags {
+    final list = metricsSnapshot?['flags'];
+    if (list is List) {
+      return list.whereType<String>().toList();
+    }
+    return [];
   }
 
   Map<String, dynamic> toJson() {

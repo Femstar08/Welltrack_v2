@@ -48,12 +48,19 @@ class SecondaryModulesList extends StatelessWidget {
           ),
           const SizedBox(height: 8),
 
-          // Module tiles
-          ...tiles.map(
-            (config) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: CompactModuleTile(config: config),
+          // Module tiles — 3-column grid
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+              childAspectRatio: 1.0,
             ),
+            itemCount: tiles.length,
+            itemBuilder: (context, index) =>
+                CompactModuleTile(config: tiles[index]),
           ),
         ],
       ),

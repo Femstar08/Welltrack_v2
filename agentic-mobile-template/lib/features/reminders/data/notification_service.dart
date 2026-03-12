@@ -331,13 +331,13 @@ class NotificationService {
       case 'supplements':
         return '/supplements';
       case 'meals':
-        return '/meals';
+        return '/meals/log';
       case 'workouts':
         return '/workouts';
       case 'custom':
         return '/daily-view';
       default:
-        return '/home';
+        return '/';
     }
   }
 }

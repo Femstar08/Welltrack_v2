@@ -319,6 +319,29 @@ class ShoppingListGeneratorNotifier
 
     try {
       final data = jsonDecode(jsonStr) as Map<String, dynamic>;
+
+      // Support new schema (shopping_list with category groups) and legacy (items array)
+      if (data.containsKey('shopping_list') && data['shopping_list'] is Map) {
+        final sl = data['shopping_list'] as Map<String, dynamic>;
+        final result = <GeneratedShoppingItem>[];
+        for (final entry in sl.entries) {
+          final aisle = entry.key;
+          final aisleLabel = aisle[0].toUpperCase() + aisle.substring(1);
+          if (entry.value is List) {
+            for (final item in entry.value as List) {
+              result.add(GeneratedShoppingItem(
+                ingredientName: item.toString(),
+                quantity: null,
+                unit: null,
+                aisle: aisleLabel,
+                notes: null,
+              ));
+            }
+          }
+        }
+        return result;
+      }
+
       final items = (data['items'] as List?) ?? [];
       return items.map((item) {
         final m = item as Map<String, dynamic>;

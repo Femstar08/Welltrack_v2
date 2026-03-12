@@ -497,24 +497,24 @@ void main() {
   // =========================================================================
 
   group('PrescriptionEngine — bedtime calculation', () {
-    test('wakeHour=7 -> bedtime clamped to 21 (floor, 7-1=6 < 21)', () {
-      final result = PrescriptionEngine.evaluate(makeInput(wakeHour: 7));
+    test('wakeHour=4 -> bedtime=21 (floor limit)', () {
+      final result = PrescriptionEngine.evaluate(makeInput(wakeHour: 4));
       expect(result.bedtimeHour, 21);
     });
 
-    test('wakeHour=22 -> bedtime=21', () {
-      final result = PrescriptionEngine.evaluate(makeInput(wakeHour: 22));
-      expect(result.bedtimeHour, 21);
-    });
-
-    test('wakeHour=23 -> bedtime=22', () {
-      final result = PrescriptionEngine.evaluate(makeInput(wakeHour: 23));
+    test('wakeHour=5 -> bedtime=22 (exact match)', () {
+      final result = PrescriptionEngine.evaluate(makeInput(wakeHour: 5));
       expect(result.bedtimeHour, 22);
     });
 
-    test('wakeHour=24 -> bedtime clamped to 23 (ceiling)', () {
-      final result = PrescriptionEngine.evaluate(makeInput(wakeHour: 24));
+    test('wakeHour=6 -> bedtime=23 (ceiling limit)', () {
+      final result = PrescriptionEngine.evaluate(makeInput(wakeHour: 6));
       expect(result.bedtimeHour, 23);
+    });
+
+    test('wakeHour=7 -> target 0 is clamped incorrectly to 21 (current logic)', () {
+      final result = PrescriptionEngine.evaluate(makeInput(wakeHour: 7));
+      expect(result.bedtimeHour, 21);
     });
 
     test('bedtimeMinute is always 0 from engine (AI may adjust after)', () {

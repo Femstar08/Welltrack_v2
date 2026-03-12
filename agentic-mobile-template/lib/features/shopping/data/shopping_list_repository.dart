@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../meals/data/meal_plan_repository.dart';
+import '../../pantry/data/pantry_repository.dart';
 import '../../recipes/data/recipe_repository.dart';
 import '../domain/shopping_list_entity.dart';
 import '../domain/shopping_list_item_entity.dart';
@@ -9,14 +11,23 @@ final shoppingListRepositoryProvider = Provider<ShoppingListRepository>((ref) {
   return ShoppingListRepository(
     Supabase.instance.client,
     ref.watch(recipeRepositoryProvider),
+    ref.watch(mealPlanRepositoryProvider),
+    ref.watch(pantryRepositoryProvider),
   );
 });
 
 class ShoppingListRepository {
-  ShoppingListRepository(this._client, this._recipeRepository);
+  ShoppingListRepository(
+    this._client,
+    this._recipeRepository,
+    this._mealPlanRepository,
+    this._pantryRepository,
+  );
 
   final SupabaseClient _client;
   final RecipeRepository _recipeRepository;
+  final MealPlanRepository _mealPlanRepository;
+  final PantryRepository _pantryRepository;
 
   Future<List<ShoppingListEntity>> getLists(String profileId) async {
     try {
@@ -276,6 +287,133 @@ class ShoppingListRepository {
           .eq('id', itemId);
     } catch (e) {
       throw Exception('Failed to delete item: $e');
+    }
+  }
+
+  Future<ShoppingListEntity> createListFromMealPlan({
+    required String profileId,
+    required String name,
+    required DateTime startDate,
+    required DateTime endDate,
+    bool excludePantryItems = true,
+  }) async {
+    try {
+      // 1. Fetch meal plans for the date range
+      final mealPlans = await _mealPlanRepository.getMealPlans(
+        profileId,
+        startDate,
+        endDate,
+      );
+
+      // 2. Consolidated ingredient map: key = lowercase ingredient name
+      final consolidated = <String, _ConsolidatedIngredient>{};
+
+      // 2a. Collect unique recipe IDs from plan items
+      final recipeIds = <String>{};
+      for (final plan in mealPlans) {
+        for (final item in plan.items) {
+          if (item.recipeId != null) recipeIds.add(item.recipeId!);
+        }
+      }
+
+      // 2b. Pull actual ingredients from linked recipes
+      for (final recipeId in recipeIds) {
+        try {
+          final recipe = await _recipeRepository.getRecipe(recipeId);
+          for (final ingredient in recipe.ingredients) {
+            final key = ingredient.ingredientName.toLowerCase().trim();
+            if (consolidated.containsKey(key)) {
+              final existing = consolidated[key]!;
+              if (existing.unit == ingredient.unit &&
+                  existing.quantity != null &&
+                  ingredient.quantity != null) {
+                consolidated[key] = existing.copyWith(
+                  quantity: existing.quantity! + ingredient.quantity!,
+                );
+              }
+            } else {
+              consolidated[key] = _ConsolidatedIngredient(
+                ingredientName: ingredient.ingredientName,
+                quantity: ingredient.quantity,
+                unit: ingredient.unit,
+                sourceRecipeId: recipeId,
+              );
+            }
+          }
+        } catch (_) {
+          // Skip recipes that fail to load
+        }
+      }
+
+      // 2c. For meal items without a recipe, use the meal name as an ingredient
+      for (final plan in mealPlans) {
+        for (final item in plan.items) {
+          if (item.recipeId == null) {
+            final key = item.name.toLowerCase().trim();
+            if (!consolidated.containsKey(key)) {
+              consolidated[key] = _ConsolidatedIngredient(
+                ingredientName: item.name,
+                quantity: null,
+                unit: null,
+              );
+            }
+          }
+        }
+      }
+
+      // 3. Cross-reference with pantry — exclude items already available
+      if (excludePantryItems && consolidated.isNotEmpty) {
+        try {
+          final pantryItems =
+              await _pantryRepository.getAvailableItems(profileId);
+          final pantryNames = pantryItems
+              .map((p) => p.name.toLowerCase().trim())
+              .toSet();
+          consolidated.removeWhere((key, _) {
+            return pantryNames.any(
+              (pantryName) =>
+                  pantryName.contains(key) || key.contains(pantryName),
+            );
+          });
+        } catch (_) {
+          // If pantry lookup fails, proceed without filtering
+        }
+      }
+
+      // 4. Sort by aisle then name
+      final items = consolidated.values.toList()
+        ..sort((a, b) {
+          final aisleCmp = AisleMapper.getAisleSortOrder(
+                  AisleMapper.getAisle(a.ingredientName))
+              .compareTo(AisleMapper.getAisleSortOrder(
+                  AisleMapper.getAisle(b.ingredientName)));
+          if (aisleCmp != 0) return aisleCmp;
+          return a.ingredientName.compareTo(b.ingredientName);
+        });
+
+      final now = DateTime.now();
+      final itemEntities = items.asMap().entries.map((entry) {
+        final item = entry.value;
+        return ShoppingListItemEntity(
+          id: '',
+          shoppingListId: '',
+          ingredientName: item.ingredientName,
+          quantity: item.quantity,
+          unit: item.unit,
+          aisle: AisleMapper.getAisle(item.ingredientName),
+          sourceRecipeId: item.sourceRecipeId,
+          sortOrder: entry.key,
+          createdAt: now,
+        );
+      }).toList();
+
+      return await createList(
+        profileId: profileId,
+        name: name,
+        items: itemEntities,
+      );
+    } catch (e) {
+      throw Exception('Failed to create shopping list from meal plan: $e');
     }
   }
 

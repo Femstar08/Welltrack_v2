@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <array name="health_permissions">
+        <item>androidx.health.permission.Steps</item>
+        <item>androidx.health.permission.HeartRate</item>
+        <item>androidx.health.permission.SleepSession</item>
+        <item>androidx.health.permission.Weight</item>
+        <item>androidx.health.permission.Distance</item>
+        <item>androidx.health.permission.ActiveCaloriesBurned</item>
+        <item>androidx.health.permission.BodyFat</item>
+    </array>
+</resources>

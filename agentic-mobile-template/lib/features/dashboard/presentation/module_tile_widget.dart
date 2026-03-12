@@ -125,6 +125,10 @@ class ModuleTileWidget extends StatelessWidget {
         return 'Manage your notifications';
       case WellTrackModule.dailyView:
         return 'Today\'s tasks and progress';
+      case WellTrackModule.bloodwork:
+        return 'Track lab results and trends';
+      case WellTrackModule.habits:
+        return 'Build streaks and earn milestones';
       case WellTrackModule.moduleToggles:
         return 'Customize your dashboard';
     }
@@ -157,6 +161,10 @@ class ModuleTileWidget extends StatelessWidget {
         return '/reminders';
       case WellTrackModule.dailyView:
         return '/daily-view';
+      case WellTrackModule.bloodwork:
+        return '/bloodwork';
+      case WellTrackModule.habits:
+        return '/habits';
       case WellTrackModule.moduleToggles:
         return '/settings';
     }

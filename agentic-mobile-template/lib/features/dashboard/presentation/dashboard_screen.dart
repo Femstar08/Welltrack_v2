@@ -16,6 +16,7 @@ import 'widgets/trends_preview_card.dart';
 import 'widgets/workouts_card.dart';
 import 'widgets/daily_coach_card.dart';
 import 'widgets/dashboard_scenario_nudges.dart';
+import 'widgets/overtraining_warning_card.dart';
 import '../../goals/domain/goal_entity.dart';
 import '../../goals/presentation/goals_provider.dart';
 
@@ -86,7 +87,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     child: DashboardScenarioNudges(
                         profileId: widget.profileId),
                   ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                  const SliverToBoxAdapter(child: SizedBox(height: 8)),
+
+                  // Section 1d: Overtraining Warning (dismissable, shown when load is high)
+                  SliverToBoxAdapter(
+                    child: OvertTrainingWarningCard(
+                      profileId: widget.profileId,
+                    ),
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 8)),
 
                   // Section 2: Key Signals Grid
                   SliverToBoxAdapter(

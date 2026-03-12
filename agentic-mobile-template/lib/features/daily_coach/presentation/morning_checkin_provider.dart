@@ -401,19 +401,28 @@ class MorningCheckInNotifier
           profileId: _profileId,
           workflowType: 'generate_daily_plan',
           message:
-              'Based on the plan data provided, explain in 1-2 sentences WHY '
-              'today\'s plan is set the way it is. Focus on the reasoning '
-              'behind the recommendation, not what to do. Be encouraging and '
-              'concise. Return JSON with "focus_tip" and "narrative" keys.',
+              'Translate today\'s plan data into a motivating daily narrative.',
           contextOverride: contextOverride,
         );
 
         final parsed =
             jsonDecode(aiResponse.assistantMessage) as Map<String, dynamic>;
 
+        // Support both new schema (today_plan) and legacy (focus_tip/narrative)
+        String? focusTip;
+        String? narrative;
+        if (parsed.containsKey('today_plan')) {
+          final tp = parsed['today_plan'] as Map<String, dynamic>;
+          focusTip = tp['focus'] as String?;
+          narrative = tp['motivation'] as String?;
+        } else {
+          focusTip = parsed['focus_tip'] as String?;
+          narrative = parsed['narrative'] as String?;
+        }
+
         final withAi = savedPrescription.copyWith(
-          aiFocusTip: parsed['focus_tip'] as String?,
-          aiNarrative: parsed['narrative'] as String?,
+          aiFocusTip: focusTip,
+          aiNarrative: narrative,
           aiModel: 'gpt-4o-mini',
           isFallback: false,
         );

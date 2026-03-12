@@ -48,6 +48,14 @@ class _GoalDetailContent extends ConsumerWidget {
     final theme = Theme.of(context);
     final forecast = goal.forecast;
 
+    // Fetch real metric history for the projection chart
+    final trendAsync = ref.watch(
+      goalMetricTrendProvider((
+        profileId: goal.profileId,
+        metricType: goal.metricType,
+      )),
+    );
+
     return Scaffold(
       appBar: AppBar(
         title: Text(goal.metricDisplayName),
@@ -96,7 +104,18 @@ class _GoalDetailContent extends ConsumerWidget {
                       const SizedBox(height: 16),
                       SizedBox(
                         height: 250,
-                        child: GoalProjectionChart(goal: goal),
+                        child: trendAsync.when(
+                          loading: () =>
+                              const Center(child: CircularProgressIndicator()),
+                          error: (_, __) => GoalProjectionChart(
+                            goal: goal,
+                            actualDataPoints: const [],
+                          ),
+                          data: (dataPoints) => GoalProjectionChart(
+                            goal: goal,
+                            actualDataPoints: dataPoints,
+                          ),
+                        ),
                       ),
                     ],
                   ),

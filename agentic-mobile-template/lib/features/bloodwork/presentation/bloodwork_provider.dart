@@ -1,5 +1,6 @@
 // lib/features/bloodwork/presentation/bloodwork_provider.dart
 
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/bloodwork_repository.dart';
@@ -334,11 +335,35 @@ class BloodworkNotifier extends StateNotifier<BloodworkState> {
 
       _ref.read(aiUsageProvider.notifier).state = response.usage;
 
-      // Accept the raw assistant message — the edge function may return plain
-      // text or JSON; we surface whatever the AI says as-is.
-      final interpretation = response.assistantMessage.trim().isNotEmpty
-          ? response.assistantMessage.trim()
-          : buildDeterministicFallback();
+      // Parse structured JSON if available; fall back to raw text
+      String interpretation = response.assistantMessage.trim();
+      try {
+        final parsed = jsonDecode(interpretation) as Map<String, dynamic>;
+        // New schema: { interpretation, possible_considerations[], professional_consultation_note }
+        final interp = parsed['interpretation'] as String?;
+        final considerations = (parsed['possible_considerations'] as List?)
+            ?.map((c) => c.toString())
+            .toList();
+        final note = parsed['professional_consultation_note'] as String?;
+        if (interp != null && interp.isNotEmpty) {
+          final buffer = StringBuffer(interp);
+          if (considerations != null && considerations.isNotEmpty) {
+            buffer.writeln('\n');
+            for (final c in considerations) {
+              buffer.writeln('- $c');
+            }
+          }
+          if (note != null) {
+            buffer.writeln('\n$note');
+          }
+          interpretation = buffer.toString().trim();
+        }
+      } catch (_) {
+        // Not JSON — use raw text as-is
+      }
+      if (interpretation.isEmpty) {
+        interpretation = buildDeterministicFallback();
+      }
 
       state = state.copyWith(
         isLoadingAi: false,

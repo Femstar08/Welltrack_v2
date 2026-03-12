@@ -10,23 +10,31 @@ class DashboardState {
     this.tiles = const [],
     this.recoveryScore,
     this.isCalibrating = true,
+    this.isOvertraining = false,
     this.errorMessage,
   });
   final List<ModuleConfig> tiles;
   final double? recoveryScore;
   final bool isCalibrating;
+
+  /// True when the insights engine flags high training load relative to the
+  /// user's 4-week average.  Drives the dismissable warning card.
+  final bool isOvertraining;
+
   final String? errorMessage;
 
   DashboardState copyWith({
     List<ModuleConfig>? tiles,
     double? recoveryScore,
     bool? isCalibrating,
+    bool? isOvertraining,
     String? errorMessage,
   }) {
     return DashboardState(
       tiles: tiles ?? this.tiles,
       recoveryScore: recoveryScore ?? this.recoveryScore,
       isCalibrating: isCalibrating ?? this.isCalibrating,
+      isOvertraining: isOvertraining ?? this.isOvertraining,
       errorMessage: errorMessage ?? this.errorMessage,
     );
   }
@@ -38,6 +46,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
   DashboardNotifier(this.ref) : super(const DashboardState());
   final Ref ref;
   final AppLogger _logger = AppLogger();
+  bool _listenersSetUp = false;
 
   /// Initialize dashboard with profile data
   Future<void> initialize(String profileId) async {
@@ -47,10 +56,13 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
       // Load module configs
       await ref.read(moduleConfigsProvider.notifier).loadForProfile(profileId);
 
-      // Listen to enabled modules
-      ref.listen(enabledModulesProvider, (previous, next) {
-        state = state.copyWith(tiles: next);
-      });
+      // Listen to enabled modules (guard against multiple registrations)
+      if (!_listenersSetUp) {
+        _listenersSetUp = true;
+        ref.listen(enabledModulesProvider, (previous, next) {
+          state = state.copyWith(tiles: next);
+        });
+      }
 
       // Load recovery score (placeholder for now)
       await _loadRecoveryScore(profileId);

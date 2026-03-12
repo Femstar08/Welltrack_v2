@@ -253,16 +253,18 @@ class MealPlanNotifier extends StateNotifier<MealPlanState> {
       final now = DateTime.now();
       final items = meals.asMap().entries.map((entry) {
         final m = entry.value as Map<String, dynamic>;
+        // Support both new schema (meal_name + nested macros) and legacy (name + flat macros)
+        final macros = m['macros'] as Map<String, dynamic>?;
         return MealPlanItemEntity(
           id: '',
           mealPlanId: '',
           mealType: m['meal_type'] as String? ?? 'snack',
-          name: m['name'] as String? ?? 'Meal',
+          name: (m['meal_name'] ?? m['name']) as String? ?? 'Meal',
           description: m['description'] as String?,
-          calories: m['calories'] as int?,
-          proteinG: m['protein_g'] as int?,
-          carbsG: m['carbs_g'] as int?,
-          fatG: m['fat_g'] as int?,
+          calories: (macros?['calories'] ?? m['calories']) as int?,
+          proteinG: (macros?['protein'] ?? macros?['protein_g'] ?? m['protein_g']) as int?,
+          carbsG: (macros?['carbs'] ?? macros?['carbs_g'] ?? m['carbs_g']) as int?,
+          fatG: (macros?['fat'] ?? macros?['fat_g'] ?? m['fat_g']) as int?,
           sortOrder: entry.key,
           createdAt: now,
         );
@@ -506,16 +508,22 @@ class MealPlanNotifier extends StateNotifier<MealPlanState> {
         },
       );
 
-      final data = _extractJsonFromMessage(response.assistantMessage);
+      var data = _extractJsonFromMessage(response.assistantMessage);
       if (data == null) throw Exception('AI returned invalid data');
+
+      // Support new schema (replacement_meal wrapper) and legacy (flat)
+      if (data.containsKey('replacement_meal')) {
+        data = data['replacement_meal'] as Map<String, dynamic>;
+      }
+      final macros = data['macros'] as Map<String, dynamic>?;
 
       await _repository.updateItem(itemId, {
         'name': data['name'] as String? ?? item.name,
         'description': data['description'] as String?,
-        'calories': data['calories'] as int?,
-        'protein_g': data['protein_g'] as int?,
-        'carbs_g': data['carbs_g'] as int?,
-        'fat_g': data['fat_g'] as int?,
+        'calories': (macros?['calories'] ?? data['calories']) as int?,
+        'protein_g': (macros?['protein'] ?? macros?['protein_g'] ?? data['protein_g']) as int?,
+        'carbs_g': (macros?['carbs'] ?? macros?['carbs_g'] ?? data['carbs_g']) as int?,
+        'fat_g': (macros?['fat'] ?? macros?['fat_g'] ?? data['fat_g']) as int?,
         'is_logged': false,
         'portion_multiplier': 1.0,
       });

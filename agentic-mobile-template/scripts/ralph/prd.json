@@ -1,0 +1,15 @@
+{
+  "project": "WellTrack",
+  "branchName": "ralph/phase-12-habits-bloodwork",
+  "description": "Phase 12: Habits + Bloodwork — COMPLETE",
+  "userStories": [
+    {"id": "US-001", "title": "Habit streak entity, repository, and schema migration", "passes": true, "notes": "wt_habit_logs migration, HabitEntity, HabitLogEntity, HabitRepository with streak calculation."},
+    {"id": "US-002", "title": "Habit tracker screen with streak display and milestones", "passes": true, "notes": "Habits screen with 30-day dot grid, fire streak badge, milestone celebrations at 7/30/90/180."},
+    {"id": "US-003", "title": "Kegel protocol with guided timer", "passes": true, "notes": "3 protocols (Quick Flicks, Long Holds, Reverse Kegels), phase transitions, vibration, auto-log."},
+    {"id": "US-004", "title": "Supplements screen completion (add/edit dialogs)", "passes": true, "notes": "All 4 TODO stubs replaced with Material 3 bottom sheets."},
+    {"id": "US-005", "title": "Bloodwork log entity, repository, and input screen", "passes": true, "notes": "12 pre-loaded test types, 4 categories, color-coded results, add/edit flow."},
+    {"id": "US-006", "title": "Bloodwork trend charts and out-of-range alerts on dashboard", "passes": true, "notes": "FL Chart detail screen with reference range band, dashboard summary card."},
+    {"id": "US-007", "title": "Daily View integration with habits section", "passes": true, "notes": "Habits in daily checklist, auto-complete for steps/sleep, kegel quick-link, aggregate task counting."},
+    {"id": "US-008", "title": "AI bloodwork interpretation (suggestive only)", "passes": true, "notes": "Consent-gated, deterministic fallback, medical disclaimer, labelled as suggestion."}
+  ]
+}

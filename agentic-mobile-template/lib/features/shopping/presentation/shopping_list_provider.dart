@@ -80,6 +80,28 @@ class ShoppingListsNotifier extends StateNotifier<ShoppingListsState> {
     }
   }
 
+  Future<ShoppingListEntity?> createFromMealPlan({
+    required String name,
+    required DateTime startDate,
+    required DateTime endDate,
+    bool excludePantryItems = true,
+  }) async {
+    try {
+      final list = await _repository.createListFromMealPlan(
+        profileId: _profileId,
+        name: name,
+        startDate: startDate,
+        endDate: endDate,
+        excludePantryItems: excludePantryItems,
+      );
+      await loadLists();
+      return list;
+    } catch (e) {
+      state = state.copyWith(error: e.toString());
+      return null;
+    }
+  }
+
   Future<void> deleteList(String listId) async {
     try {
       await _repository.deleteList(listId);
