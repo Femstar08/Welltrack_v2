@@ -371,12 +371,24 @@ class PrescriptionEngine {
   // ---------------------------------------------------------------------------
   // Bedtime calculation
   //
-  // Target: 7 hours before wake time (e.g. wake 6 AM → bed 11 PM).
-  // Clamped to [21, 23] — never earlier than 9 PM, never later than 11 PM.
+  // Target: 7 hours before wake time (e.g. wake 5 AM → bed 10 PM → clamped
+  // to 9 PM floor; wake 6 AM → bed 11 PM; wake 7 AM → bed 12 AM wraps to
+  // 11 PM ceiling).
+  //
+  // Uses modular arithmetic for 24-hour wraparound, then clamps to [21, 23].
+  // After mod-24, values in [0, 20] result from wakeHour >= 7 wrapping past
+  // midnight — these are treated as "too late" and capped at 23 (11 PM).
+  // Values already in [21, 23] are clamped normally.
   // ---------------------------------------------------------------------------
 
   static int _calcBedtime(int wakeHour) {
-    final target = (wakeHour + 24 - 7) % 24;
-    return target.clamp(21, 23);
+    final target = (wakeHour - 7 + 24) % 24;
+    // target is in [0, 23] after mod-24 arithmetic.
+    // [21, 23] — within the valid bedtime window: clamp to floor 21.
+    // [0,  1]  — wrapped past midnight (wakeHour >= 7): cap at ceiling 23.
+    // [2, 20]  — too early in the evening (very early wakers): floor to 21.
+    if (target >= 21) return target; // already in [21, 23]
+    if (target <= 1) return 23;      // midnight / 1 AM wrap → latest bedtime
+    return 21;                        // too early → earliest bedtime
   }
 }

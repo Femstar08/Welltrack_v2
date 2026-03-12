@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app.dart';
 import 'features/health/data/health_background_sync.dart';
+import 'features/reminders/data/notification_service.dart';
 import 'shared/core/constants/api_constants.dart';
 import 'shared/core/logging/app_logger.dart';
 
@@ -44,11 +46,53 @@ void main() async {
     await healthSync.registerPeriodicSync();
     logger.info('Health background sync registered (every 6 hours)');
 
+    // Detect if this cold-start was triggered by a notification tap.
+    //
+    // flutter_local_notifications requires getNotificationAppLaunchDetails()
+    // to be called BEFORE runApp() — once the engine is running the launch
+    // intent data is lost. We resolve the payload into a route string here
+    // and pass it as a ProviderScope override so WellTrackApp can navigate
+    // to the correct screen as soon as the router is ready.
+    String? notificationLaunchRoute;
+    try {
+      final plugin = FlutterLocalNotificationsPlugin();
+      final launchDetails = await plugin.getNotificationAppLaunchDetails();
+      if (launchDetails?.didNotificationLaunchApp == true) {
+        final payload = launchDetails?.notificationResponse?.payload;
+        // Re-use the same module→route mapping as NotificationService.handleNotificationTap()
+        if (payload != null) {
+          final parts = payload.split(':');
+          if (parts.length == 2) {
+            final module = parts[0];
+            notificationLaunchRoute = switch (module) {
+              'supplements' => '/supplements',
+              'meals'       => '/meals/log',
+              'workouts'    => '/workouts',
+              'custom'      => '/daily-view',
+              _             => '/',
+            };
+          }
+        }
+        logger.info(
+          'App cold-launched from notification — route: $notificationLaunchRoute',
+        );
+      }
+    } catch (e) {
+      // Non-fatal: the app will open normally without deep-linking
+      logger.warning('Could not read notification launch details: $e');
+    }
+
     // Run app with ProviderScope and initialization
     runApp(
       ProviderScope(
         overrides: [
           healthBackgroundSyncOverrideProvider.overrideWith((ref) => healthSync),
+          // Expose the cold-launch route (null when launched normally) so that
+          // WellTrackApp._initializeServices() can navigate after the router
+          // is live.
+          notificationLaunchRouteProvider.overrideWith(
+            (ref) => notificationLaunchRoute,
+          ),
         ],
         child: const WellTrackApp(),
       ),

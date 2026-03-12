@@ -17,6 +17,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/habit_repository.dart';
 import '../domain/habit_entity.dart';
 import '../domain/habit_log_entity.dart';
+import '../../dashboard/presentation/dashboard_home_provider.dart';
 
 // ---------------------------------------------------------------------------
 // Milestone thresholds
@@ -82,10 +83,11 @@ class HabitState {
 // ---------------------------------------------------------------------------
 
 class HabitNotifier extends StateNotifier<HabitState> {
-  HabitNotifier(this._repository, this._profileId)
+  HabitNotifier(this._repository, this._ref, this._profileId)
       : super(const HabitState());
 
   final HabitRepository _repository;
+  final Ref _ref;
   final String _profileId;
 
   // -------------------------------------------------------------------------
@@ -195,6 +197,9 @@ class HabitNotifier extends StateNotifier<HabitState> {
         last30DaysLogs: updated30,
         milestoneReached: milestone,
       );
+
+      // Invalidate dashboard so habit streak changes surface immediately.
+      _ref.invalidate(dashboardHomeProvider);
     } catch (e) {
       // Revert optimistic update on failure.
       final revertedLogs = Map<String, bool>.from(state.todayLogs)
@@ -301,6 +306,6 @@ final habitProvider =
     StateNotifierProvider.family<HabitNotifier, HabitState, String>(
   (ref, profileId) {
     final repository = ref.watch(habitRepositoryProvider);
-    return HabitNotifier(repository, profileId);
+    return HabitNotifier(repository, ref, profileId);
   },
 );

@@ -512,9 +512,9 @@ void main() {
       expect(result.bedtimeHour, 23);
     });
 
-    test('wakeHour=7 -> target 0 is clamped incorrectly to 21 (current logic)', () {
+    test('wakeHour=7 -> target 0 wraps past midnight and clamps to 23 (ceiling)', () {
       final result = PrescriptionEngine.evaluate(makeInput(wakeHour: 7));
-      expect(result.bedtimeHour, 21);
+      expect(result.bedtimeHour, 23);
     });
 
     test('bedtimeMinute is always 0 from engine (AI may adjust after)', () {

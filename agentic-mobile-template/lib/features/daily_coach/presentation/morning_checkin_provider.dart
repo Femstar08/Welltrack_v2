@@ -11,6 +11,8 @@ import '../domain/checkin_entity.dart';
 import '../../health/data/health_repository.dart';
 import '../../health/domain/health_metric_entity.dart';
 import '../../insights/data/insights_repository.dart';
+import '../../insights/presentation/insights_provider.dart';
+import '../../dashboard/presentation/dashboard_home_provider.dart';
 import '../../../shared/core/ai/ai_orchestrator_service.dart';
 
 // ---------------------------------------------------------------------------
@@ -122,6 +124,7 @@ class MorningCheckInNotifier
     this._healthRepo,
     this._insightsRepo,
     this._aiService,
+    this._ref,
     this._profileId,
   ) : super(const MorningCheckInState()) {
     _loadInitialData();
@@ -132,6 +135,7 @@ class MorningCheckInNotifier
   final HealthRepository _healthRepo;
   final InsightsRepository _insightsRepo;
   final AiOrchestratorService _aiService;
+  final Ref _ref;
   final String _profileId;
 
   // ── Init ─────────────────────────────────────────────────────────────────
@@ -447,6 +451,11 @@ class MorningCheckInNotifier
         isComplete: true,
         todayCheckIn: savedCheckIn,
       );
+
+      // Invalidate downstream providers so recovery and dashboard re-fetch
+      // with the newly submitted check-in data.
+      _ref.invalidate(insightsProvider);
+      _ref.invalidate(dashboardHomeProvider);
     } catch (e) {
       state = state.copyWith(
         isSubmitting: false,
@@ -469,6 +478,7 @@ final morningCheckInProvider = StateNotifierProvider.family<
       ref.watch(healthRepositoryProvider),
       ref.watch(insightsRepositoryProvider),
       ref.watch(aiOrchestratorServiceProvider),
+      ref,
       profileId,
     );
   },

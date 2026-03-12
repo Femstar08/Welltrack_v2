@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'insights_provider.dart';
 import '../data/performance_engine.dart';
 import 'baseline_provider.dart';
@@ -65,6 +66,10 @@ class _InsightsDashboardScreenState
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.pop(),
+        ),
         title: const Text('Performance Insights'),
         actions: [
           IconButton(

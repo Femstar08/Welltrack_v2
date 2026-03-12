@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../domain/supplement_entity.dart';
 import '../domain/supplement_protocol_entity.dart';
 import '../domain/supplement_log_entity.dart';
@@ -45,6 +46,10 @@ class _SupplementsScreenState extends ConsumerState<SupplementsScreen>
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.pop(),
+        ),
         title: const Text('Supplements'),
         bottom: TabBar(
           controller: _tabController,

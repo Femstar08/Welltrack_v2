@@ -34,6 +34,10 @@ class _DailyViewScreenState extends ConsumerState<DailyViewScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.pop(),
+        ),
         title: const Text('Daily View'),
         actions: [
           IconButton(

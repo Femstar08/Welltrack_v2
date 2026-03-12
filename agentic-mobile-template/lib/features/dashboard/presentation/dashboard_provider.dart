@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/core/modules/module_metadata.dart';
 import '../../../shared/core/modules/module_registry.dart';
 import '../../../shared/core/logging/app_logger.dart';
+import '../../insights/data/insights_repository.dart';
+import '../../insights/data/performance_engine.dart';
 
 /// Dashboard state containing module tiles and recovery score
 class DashboardState {
@@ -64,7 +66,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
         });
       }
 
-      // Load recovery score (placeholder for now)
+      // Load real recovery score via PerformanceEngine + InsightsRepository
       await _loadRecoveryScore(profileId);
 
       _logger.info('Dashboard initialized successfully');
@@ -76,29 +78,86 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
     }
   }
 
-  /// Load recovery score from health metrics
-  /// TODO: Implement actual recovery score calculation
+  /// Load recovery score from health metrics via PerformanceEngine.
+  ///
+  /// Calls [InsightsRepository.calculateAndSaveDailyRecovery] which:
+  ///   1. Checks whether today's score already exists in wt_recovery_scores.
+  ///   2. If not, fetches sleep / HR / training-load data from wt_health_metrics
+  ///      (and Garmin rows when available) then runs the PRD Phase 10 formula.
+  ///   3. Upserts the result and returns the entity.
+  ///
+  /// Returns null when no health data exists yet (user is still calibrating).
+  /// In that case the dashboard stays in calibrating state — no score is shown.
+  ///
+  /// Overtraining flag is derived from the same weekly / 4-week load data
+  /// already computed inside calculateAndSaveDailyRecovery, re-queried here
+  /// with a lightweight training-load fetch so the dashboard card reacts
+  /// without depending on the full InsightsNotifier being initialised.
   Future<void> _loadRecoveryScore(String profileId) async {
+    // Start in calibrating state so widgets don't flash stale data.
+    state = state.copyWith(
+      isCalibrating: true,
+      recoveryScore: null,
+    );
+
     try {
-      _logger.info('Loading recovery score');
+      _logger.info('Loading recovery score for profile: $profileId');
 
-      // For now, set to calibrating
-      // In future, this will:
-      // 1. Fetch recent health metrics (stress, sleep, VO2 max)
-      // 2. Calculate recovery score using algorithm
-      // 3. Update state with score
+      final repository = ref.read(insightsRepositoryProvider);
 
-      state = state.copyWith(
-        isCalibrating: true,
-        recoveryScore: null,
+      // Calculate (or retrieve cached) today's recovery score.
+      final scoreEntity = await repository.calculateAndSaveDailyRecovery(
+        profileId: profileId,
       );
 
-      // Simulate async load - replace with actual implementation
-      await Future.delayed(const Duration(milliseconds: 500));
+      if (scoreEntity == null || scoreEntity.componentsAvailable == 0) {
+        // No health data yet — keep isCalibrating: true.
+        _logger.info('Recovery score: no data — still calibrating');
+        return;
+      }
 
-      _logger.info('Recovery score loaded (calibrating)');
+      // --- Overtraining detection (4-week rolling load) ---
+      // Re-use the same load windows that InsightsRepository uses internally
+      // so the formula stays consistent.
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final thisWeekStart = today.subtract(Duration(days: today.weekday - 1));
+      final fourWeeksAgo = thisWeekStart.subtract(const Duration(days: 28));
+
+      final fourWeekLoads = await repository.getTrainingLoads(
+        profileId: profileId,
+        startDate: fourWeeksAgo,
+        endDate: today.add(const Duration(days: 1)),
+      );
+
+      final weeklyLoad = fourWeekLoads
+          .where((l) => !l.loadDate.isBefore(thisWeekStart))
+          .fold<double>(0, (sum, l) => sum + l.trainingLoad);
+
+      final fourWeekTotal =
+          fourWeekLoads.fold<double>(0, (sum, l) => sum + l.trainingLoad);
+      final fourWeekAvg = fourWeekTotal / 4.0;
+
+      final overtrainingRisk = PerformanceEngine.checkOvertrainingRisk(
+        weeklyLoad,
+        fourWeekAvg,
+      );
+
+      state = state.copyWith(
+        recoveryScore: scoreEntity.recoveryScore,
+        isCalibrating: false,
+        isOvertraining: overtrainingRisk != OvertrainingRisk.none,
+      );
+
+      _logger.info(
+        'Recovery score loaded: ${scoreEntity.recoveryScore.toStringAsFixed(1)} '
+        '(${scoreEntity.componentsAvailable} components, '
+        'overtraining: ${overtrainingRisk.name})',
+      );
     } catch (e, stackTrace) {
       _logger.error('Error loading recovery score', e, stackTrace);
+      // Leave the state as calibrating so the UI shows a neutral card
+      // rather than crashing or showing a stale value.
     }
   }
 

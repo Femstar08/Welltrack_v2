@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../data/insights_repository.dart';
 import '../domain/recovery_score_entity.dart';
@@ -46,7 +47,13 @@ class _RecoveryDetailScreenState extends ConsumerState<RecoveryDetailScreen> {
     final score = state.latestRecoveryScore;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Recovery Score')),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.pop(),
+        ),
+        title: const Text('Recovery Score'),
+      ),
       body: state.isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(

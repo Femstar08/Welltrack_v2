@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/bloodwork_repository.dart';
 import '../domain/bloodwork_entity.dart';
+import '../../insights/presentation/insights_provider.dart';
 import '../../../shared/core/ai/ai_orchestrator_service.dart';
 import '../../../shared/core/ai/ai_providers.dart';
 import '../../../shared/core/logging/app_logger.dart';
@@ -145,6 +146,9 @@ class BloodworkNotifier extends StateNotifier<BloodworkState> {
         outOfRangeCount: outOfRangeCount,
         isLoading: false,
       );
+
+      // Invalidate insights so recovery and trend data reflect the new result.
+      _ref.invalidate(insightsProvider);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
@@ -173,6 +177,9 @@ class BloodworkNotifier extends StateNotifier<BloodworkState> {
         outOfRangeCount: outOfRangeCount,
         isLoading: false,
       );
+
+      // Invalidate insights so downstream views reflect the updated result.
+      _ref.invalidate(insightsProvider);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
@@ -197,6 +204,9 @@ class BloodworkNotifier extends StateNotifier<BloodworkState> {
         outOfRangeCount: outOfRangeCount,
         isLoading: false,
       );
+
+      // Invalidate insights so downstream views no longer reference the deleted result.
+      _ref.invalidate(insightsProvider);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }

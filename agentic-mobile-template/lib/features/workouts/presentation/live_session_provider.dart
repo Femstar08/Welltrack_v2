@@ -11,6 +11,8 @@ import '../domain/workout_set_entity.dart';
 import '../../insights/data/insights_repository.dart';
 import '../../insights/data/performance_engine.dart';
 import '../../insights/domain/training_load_entity.dart';
+import '../../insights/presentation/insights_provider.dart';
+import '../../dashboard/presentation/dashboard_home_provider.dart';
 
 // ---------------------------------------------------------------------------
 // LiveExerciseData — per-exercise state within an active session
@@ -204,11 +206,12 @@ class LiveSessionState {
 // ---------------------------------------------------------------------------
 
 class LiveSessionNotifier extends StateNotifier<LiveSessionState> {
-  LiveSessionNotifier(this._repository, this._insightsRepository)
+  LiveSessionNotifier(this._repository, this._insightsRepository, this._ref)
       : super(const LiveSessionState());
 
   final WorkoutRepository _repository;
   final InsightsRepository _insightsRepository;
+  final Ref _ref;
 
   // ── Session lifecycle ─────────────────────────────────────────────────────
 
@@ -587,6 +590,10 @@ class LiveSessionNotifier extends StateNotifier<LiveSessionState> {
     // Reset local state so the notifier is ready for the next session.
     state = const LiveSessionState();
 
+    // Invalidate downstream providers so they re-fetch with the new session data.
+    _ref.invalidate(insightsProvider);
+    _ref.invalidate(dashboardHomeProvider);
+
     // Fire-and-forget: save training load and trigger recovery recalculation.
     if (profileId != null && durationMinutes > 0) {
       unawaited(_saveTrainingLoad(
@@ -713,6 +720,6 @@ final liveSessionProvider =
   (ref) {
     final repo = ref.watch(workoutRepositoryProvider);
     final insightsRepo = ref.watch(insightsRepositoryProvider);
-    return LiveSessionNotifier(repo, insightsRepo);
+    return LiveSessionNotifier(repo, insightsRepo, ref);
   },
 );

@@ -1,15 +1,91 @@
 {
   "project": "WellTrack",
-  "branchName": "ralph/phase-12-habits-bloodwork",
-  "description": "Phase 12: Habits + Bloodwork — COMPLETE",
+  "branchName": "ralph/phase-13-ux-refinement",
+  "description": "Phase 13: UX Refinement & Critical Fixes — Navigation, state management, performance, and core feature wiring",
   "userStories": [
-    {"id": "US-001", "title": "Habit streak entity, repository, and schema migration", "passes": true, "notes": "wt_habit_logs migration, HabitEntity, HabitLogEntity, HabitRepository with streak calculation."},
-    {"id": "US-002", "title": "Habit tracker screen with streak display and milestones", "passes": true, "notes": "Habits screen with 30-day dot grid, fire streak badge, milestone celebrations at 7/30/90/180."},
-    {"id": "US-003", "title": "Kegel protocol with guided timer", "passes": true, "notes": "3 protocols (Quick Flicks, Long Holds, Reverse Kegels), phase transitions, vibration, auto-log."},
-    {"id": "US-004", "title": "Supplements screen completion (add/edit dialogs)", "passes": true, "notes": "All 4 TODO stubs replaced with Material 3 bottom sheets."},
-    {"id": "US-005", "title": "Bloodwork log entity, repository, and input screen", "passes": true, "notes": "12 pre-loaded test types, 4 categories, color-coded results, add/edit flow."},
-    {"id": "US-006", "title": "Bloodwork trend charts and out-of-range alerts on dashboard", "passes": true, "notes": "FL Chart detail screen with reference range band, dashboard summary card."},
-    {"id": "US-007", "title": "Daily View integration with habits section", "passes": true, "notes": "Habits in daily checklist, auto-complete for steps/sleep, kegel quick-link, aggregate task counting."},
-    {"id": "US-008", "title": "AI bloodwork interpretation (suggestive only)", "passes": true, "notes": "Consent-gated, deterministic fallback, medical disclaimer, labelled as suggestion."}
+    {
+      "id": "US-001",
+      "title": "Initialize NotificationService in main.dart and request POST_NOTIFICATIONS permission",
+      "passes": false,
+      "priority": 1,
+      "notes": "NotificationService.initialize() is never called at app startup. Channel not created, tz.local not set, no permission requested. All reminders are silently broken. In main.dart after Supabase init, call NotificationService.initialize(). Request POST_NOTIFICATIONS on Android 13+. Verify a test reminder actually fires on device."
+    },
+    {
+      "id": "US-002",
+      "title": "Wire dashboard recovery score to PerformanceEngine (remove Future.delayed stub)",
+      "passes": false,
+      "priority": 1,
+      "notes": "dashboard_provider.dart lines 81-102: _loadRecoveryScore does nothing except Future.delayed(500ms). PerformanceEngine and InsightsRepository already compute recovery scores. Wire _loadRecoveryScore to call insightsRepository.getLatestRecoveryScore() or calculate via PerformanceEngine. Remove the artificial 500ms delay. recoveryScoreColorProvider should reflect real data."
+    },
+    {
+      "id": "US-003",
+      "title": "Add back buttons to all pushed screens missing them",
+      "passes": false,
+      "priority": 1,
+      "notes": "6 screens pushed via context.push() have no AppBar back button: reminders_screen.dart, supplements_screen.dart, insights_dashboard_screen.dart, health_connection_screen.dart, recovery_detail_screen.dart, daily_view_screen.dart. Add leading IconButton(icon: Icon(Icons.arrow_back), onPressed: () => context.pop()) to each AppBar. Users currently must use Android system back gesture."
+    },
+    {
+      "id": "US-004",
+      "title": "Add provider invalidation after mutations (fix stale state)",
+      "passes": false,
+      "priority": 1,
+      "notes": "After mutations, downstream providers are never refreshed. Fix these chains: (1) liveSessionProvider.completeSession() must invalidate insightsProvider and dashboardHomeProvider. (2) morningCheckInProvider.submit() must invalidate insightsProvider to recalculate recovery. (3) bloodworkProvider add/update/delete must invalidate insightsProvider. (4) habitProvider toggle must invalidate dashboardHomeProvider. Add ref.invalidate() or ref.refresh() calls after each mutation."
+    },
+    {
+      "id": "US-005",
+      "title": "Fix bedtime calculation off-by-one for wakeHour >= 7",
+      "passes": false,
+      "priority": 1,
+      "notes": "prescription_engine_test.dart line 515-518 documents this bug: wakeHour=7 calculates bedtime as 21:00 (9PM) instead of expected 23:00 (11PM). The clamping formula in PrescriptionEngine has an off-by-one on the lower bound. Fix the formula so bedtime = wakeHour - sleepTarget (typically 7-8hrs) and update the test to assert the correct value."
+    },
+    {
+      "id": "US-006",
+      "title": "Add debounce to AI calls (bloodwork, insights, check-in)",
+      "passes": false,
+      "priority": 2,
+      "notes": "No debounce on AI-calling methods. Double-tap fires duplicate API calls, wastes quota. Add debounce/mutex to: (1) bloodworkProvider.requestAiInterpretation() (2) insightsProvider.generateInsightNarrative() (3) morningCheckInProvider.submit() AI narration call. Use a DateTime-based guard: if last call was < 2 seconds ago, return early."
+    },
+    {
+      "id": "US-007",
+      "title": "Convert sequential Supabase queries to Future.wait in MorningCheckInNotifier.submit()",
+      "passes": false,
+      "priority": 2,
+      "notes": "morning_checkin_provider.dart lines 289-357: submit() makes 5 sequential getMetrics calls (recovery, steps, HR, calories, weight) that are independent. Convert to Future.wait([...]) to run concurrently. This will reduce check-in submission latency by ~4x."
+    },
+    {
+      "id": "US-008",
+      "title": "Move direct Supabase calls from providers into repositories",
+      "passes": false,
+      "priority": 2,
+      "notes": "bloodwork_provider.dart lines 221-236: directly calls Supabase.instance.client to check ai_consent_bloodwork. This bypasses the repository pattern. Move this consent check into ProfileRepository (add getAiConsentBloodwork(profileId) method). Similarly, morning_checkin_provider.dart line 255 accesses Supabase.instance.client.auth.currentUser?.id directly — use the auth provider instead."
+    },
+    {
+      "id": "US-009",
+      "title": "Add confirmation dialogs to destructive actions",
+      "passes": false,
+      "priority": 2,
+      "notes": "No confirmation before: delete goal, archive shopping list, remove bloodwork entry, delete habit. Add showDialog with 'Are you sure?' confirmation before each destructive operation. Pattern: AlertDialog with Cancel and Delete actions. Use red color for delete button."
+    },
+    {
+      "id": "US-010",
+      "title": "Create error message mapping utility for user-friendly errors",
+      "passes": false,
+      "priority": 2,
+      "notes": "Raw exceptions shown to users (e.g. type 'Null' is not a type of 'Map'). Create shared/core/utils/error_mapper.dart with static mapError(dynamic error) -> String method. Map common errors: network errors -> 'No internet connection', timeout -> 'Request timed out', 404 -> 'Not found', auth errors -> 'Please sign in again', generic -> 'Something went wrong. Please try again.' Apply in all providers that show errors via SnackBar."
+    },
+    {
+      "id": "US-011",
+      "title": "Fix N+1 query in OverloadDetectionService and push workout filter to DB",
+      "passes": false,
+      "priority": 2,
+      "notes": "Two performance issues: (1) overload_detection_service.dart lines 85-103: detectPlateausForExercises iterates exercises making 1 query per exercise. Batch into single query with IN clause. (2) workouts_card.dart lines 37-41: fetches 50 completed workouts and filters client-side for this week. Add startDate parameter to getCompletedWorkouts and push filter to DB."
+    },
+    {
+      "id": "US-012",
+      "title": "Add semantic labels and tooltips to all icon buttons for accessibility",
+      "passes": false,
+      "priority": 3,
+      "notes": "Only 35 semantic labels in entire app. All IconButton widgets need tooltip parameter. All GestureDetector/InkWell widgets wrapping icons need Semantics wrapper. Focus on: dashboard action buttons, navigation icons, form action buttons, timer controls, chart interactions. This is required for Play Store accessibility compliance."
+    }
   ]
 }

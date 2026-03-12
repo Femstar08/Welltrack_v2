@@ -190,6 +190,26 @@ class _WellTrackAppState extends ConsumerState<WellTrackApp> {
       });
 
       _logger.info('All core services initialized successfully');
+
+      // If the app was cold-launched by a notification tap, navigate to the
+      // target route now that the router and auth state are both live.
+      // We use a post-frame callback so the router widget tree is fully built
+      // before we attempt to navigate.
+      final coldLaunchRoute = ref.read(notificationLaunchRouteProvider);
+      if (coldLaunchRoute != null) {
+        // Clear the provider so a subsequent hot-restart doesn't re-navigate.
+        ref.read(notificationLaunchRouteProvider.notifier).state = null;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          try {
+            ref.read(goRouterProvider).go(coldLaunchRoute);
+            _logger.info(
+              'Navigated to notification cold-launch route: $coldLaunchRoute',
+            );
+          } catch (e) {
+            _logger.warning('Cold-launch navigation failed (non-fatal): $e');
+          }
+        });
+      }
     } catch (e, stackTrace) {
       _logger.error('Failed to initialize core services', e, stackTrace);
       setState(() {

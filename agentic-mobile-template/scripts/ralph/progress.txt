@@ -1,68 +1,30 @@
-# Ralph Progress Log — Phase 10: Performance Intelligence Engine
-Started: 2026-03-06
-Branch: ralph/phase-10-performance-engine
+# Ralph Progress Log — Phase 13: UX Refinement & Critical Fixes
+Started: 2026-03-12
+Branch: ralph/phase-13-ux-refinement
 ---
 
-## EXPLORATION COMPLETE
-
-### What Already Exists (Do NOT re-implement)
-- performance_engine.dart — full recovery score calc, training load util, OLS forecast, overtraining check
-- insights_repository.dart — full CRUD for recovery_scores, training_loads, forecasts, insights
-- baseline_repository.dart / baseline_entity.dart / baseline_provider.dart — full baseline CRUD + state
-- insights_provider.dart — full loadData(), generateInsightNarrative() with AI + deterministic fallback
-- insights_dashboard_screen.dart — full screen with baseline gating, training load chart, VO2 section
-- training_load_chart.dart — fl_chart bar chart, 4-week summary, overtraining ratio
-- recovery_score_dashboard_card.dart — exists, watches wt_recovery_scores pair provider
-- wt_recovery_scores, wt_training_loads, wt_baselines, wt_forecasts — all tables exist
-
-### Known Bugs Found During Exploration
-1. MetricType enum camelCase vs DB snake_case mismatch (activeMinutes vs active_minutes)
-2. insights_repository queries 'resting_hr' but MetricType enum has only 'hr'
-3. get_baseline_resting_hr RPC — existence unverified; no fallback if missing
-4. completeBaselines() writes 'is_complete: true' but column may not exist in wt_baselines
-5. Week date range in provider ends +14 days into future (over-fetch)
-6. context-builder.ts queries .select('score') but column is 'recovery_score'
-
-### Delta vs PRD (What Needs Changing)
-
-US-001: Formula mismatch
-  CURRENT engine: stress(20%) + sleep(30%) + HR(25%) + load(25%)
-  PRD wants: sleep_score(30%) + sleep_quality(20%) + rhr_score(25%) + load_score(25%)
-  PRD normalisers differ from current implementation
-  Missing: auto-trigger on app open if no score today
-
-US-002: Training load wiring missing
-  saveTrainingLoad() exists but nothing calls it when Health Connect syncs workouts
-  Need: wire in health_background_sync.dart or workout logging
-
-US-003: baseline_days_count column likely missing from wt_profiles
-  Need migration + daily count of distinct health data dates
-  Baseline gate UI partially done — needs wiring to dashboard home
-
-US-004: Trend classifications partially missing
-  Stress trend labelling (improving/worsening/stable) missing
-  VO2 slope not surfaced as display value
-  Daily snapshot storage: NOT done
-
-US-005: Recovery score card sparkline missing
-  Card exists — missing: 7-day sparkline, updated colour thresholds, tap to detail screen
-
-US-006: Overtraining warning card missing from dashboard home screen
-
-US-007: VO2 fitness classification label missing, explicit <7 empty state missing
-
-US-008: AI narrative mostly done — verify prompt tone + once-per-day cache check
-
+## Codebase Patterns
+- All navigation uses GoRouter — NEVER use Navigator.pushNamed()
+- Dashboard route is `/` not `/dashboard`
+- All Supabase calls must go through repository classes
+- Riverpod providers: use .family keyed by profileId for user-scoped state
+- After mutations, invalidate downstream providers with ref.invalidate()
+- AI calls go through ai_orchestrator_service.dart — never direct from screens
+- Error handling: wrap async in try/catch with AppLogger
+- All entities use Freezed for immutability
+- Use context.push() for stack navigation, context.go() for replacement
+- All screens pushed via context.push() MUST have AppBar with back button
 ---
 
-## IMPLEMENTATION STATUS
-
-[x] Exploration complete
-[ ] US-001: Fix performance_engine formula + auto-trigger
-[ ] US-002: Wire training load from workout sync
-[ ] US-003: Migration + baseline_days_count + dashboard gate
-[ ] US-004: Trend classifications + storage
-[ ] US-005: Recovery card sparkline + detail screen
-[ ] US-006: Overtraining warning card on dashboard
-[ ] US-007: VO2 fitness classification + empty state
-[ ] US-008: Verify AI narrative prompt + cache
+## Exploration Notes
+- 67 routes defined in app_router.dart
+- 40 Riverpod providers across the codebase
+- 108 files changed in latest commit
+- NotificationService exists but initialize() never called
+- dashboard_provider._loadRecoveryScore is a Future.delayed(500ms) stub
+- PrescriptionEngine bedtime formula has documented off-by-one bug
+- 6 pushed screens have no back button
+- AI calls in bloodwork/insights/checkin have no debounce
+- MorningCheckInNotifier.submit() makes 5 sequential independent queries
+- OverloadDetectionService has N+1 query pattern
+---
