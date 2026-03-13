@@ -66,6 +66,12 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
         });
       }
 
+      // Read current value (ref.listen only fires on changes, not initial value)
+      final currentModules = ref.read(enabledModulesProvider);
+      if (currentModules.isNotEmpty) {
+        state = state.copyWith(tiles: currentModules);
+      }
+
       // Load real recovery score via PerformanceEngine + InsightsRepository
       await _loadRecoveryScore(profileId);
 
