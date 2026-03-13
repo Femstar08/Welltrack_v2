@@ -148,7 +148,7 @@ class ModuleTileWidget extends StatelessWidget {
       case WellTrackModule.meals:
         return '/meals/plan';
       case WellTrackModule.nutrients:
-        return '/insights';
+        return '/settings/nutrition-targets';
       case WellTrackModule.supplements:
         return '/supplements';
       case WellTrackModule.workouts:
