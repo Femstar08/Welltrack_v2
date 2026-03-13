@@ -36,8 +36,6 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
-  int _currentIndex = 0;
-
   @override
   void initState() {
     super.initState();
@@ -60,6 +58,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final homeState = ref.watch(dashboardHomeProvider);
     final dashboard = ref.watch(dashboardProvider);
 
+    // The outer ScaffoldWithBottomNav (ShellRoute) provides the bottom nav bar.
+    // This Scaffold only owns the AppBar and the scrollable body content.
     return Scaffold(
       body: RefreshIndicator(
         onRefresh: _handleRefresh,
@@ -146,133 +146,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     child: SecondaryModulesList(tiles: dashboard.tiles),
                   ),
 
-                  // Bottom padding for scroll clearance
+                  // Bottom padding for scroll clearance (accounts for bottom nav bar)
                   const SliverToBoxAdapter(child: SizedBox(height: 100)),
                 ],
               ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-          _handleBottomNavTap(index);
-        },
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.edit_note_outlined),
-            activeIcon: Icon(Icons.edit_note),
-            label: 'Log',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today_outlined),
-            activeIcon: Icon(Icons.calendar_today),
-            label: 'Plan',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outlined),
-            activeIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _handleBottomNavTap(int index) {
-    switch (index) {
-      case 0:
-        break; // Already on dashboard
-      case 1:
-        context.push('/daily-view');
-      case 2:
-        _showPlanSheet();
-      case 3:
-        context.push('/profile');
-    }
-    // Reset index so Home tab stays highlighted when returning
-    if (index != 0) {
-      setState(() {
-        _currentIndex = 0;
-      });
-    }
-  }
-
-  void _showPlanSheet() {
-    showModalBottomSheet<void>(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) {
-        final theme = Theme.of(ctx);
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Planning',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: const Color(0xFF42A5F5).withValues(alpha: 0.2),
-                    child: const Icon(Icons.fitness_center, color: Color(0xFF42A5F5)),
-                  ),
-                  title: const Text('Workout Plans'),
-                  subtitle: const Text('Create and manage training splits'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    Navigator.of(ctx).pop();
-                    context.push('/workouts');
-                  },
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: const Color(0xFFFF7043).withValues(alpha: 0.2),
-                    child: const Icon(Icons.restaurant, color: Color(0xFFFF7043)),
-                  ),
-                  title: const Text('Meal Plans'),
-                  subtitle: const Text('Daily meals and nutrition targets'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    Navigator.of(ctx).pop();
-                    context.push('/meals/plan');
-                  },
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.green.withValues(alpha: 0.2),
-                    child: const Icon(Icons.flag, color: Colors.green),
-                  ),
-                  title: const Text('Goals'),
-                  subtitle: const Text('Track targets and projections'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    Navigator.of(ctx).pop();
-                    context.push('/goals');
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 }

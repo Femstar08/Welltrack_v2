@@ -108,6 +108,229 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
     );
   }
 
+  /// Bottom sheet showing full meal detail, macro breakdown, portion options,
+  /// and quick action buttons (mark eaten / swap).
+  void _showMealDetailSheet(MealPlanItemEntity item) {
+    final theme = Theme.of(context);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.55,
+        minChildSize: 0.4,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (ctx2, scrollController) => SingleChildScrollView(
+          controller: scrollController,
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Drag handle
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.onSurfaceVariant
+                        .withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+
+              // Meal type badge + name
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      item.mealTypeDisplayName,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onPrimaryContainer,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  if (item.source == 'food_search') ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.tertiaryContainer,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        'logged',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onTertiaryContainer,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(item.name, style: theme.textTheme.headlineSmall),
+              if (item.description != null && item.description!.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  item.description!,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
+                  ),
+                ),
+              ],
+              if (item.isLogged && item.portionMultiplier != 1.0) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'Logged at ${(item.portionMultiplier * 100).round()}% portion',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 20),
+
+              // Macro grid
+              Text(
+                'Nutrition',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+                  letterSpacing: 0.4,
+                ),
+              ),
+              const SizedBox(height: 10),
+              GridView.count(
+                crossAxisCount: 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 2.8,
+                children: [
+                  _MacroDetailTile(
+                    label: 'Calories',
+                    value: '${item.effectiveCalories}',
+                    unit: 'kcal',
+                    color: theme.colorScheme.primary,
+                  ),
+                  _MacroDetailTile(
+                    label: 'Protein',
+                    value: '${item.effectiveProteinG}',
+                    unit: 'g',
+                    color: Colors.red.shade400,
+                  ),
+                  _MacroDetailTile(
+                    label: 'Carbs',
+                    value: '${item.effectiveCarbsG}',
+                    unit: 'g',
+                    color: Colors.amber.shade600,
+                  ),
+                  _MacroDetailTile(
+                    label: 'Fat',
+                    value: '${item.effectiveFatG}',
+                    unit: 'g',
+                    color: Colors.green.shade400,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // Portion adjustment (only for plan items, not food-search items)
+              if (item.source != 'food_search') ...[
+                Text(
+                  'Portion',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+                    letterSpacing: 0.4,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [0.5, 0.75, 1.0, 1.25, 1.5].map((pct) {
+                    final isActive = item.portionMultiplier == pct;
+                    return ChoiceChip(
+                      label: Text('${(pct * 100).round()}%'),
+                      selected: isActive,
+                      onSelected: (_) async {
+                        Navigator.pop(ctx);
+                        await ref
+                            .read(mealPlanProvider(widget.profileId).notifier)
+                            .markMealLogged(
+                              item.id,
+                              isLogged: true,
+                              portionMultiplier: pct,
+                            );
+                      },
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 24),
+              ],
+
+              // Action buttons
+              if (item.isLogged)
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.remove_circle_outline, size: 18),
+                    label: const Text('Unmark as Eaten'),
+                    onPressed: () async {
+                      Navigator.pop(ctx);
+                      await ref
+                          .read(mealPlanProvider(widget.profileId).notifier)
+                          .markMealLogged(item.id, isLogged: false);
+                    },
+                  ),
+                )
+              else
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    icon: const Icon(Icons.check_circle_outline, size: 18),
+                    label: const Text('Mark as Eaten'),
+                    onPressed: () async {
+                      Navigator.pop(ctx);
+                      await _showPortionPicker(item);
+                    },
+                  ),
+                ),
+              if (item.source != 'food_search') ...[
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.swap_horiz, size: 18),
+                    label: const Text('Swap Meal'),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _showSwapSheet(item);
+                    },
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   /// Bottom sheet for portion adjustment on plan items.
   Future<void> _showPortionPicker(MealPlanItemEntity item) async {
     unawaited(HapticFeedback.selectionClick());
@@ -595,6 +818,7 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
       ...items.map((item) => _MealItemCard(
             item: item,
             isSwapping: state.isSwapping && state.swappingItemId == item.id,
+            onTap: () => _showMealDetailSheet(item),
             onSwap: () => _showSwapSheet(item),
             onRegenerate: () => _regenerateMeal(item),
             onToggleLogged: () {
@@ -853,6 +1077,7 @@ class _MealItemCard extends StatelessWidget {
   const _MealItemCard({
     required this.item,
     required this.isSwapping,
+    required this.onTap,
     required this.onSwap,
     required this.onRegenerate,
     required this.onToggleLogged,
@@ -860,6 +1085,7 @@ class _MealItemCard extends StatelessWidget {
 
   final MealPlanItemEntity item;
   final bool isSwapping;
+  final VoidCallback onTap;
   final VoidCallback onSwap;
   final VoidCallback onRegenerate;
   final VoidCallback onToggleLogged;
@@ -870,7 +1096,9 @@ class _MealItemCard extends StatelessWidget {
 
     return Card(
       clipBehavior: Clip.antiAlias,
-      child: AnimatedOpacity(
+      child: InkWell(
+        onTap: onTap,
+        child: AnimatedOpacity(
         opacity: item.isLogged ? 0.65 : 1.0,
         duration: const Duration(milliseconds: 200),
         child: Padding(
@@ -1019,6 +1247,7 @@ class _MealItemCard extends StatelessWidget {
           ),
         ),
       ),
+      ),
     );
   }
 }
@@ -1044,6 +1273,69 @@ class _MacroChip extends StatelessWidget {
           fontWeight: FontWeight.w600,
           color: color,
         ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Macro detail tile — used inside the meal detail bottom sheet
+// ---------------------------------------------------------------------------
+
+class _MacroDetailTile extends StatelessWidget {
+  const _MacroDetailTile({
+    required this.label,
+    required this.value,
+    required this.unit,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final String unit;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 4,
+            height: 28,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                label,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+                ),
+              ),
+              Text(
+                '$value $unit',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

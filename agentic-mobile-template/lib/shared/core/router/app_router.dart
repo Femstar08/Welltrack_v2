@@ -153,6 +153,7 @@ import '../../../features/freemium/presentation/paywall_screen.dart'
     as paywall_screen;
 
 import '../router/route_guards.dart';
+import '../router/scaffold_with_bottom_nav.dart';
 import '../../../features/auth/presentation/auth_provider.dart'
     show isAuthenticatedProvider;
 
@@ -245,7 +246,7 @@ class AppRouter {
         return null;
       },
       routes: [
-        // ── Auth & onboarding ──────────────────────────────
+        // ── Auth & onboarding (outside shell — no bottom nav) ──────────────
         GoRoute(
           path: '/splash',
           name: 'splash',
@@ -267,473 +268,536 @@ class AppRouter {
           builder: (context, state) =>
               const profile_onboarding.OnboardingFlowScreen(),
         ),
-
-        // ── Main app ───────────────────────────────────────
-        GoRoute(
-          path: '/',
-          name: 'dashboard',
-          builder: (context, state) {
-            final profileId = ref.read(activeProfileIdProvider) ?? '';
-            final displayName = ref.read(activeDisplayNameProvider);
-            return dashboard_screen.DashboardScreen(
-              profileId: profileId,
-              displayName: displayName,
-            );
-          },
-        ),
-        GoRoute(
-          path: '/daily-view',
-          name: 'dailyView',
-          builder: (context, state) {
-            final profileId = ref.read(activeProfileIdProvider) ?? '';
-            return daily_view.DailyViewScreen(profileId: profileId);
-          },
-        ),
-        GoRoute(
-          path: '/profile',
-          name: 'profile',
-          builder: (context, state) =>
-              const profile_screen.ProfileScreen(),
-        ),
-        GoRoute(
-          path: '/settings',
-          name: 'settings',
-          builder: (context, state) =>
-              const settings_screen.SettingsScreen(),
-        ),
-        GoRoute(
-          path: '/settings/health',
-          name: 'healthSettings',
-          builder: (context, state) =>
-              const health_settings.HealthSettingsScreen(),
-        ),
-        GoRoute(
-          path: '/settings/nutrition-targets',
-          name: 'nutritionTargets',
-          builder: (context, state) =>
-              const nutrition_targets.NutritionTargetsScreen(),
-        ),
-        GoRoute(
-          path: '/settings/ingredient-preferences',
-          name: 'ingredientPreferences',
-          builder: (context, state) =>
-              const ingredient_prefs.IngredientPreferencesScreen(),
-        ),
-
-        // ── Pantry & Recipes ───────────────────────────────
-        GoRoute(
-          path: '/pantry',
-          name: 'pantry',
-          builder: (context, state) =>
-              const pantry_screen.PantryScreen(),
-        ),
-        GoRoute(
-          path: '/pantry/photo-import',
-          name: 'pantryPhotoImport',
-          builder: (context, state) =>
-              const photo_pantry_import.PhotoPantryImportScreen(),
-        ),
-        GoRoute(
-          path: '/recipes/suggestions',
-          name: 'recipeSuggestions',
-          builder: (context, state) =>
-              const recipe_suggestions.RecipeSuggestionsScreen(),
-        ),
-        GoRoute(
-          path: '/recipes/import-url',
-          name: 'recipeImportUrl',
-          builder: (context, state) =>
-              const url_import.UrlImportScreen(),
-        ),
-        GoRoute(
-          path: '/recipes/import-ocr',
-          name: 'recipeImportOcr',
-          builder: (context, state) =>
-              const ocr_import.OcrImportScreen(),
-        ),
-        // Shopping lists
-        GoRoute(
-          path: '/shopping',
-          name: 'shoppingLists',
-          builder: (context, state) =>
-              const shopping_lists.ShoppingListsScreen(),
-        ),
-        GoRoute(
-          path: '/shopping/:id',
-          name: 'shoppingListDetail',
-          builder: (context, state) {
-            final id = state.pathParameters['id']!;
-            return shopping_detail.ShoppingListDetailScreen(listId: id);
-          },
-        ),
-        GoRoute(
-          path: '/shopping/:id/photo-import',
-          name: 'shoppingPhotoImport',
-          builder: (context, state) {
-            final id = state.pathParameters['id']!;
-            return photo_shopping_import.PhotoShoppingImportScreen(listId: id);
-          },
-        ),
-        GoRoute(
-          path: '/shopping/:id/barcode-scan',
-          name: 'shoppingBarcodeScan',
-          builder: (context, state) {
-            final id = state.pathParameters['id']!;
-            final items =
-                state.extra as List<ShoppingListItemEntity>? ?? const [];
-            return barcode_scanner.BarcodeScannerScreen(
-              listId: id,
-              items: items,
-            );
-          },
-        ),
-        // Recipe browsing & editing
-        GoRoute(
-          path: '/recipes',
-          name: 'recipeList',
-          builder: (context, state) =>
-              const recipe_list.RecipeListScreen(),
-        ),
-        GoRoute(
-          path: '/recipes/:id/edit',
-          name: 'recipeEdit',
-          builder: (context, state) {
-            final id = state.pathParameters['id']!;
-            return recipe_edit.RecipeEditScreen(recipeId: id);
-          },
-        ),
-        GoRoute(
-          path: '/recipes/:id',
-          name: 'recipeDetail',
-          builder: (context, state) {
-            final id = state.pathParameters['id']!;
-            return recipe_detail.RecipeDetailScreen(recipeId: id);
-          },
-        ),
-
-        // ── Meals ──────────────────────────────────────────
-        GoRoute(
-          path: '/meals/log',
-          name: 'logMeal',
-          builder: (context, state) =>
-              const log_meal.LogMealScreen(),
-        ),
-        GoRoute(
-          path: '/meals/plan',
-          name: 'mealPlan',
-          builder: (context, state) {
-            final profileId = ref.read(activeProfileIdProvider) ?? '';
-            return meal_plan.MealPlanScreen(profileId: profileId);
-          },
-        ),
-        GoRoute(
-          path: '/meals/shopping-generator',
-          name: 'shoppingListGenerator',
-          builder: (context, state) {
-            final profileId = ref.read(activeProfileIdProvider) ?? '';
-            return shopping_generator.ShoppingListGeneratorScreen(
-              profileId: profileId,
-            );
-          },
-        ),
-        GoRoute(
-          path: '/meals/prep',
-          name: 'mealPrep',
-          builder: (context, state) {
-            final profileId = ref.read(activeProfileIdProvider) ?? '';
-            return meal_prep.MealPrepScreen(profileId: profileId);
-          },
-        ),
-        GoRoute(
-          path: '/meals/food-search',
-          name: 'foodSearch',
-          builder: (context, state) =>
-              const food_search.FoodSearchScreen(),
-        ),
-        GoRoute(
-          path: '/meals/food-barcode-scan',
-          name: 'foodBarcodeScan',
-          builder: (context, state) =>
-              const food_search.FoodBarcodeScannerScreen(),
-        ),
-        GoRoute(
-          path: '/meals/nutrition-profiles',
-          name: 'nutritionProfiles',
-          builder: (context, state) {
-            final profileId = ref.read(activeProfileIdProvider) ?? '';
-            return nutrition_profiles.NutritionProfilesScreen(
-              profileId: profileId,
-            );
-          },
-        ),
-        GoRoute(
-          path: '/meals/weekly-summary',
-          name: 'weeklyNutritionSummary',
-          builder: (context, state) {
-            final profileId = ref.read(activeProfileIdProvider) ?? '';
-            return weekly_nutrition.WeeklyNutritionSummaryScreen(
-              profileId: profileId,
-            );
-          },
-        ),
-
-        // ── Health ─────────────────────────────────────────
-        GoRoute(
-          path: '/health/connections',
-          name: 'healthConnections',
-          builder: (context, state) {
-            final profileId = ref.read(activeProfileIdProvider) ?? '';
-            return health_connection.HealthConnectionScreen(
-              profileId: profileId,
-            );
-          },
-        ),
-        GoRoute(
-          path: '/health/steps',
-          name: 'healthSteps',
-          builder: (context, state) {
-            final profileId = ref.read(activeProfileIdProvider) ?? '';
-            return steps_screen.StepsScreen(profileId: profileId);
-          },
-        ),
-        GoRoute(
-          path: '/health/sleep',
-          name: 'healthSleep',
-          builder: (context, state) {
-            final profileId = ref.read(activeProfileIdProvider) ?? '';
-            return sleep_screen.SleepScreen(profileId: profileId);
-          },
-        ),
-        GoRoute(
-          path: '/health/heart',
-          name: 'healthHeart',
-          builder: (context, state) {
-            final profileId = ref.read(activeProfileIdProvider) ?? '';
-            return heart_cardio.HeartCardioScreen(profileId: profileId);
-          },
-        ),
-        GoRoute(
-          path: '/health/weight',
-          name: 'healthWeight',
-          builder: (context, state) {
-            final profileId = ref.read(activeProfileIdProvider) ?? '';
-            return weight_body.WeightBodyScreen(profileId: profileId);
-          },
-        ),
-        GoRoute(
-          path: '/health/vo2max-entry',
-          name: 'vo2maxEntry',
-          builder: (context, state) {
-            final profileId = ref.read(activeProfileIdProvider) ?? '';
-            return vo2max_entry.Vo2maxEntryScreen(profileId: profileId);
-          },
-        ),
-
-        // ── Insights ───────────────────────────────────────
-        GoRoute(
-          path: '/insights',
-          name: 'insights',
-          builder: (context, state) {
-            final profileId = ref.read(activeProfileIdProvider) ?? '';
-            return insights_screen.InsightsDashboardScreen(
-              profileId: profileId,
-            );
-          },
-        ),
-        GoRoute(
-          path: '/recovery-detail',
-          name: 'recoveryDetail',
-          builder: (context, state) {
-            final profileId = ref.read(activeProfileIdProvider) ?? '';
-            return recovery_detail.RecoveryDetailScreen(
-              profileId: profileId,
-            );
-          },
-        ),
-
-        // ── Goals ─────────────────────────────────────────
-        GoRoute(
-          path: '/goals',
-          name: 'goals',
-          builder: (context, state) {
-            final profileId = ref.read(activeProfileIdProvider) ?? '';
-            return goals_list.GoalsListScreen(profileId: profileId);
-          },
-        ),
-        GoRoute(
-          path: '/goals/create',
-          name: 'goalCreate',
-          builder: (context, state) {
-            final profileId = ref.read(activeProfileIdProvider) ?? '';
-            final existingGoal = state.extra as GoalEntity?;
-            return goal_setup.GoalSetupScreen(
-              profileId: profileId,
-              existingGoal: existingGoal,
-            );
-          },
-        ),
-        GoRoute(
-          path: '/goals/:goalId',
-          name: 'goalDetail',
-          builder: (context, state) {
-            final goalId = state.pathParameters['goalId']!;
-            return goal_detail.GoalDetailScreen(goalId: goalId);
-          },
-        ),
-
-        // ── Supplements ────────────────────────────────────
-        GoRoute(
-          path: '/supplements',
-          name: 'supplements',
-          builder: (context, state) {
-            final profileId = ref.read(activeProfileIdProvider) ?? '';
-            return supplements_screen.SupplementsScreen(
-              profileId: profileId,
-            );
-          },
-        ),
-
-        // ── Bloodwork ──────────────────────────────────────
-        GoRoute(
-          path: '/bloodwork',
-          name: 'bloodwork',
-          builder: (context, state) {
-            final profileId = ref.read(activeProfileIdProvider) ?? '';
-            return bloodwork_screen.BloodworkScreen(profileId: profileId);
-          },
-        ),
-        GoRoute(
-          path: '/bloodwork/:testName',
-          name: 'bloodworkDetail',
-          builder: (context, state) {
-            final profileId = ref.read(activeProfileIdProvider) ?? '';
-            final testName = Uri.decodeComponent(
-              state.pathParameters['testName'] ?? '',
-            );
-            return bloodwork_detail.BloodworkDetailScreen(
-              profileId: profileId,
-              testName: testName,
-            );
-          },
-        ),
-
-        // ── Habits ─────────────────────────────────────────
-        GoRoute(
-          path: '/habits',
-          name: 'habits',
-          builder: (context, state) {
-            final profileId = ref.read(activeProfileIdProvider) ?? '';
-            return habits_screen.HabitsScreen(profileId: profileId);
-          },
-        ),
-        GoRoute(
-          path: '/habits/kegel-timer',
-          name: 'kegelTimer',
-          builder: (context, state) => const kegel_timer.KegelTimerScreen(),
-        ),
-
-        // ── Workouts ───────────────────────────────────────
-        GoRoute(
-          path: '/workouts',
-          name: 'workouts',
-          builder: (context, state) {
-            final profileId = ref.read(activeProfileIdProvider) ?? '';
-            return workouts_screen.WorkoutsScreen(
-              profileId: profileId,
-            );
-          },
-        ),
-        GoRoute(
-          path: '/workouts/plan/:planId',
-          name: 'workoutPlanDetail',
-          builder: (context, state) {
-            final planId = state.pathParameters['planId']!;
-            return workout_plan_detail.WorkoutPlanDetailScreen(
-              planId: planId,
-            );
-          },
-        ),
-        GoRoute(
-          path: '/workouts/exercises',
-          name: 'exerciseBrowser',
-          builder: (context, state) {
-            final selectMode = state.uri.queryParameters['selectMode'] == 'true';
-            return exercise_browser.ExerciseBrowserScreen(
-              selectMode: selectMode,
-            );
-          },
-        ),
-        GoRoute(
-          path: '/workouts/log/:workoutId',
-          name: 'workoutLog',
-          builder: (context, state) {
-            final workoutId = state.pathParameters['workoutId']!;
-            final profileId = ref.read(activeProfileIdProvider) ?? '';
-            final extra = state.extra as Map<String, dynamic>? ?? {};
-            return workout_logging.WorkoutLoggingScreen(
-              profileId: profileId,
-              workoutId: workoutId,
-              planId: extra['planId'] as String?,
-              dayOfWeek: extra['dayOfWeek'] as int?,
-              planName: extra['planName'] as String?,
-            );
-          },
-        ),
-        GoRoute(
-          path: '/workouts/summary/:workoutId',
-          name: 'sessionSummary',
-          builder: (context, state) {
-            final workoutId = state.pathParameters['workoutId']!;
-            return session_summary.SessionSummaryScreen(
-              workoutId: workoutId,
-            );
-          },
-        ),
-        GoRoute(
-          path: '/workouts/progress',
-          name: 'workoutProgress',
-          builder: (context, state) =>
-              const progress_screen.ProgressScreen(),
-        ),
-        GoRoute(
-          path: '/workouts/body-map',
-          name: 'bodyMap',
-          builder: (context, state) =>
-              const body_map.BodyMapScreen(),
-        ),
-
-        // ── Daily Coach ────────────────────────────────────
-        GoRoute(
-          path: '/daily-coach/checkin',
-          name: 'morningCheckIn',
-          builder: (context, state) {
-            final profileId = ref.read(activeProfileIdProvider) ?? '';
-            return morning_checkin.MorningCheckInScreen(profileId: profileId);
-          },
-        ),
-        GoRoute(
-          path: '/daily-coach/plan',
-          name: 'todaysPlan',
-          builder: (context, state) {
-            final profileId = ref.read(activeProfileIdProvider) ?? '';
-            return todays_plan.TodaysPlanScreen(profileId: profileId);
-          },
-        ),
-
-        // ── Reminders ──────────────────────────────────────
-        GoRoute(
-          path: '/reminders',
-          name: 'reminders',
-          builder: (context, state) =>
-              const reminders_screen.RemindersScreen(),
-        ),
-
-        // ── Freemium ───────────────────────────────────────
         GoRoute(
           path: '/paywall',
           name: 'paywall',
           builder: (context, state) =>
               const paywall_screen.PaywallScreen(),
+        ),
+
+        // ── Main shell — persistent bottom nav across 4 primary tabs ────────
+        StatefulShellRoute.indexedStack(
+          builder: (context, state, navigationShell) {
+            return ScaffoldWithBottomNav(navigationShell: navigationShell);
+          },
+          branches: [
+            // ── Branch 0: Home / Dashboard ──────────────────────────────────
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: '/',
+                  name: 'dashboard',
+                  builder: (context, state) {
+                    final profileId = ref.read(activeProfileIdProvider) ?? '';
+                    final displayName = ref.read(activeDisplayNameProvider);
+                    return dashboard_screen.DashboardScreen(
+                      profileId: profileId,
+                      displayName: displayName,
+                    );
+                  },
+                  routes: [
+                    // ── Pantry & Recipes ─────────────────────────────
+                    GoRoute(
+                      path: 'pantry',
+                      name: 'pantry',
+                      builder: (context, state) =>
+                          const pantry_screen.PantryScreen(),
+                    ),
+                    GoRoute(
+                      path: 'pantry/photo-import',
+                      name: 'pantryPhotoImport',
+                      builder: (context, state) =>
+                          const photo_pantry_import.PhotoPantryImportScreen(),
+                    ),
+                    GoRoute(
+                      path: 'recipes/suggestions',
+                      name: 'recipeSuggestions',
+                      builder: (context, state) =>
+                          const recipe_suggestions.RecipeSuggestionsScreen(),
+                    ),
+                    GoRoute(
+                      path: 'recipes/import-url',
+                      name: 'recipeImportUrl',
+                      builder: (context, state) =>
+                          const url_import.UrlImportScreen(),
+                    ),
+                    GoRoute(
+                      path: 'recipes/import-ocr',
+                      name: 'recipeImportOcr',
+                      builder: (context, state) =>
+                          const ocr_import.OcrImportScreen(),
+                    ),
+                    GoRoute(
+                      path: 'recipes',
+                      name: 'recipeList',
+                      builder: (context, state) =>
+                          const recipe_list.RecipeListScreen(),
+                    ),
+                    GoRoute(
+                      path: 'recipes/:id/edit',
+                      name: 'recipeEdit',
+                      builder: (context, state) {
+                        final id = state.pathParameters['id']!;
+                        return recipe_edit.RecipeEditScreen(recipeId: id);
+                      },
+                    ),
+                    GoRoute(
+                      path: 'recipes/:id',
+                      name: 'recipeDetail',
+                      builder: (context, state) {
+                        final id = state.pathParameters['id']!;
+                        return recipe_detail.RecipeDetailScreen(recipeId: id);
+                      },
+                    ),
+                    // ── Shopping ─────────────────────────────────────
+                    GoRoute(
+                      path: 'shopping',
+                      name: 'shoppingLists',
+                      builder: (context, state) =>
+                          const shopping_lists.ShoppingListsScreen(),
+                    ),
+                    GoRoute(
+                      path: 'shopping/:id',
+                      name: 'shoppingListDetail',
+                      builder: (context, state) {
+                        final id = state.pathParameters['id']!;
+                        return shopping_detail.ShoppingListDetailScreen(
+                            listId: id);
+                      },
+                    ),
+                    GoRoute(
+                      path: 'shopping/:id/photo-import',
+                      name: 'shoppingPhotoImport',
+                      builder: (context, state) {
+                        final id = state.pathParameters['id']!;
+                        return photo_shopping_import
+                            .PhotoShoppingImportScreen(listId: id);
+                      },
+                    ),
+                    GoRoute(
+                      path: 'shopping/:id/barcode-scan',
+                      name: 'shoppingBarcodeScan',
+                      builder: (context, state) {
+                        final id = state.pathParameters['id']!;
+                        final items =
+                            state.extra as List<ShoppingListItemEntity>? ??
+                                const [];
+                        return barcode_scanner.BarcodeScannerScreen(
+                          listId: id,
+                          items: items,
+                        );
+                      },
+                    ),
+                    // ── Meals ────────────────────────────────────────
+                    GoRoute(
+                      path: 'meals/log',
+                      name: 'logMeal',
+                      builder: (context, state) =>
+                          const log_meal.LogMealScreen(),
+                    ),
+                    GoRoute(
+                      path: 'meals/plan',
+                      name: 'mealPlan',
+                      builder: (context, state) {
+                        final profileId =
+                            ref.read(activeProfileIdProvider) ?? '';
+                        return meal_plan.MealPlanScreen(
+                            profileId: profileId);
+                      },
+                    ),
+                    GoRoute(
+                      path: 'meals/shopping-generator',
+                      name: 'shoppingListGenerator',
+                      builder: (context, state) {
+                        final profileId =
+                            ref.read(activeProfileIdProvider) ?? '';
+                        return shopping_generator
+                            .ShoppingListGeneratorScreen(
+                          profileId: profileId,
+                        );
+                      },
+                    ),
+                    GoRoute(
+                      path: 'meals/prep',
+                      name: 'mealPrep',
+                      builder: (context, state) {
+                        final profileId =
+                            ref.read(activeProfileIdProvider) ?? '';
+                        return meal_prep.MealPrepScreen(
+                            profileId: profileId);
+                      },
+                    ),
+                    GoRoute(
+                      path: 'meals/food-search',
+                      name: 'foodSearch',
+                      builder: (context, state) =>
+                          const food_search.FoodSearchScreen(),
+                    ),
+                    GoRoute(
+                      path: 'meals/food-barcode-scan',
+                      name: 'foodBarcodeScan',
+                      builder: (context, state) =>
+                          const food_search.FoodBarcodeScannerScreen(),
+                    ),
+                    GoRoute(
+                      path: 'meals/nutrition-profiles',
+                      name: 'nutritionProfiles',
+                      builder: (context, state) {
+                        final profileId =
+                            ref.read(activeProfileIdProvider) ?? '';
+                        return nutrition_profiles.NutritionProfilesScreen(
+                          profileId: profileId,
+                        );
+                      },
+                    ),
+                    GoRoute(
+                      path: 'meals/weekly-summary',
+                      name: 'weeklyNutritionSummary',
+                      builder: (context, state) {
+                        final profileId =
+                            ref.read(activeProfileIdProvider) ?? '';
+                        return weekly_nutrition.WeeklyNutritionSummaryScreen(
+                          profileId: profileId,
+                        );
+                      },
+                    ),
+                    // ── Health ───────────────────────────────────────
+                    GoRoute(
+                      path: 'health/connections',
+                      name: 'healthConnections',
+                      builder: (context, state) {
+                        final profileId =
+                            ref.read(activeProfileIdProvider) ?? '';
+                        return health_connection.HealthConnectionScreen(
+                          profileId: profileId,
+                        );
+                      },
+                    ),
+                    GoRoute(
+                      path: 'health/steps',
+                      name: 'healthSteps',
+                      builder: (context, state) {
+                        final profileId =
+                            ref.read(activeProfileIdProvider) ?? '';
+                        return steps_screen.StepsScreen(
+                            profileId: profileId);
+                      },
+                    ),
+                    GoRoute(
+                      path: 'health/sleep',
+                      name: 'healthSleep',
+                      builder: (context, state) {
+                        final profileId =
+                            ref.read(activeProfileIdProvider) ?? '';
+                        return sleep_screen.SleepScreen(
+                            profileId: profileId);
+                      },
+                    ),
+                    GoRoute(
+                      path: 'health/heart',
+                      name: 'healthHeart',
+                      builder: (context, state) {
+                        final profileId =
+                            ref.read(activeProfileIdProvider) ?? '';
+                        return heart_cardio.HeartCardioScreen(
+                            profileId: profileId);
+                      },
+                    ),
+                    GoRoute(
+                      path: 'health/weight',
+                      name: 'healthWeight',
+                      builder: (context, state) {
+                        final profileId =
+                            ref.read(activeProfileIdProvider) ?? '';
+                        return weight_body.WeightBodyScreen(
+                            profileId: profileId);
+                      },
+                    ),
+                    GoRoute(
+                      path: 'health/vo2max-entry',
+                      name: 'vo2maxEntry',
+                      builder: (context, state) {
+                        final profileId =
+                            ref.read(activeProfileIdProvider) ?? '';
+                        return vo2max_entry.Vo2maxEntryScreen(
+                            profileId: profileId);
+                      },
+                    ),
+                    // ── Insights ─────────────────────────────────────
+                    GoRoute(
+                      path: 'insights',
+                      name: 'insights',
+                      builder: (context, state) {
+                        final profileId =
+                            ref.read(activeProfileIdProvider) ?? '';
+                        return insights_screen.InsightsDashboardScreen(
+                          profileId: profileId,
+                        );
+                      },
+                    ),
+                    GoRoute(
+                      path: 'recovery-detail',
+                      name: 'recoveryDetail',
+                      builder: (context, state) {
+                        final profileId =
+                            ref.read(activeProfileIdProvider) ?? '';
+                        return recovery_detail.RecoveryDetailScreen(
+                          profileId: profileId,
+                        );
+                      },
+                    ),
+                    // ── Goals ────────────────────────────────────────
+                    GoRoute(
+                      path: 'goals',
+                      name: 'goals',
+                      builder: (context, state) {
+                        final profileId =
+                            ref.read(activeProfileIdProvider) ?? '';
+                        return goals_list.GoalsListScreen(
+                            profileId: profileId);
+                      },
+                    ),
+                    GoRoute(
+                      path: 'goals/create',
+                      name: 'goalCreate',
+                      builder: (context, state) {
+                        final profileId =
+                            ref.read(activeProfileIdProvider) ?? '';
+                        final existingGoal = state.extra as GoalEntity?;
+                        return goal_setup.GoalSetupScreen(
+                          profileId: profileId,
+                          existingGoal: existingGoal,
+                        );
+                      },
+                    ),
+                    GoRoute(
+                      path: 'goals/:goalId',
+                      name: 'goalDetail',
+                      builder: (context, state) {
+                        final goalId = state.pathParameters['goalId']!;
+                        return goal_detail.GoalDetailScreen(
+                            goalId: goalId);
+                      },
+                    ),
+                    // ── Supplements ──────────────────────────────────
+                    GoRoute(
+                      path: 'supplements',
+                      name: 'supplements',
+                      builder: (context, state) {
+                        final profileId =
+                            ref.read(activeProfileIdProvider) ?? '';
+                        return supplements_screen.SupplementsScreen(
+                          profileId: profileId,
+                        );
+                      },
+                    ),
+                    // ── Bloodwork ────────────────────────────────────
+                    GoRoute(
+                      path: 'bloodwork',
+                      name: 'bloodwork',
+                      builder: (context, state) {
+                        final profileId =
+                            ref.read(activeProfileIdProvider) ?? '';
+                        return bloodwork_screen.BloodworkScreen(
+                            profileId: profileId);
+                      },
+                    ),
+                    GoRoute(
+                      path: 'bloodwork/:testName',
+                      name: 'bloodworkDetail',
+                      builder: (context, state) {
+                        final profileId =
+                            ref.read(activeProfileIdProvider) ?? '';
+                        final testName = Uri.decodeComponent(
+                          state.pathParameters['testName'] ?? '',
+                        );
+                        return bloodwork_detail.BloodworkDetailScreen(
+                          profileId: profileId,
+                          testName: testName,
+                        );
+                      },
+                    ),
+                    // ── Habits ───────────────────────────────────────
+                    GoRoute(
+                      path: 'habits',
+                      name: 'habits',
+                      builder: (context, state) {
+                        final profileId =
+                            ref.read(activeProfileIdProvider) ?? '';
+                        return habits_screen.HabitsScreen(
+                            profileId: profileId);
+                      },
+                    ),
+                    GoRoute(
+                      path: 'habits/kegel-timer',
+                      name: 'kegelTimer',
+                      builder: (context, state) =>
+                          const kegel_timer.KegelTimerScreen(),
+                    ),
+                    // ── Daily Coach ──────────────────────────────────
+                    GoRoute(
+                      path: 'daily-coach/checkin',
+                      name: 'morningCheckIn',
+                      builder: (context, state) {
+                        final profileId =
+                            ref.read(activeProfileIdProvider) ?? '';
+                        return morning_checkin.MorningCheckInScreen(
+                            profileId: profileId);
+                      },
+                    ),
+                    GoRoute(
+                      path: 'daily-coach/plan',
+                      name: 'todaysPlan',
+                      builder: (context, state) {
+                        final profileId =
+                            ref.read(activeProfileIdProvider) ?? '';
+                        return todays_plan.TodaysPlanScreen(
+                            profileId: profileId);
+                      },
+                    ),
+                    // ── Reminders ────────────────────────────────────
+                    GoRoute(
+                      path: 'reminders',
+                      name: 'reminders',
+                      builder: (context, state) =>
+                          const reminders_screen.RemindersScreen(),
+                    ),
+                    // ── Settings (accessible from dashboard) ─────────
+                    GoRoute(
+                      path: 'settings',
+                      name: 'settings',
+                      builder: (context, state) =>
+                          const settings_screen.SettingsScreen(),
+                    ),
+                    GoRoute(
+                      path: 'settings/health',
+                      name: 'healthSettings',
+                      builder: (context, state) =>
+                          const health_settings.HealthSettingsScreen(),
+                    ),
+                    GoRoute(
+                      path: 'settings/nutrition-targets',
+                      name: 'nutritionTargets',
+                      builder: (context, state) =>
+                          const nutrition_targets.NutritionTargetsScreen(),
+                    ),
+                    GoRoute(
+                      path: 'settings/ingredient-preferences',
+                      name: 'ingredientPreferences',
+                      builder: (context, state) =>
+                          const ingredient_prefs
+                              .IngredientPreferencesScreen(),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+
+            // ── Branch 1: Log (Daily View) ───────────────────────────────────
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: '/daily-view',
+                  name: 'dailyView',
+                  builder: (context, state) {
+                    final profileId = ref.read(activeProfileIdProvider) ?? '';
+                    return daily_view.DailyViewScreen(profileId: profileId);
+                  },
+                ),
+              ],
+            ),
+
+            // ── Branch 2: Workouts ───────────────────────────────────────────
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: '/workouts',
+                  name: 'workouts',
+                  builder: (context, state) {
+                    final profileId = ref.read(activeProfileIdProvider) ?? '';
+                    return workouts_screen.WorkoutsScreen(
+                      profileId: profileId,
+                    );
+                  },
+                  routes: [
+                    GoRoute(
+                      path: 'plan/:planId',
+                      name: 'workoutPlanDetail',
+                      builder: (context, state) {
+                        final planId = state.pathParameters['planId']!;
+                        return workout_plan_detail.WorkoutPlanDetailScreen(
+                          planId: planId,
+                        );
+                      },
+                    ),
+                    GoRoute(
+                      path: 'exercises',
+                      name: 'exerciseBrowser',
+                      builder: (context, state) {
+                        final selectMode =
+                            state.uri.queryParameters['selectMode'] == 'true';
+                        return exercise_browser.ExerciseBrowserScreen(
+                          selectMode: selectMode,
+                        );
+                      },
+                    ),
+                    GoRoute(
+                      path: 'log/:workoutId',
+                      name: 'workoutLog',
+                      builder: (context, state) {
+                        final workoutId = state.pathParameters['workoutId']!;
+                        final profileId =
+                            ref.read(activeProfileIdProvider) ?? '';
+                        final extra =
+                            state.extra as Map<String, dynamic>? ?? {};
+                        return workout_logging.WorkoutLoggingScreen(
+                          profileId: profileId,
+                          workoutId: workoutId,
+                          planId: extra['planId'] as String?,
+                          dayOfWeek: extra['dayOfWeek'] as int?,
+                          planName: extra['planName'] as String?,
+                        );
+                      },
+                    ),
+                    GoRoute(
+                      path: 'summary/:workoutId',
+                      name: 'sessionSummary',
+                      builder: (context, state) {
+                        final workoutId = state.pathParameters['workoutId']!;
+                        return session_summary.SessionSummaryScreen(
+                          workoutId: workoutId,
+                        );
+                      },
+                    ),
+                    GoRoute(
+                      path: 'progress',
+                      name: 'workoutProgress',
+                      builder: (context, state) =>
+                          const progress_screen.ProgressScreen(),
+                    ),
+                    GoRoute(
+                      path: 'body-map',
+                      name: 'bodyMap',
+                      builder: (context, state) =>
+                          const body_map.BodyMapScreen(),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+
+            // ── Branch 3: Profile ────────────────────────────────────────────
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: '/profile',
+                  name: 'profile',
+                  builder: (context, state) =>
+                      const profile_screen.ProfileScreen(),
+                ),
+              ],
+            ),
+          ],
         ),
       ],
       errorBuilder: (context, state) => Scaffold(

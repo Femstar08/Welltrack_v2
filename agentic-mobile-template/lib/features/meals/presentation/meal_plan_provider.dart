@@ -91,9 +91,11 @@ class MealPlanNotifier extends StateNotifier<MealPlanState> {
   final DailyPrescriptionRepository _prescriptionRepository;
 
   Future<void> loadPlan(DateTime date) async {
+    // Guard: never overwrite a plan that is actively being generated.
+    if (state.isGenerating) return;
+
     state = state.copyWith(
       selectedDate: date,
-      isGenerating: false,
       clearError: true,
     );
 
@@ -146,6 +148,9 @@ class MealPlanNotifier extends StateNotifier<MealPlanState> {
     String? gender,
     int? age,
   }) async {
+    // Guard: prevent duplicate concurrent generation calls.
+    if (state.isGenerating) return;
+
     final date = state.selectedDate ?? DateTime.now();
     state = state.copyWith(isGenerating: true, clearError: true, dayType: dayType);
 
