@@ -401,10 +401,32 @@ class MealPlanNotifier extends StateNotifier<MealPlanState> {
       );
 
       final data = _extractJsonFromMessage(response.assistantMessage);
-      final alternatives = (data?['alternatives'] as List?)
-              ?.map((e) => Map<String, dynamic>.from(e as Map))
-              .toList() ??
-          [];
+      // The generate_meal_swap tool schema returns "replacement_meal" (single
+      // object). The message asks for "alternatives" (array of 3). Handle both
+      // so the swap sheet works regardless of which format the AI returns.
+      List<Map<String, dynamic>> alternatives;
+      if (data != null && data.containsKey('alternatives')) {
+        alternatives = (data['alternatives'] as List?)
+                ?.map((e) => Map<String, dynamic>.from(e as Map))
+                .toList() ??
+            [];
+      } else if (data != null && data.containsKey('replacement_meal')) {
+        // Single replacement_meal — normalise macro keys to flat schema expected
+        // by the swap sheet (calories, protein_g, carbs_g, fat_g).
+        final rm = Map<String, dynamic>.from(
+            data['replacement_meal'] as Map<String, dynamic>);
+        final macros = rm['macros'] as Map<String, dynamic>?;
+        if (macros != null) {
+          rm['calories'] = macros['calories'];
+          rm['protein_g'] = macros['protein'] ?? macros['protein_g'];
+          rm['carbs_g'] = macros['carbs'] ?? macros['carbs_g'];
+          rm['fat_g'] = macros['fat'] ?? macros['fat_g'];
+          rm.remove('macros');
+        }
+        alternatives = [rm];
+      } else {
+        alternatives = [];
+      }
 
       state = state.copyWith(isSwapping: false, clearSwappingItemId: true);
       return alternatives;

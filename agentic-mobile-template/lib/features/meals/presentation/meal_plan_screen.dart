@@ -218,7 +218,7 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
                 physics: const NeverScrollableScrollPhysics(),
                 crossAxisSpacing: 10,
                 mainAxisSpacing: 10,
-                childAspectRatio: 2.8,
+                childAspectRatio: 3.4,
                 children: [
                   _MacroDetailTile(
                     label: 'Calories',
@@ -1299,7 +1299,7 @@ class _MacroDetailTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(8),
@@ -1936,12 +1936,44 @@ class _SwapAlternativesSheetState
               }
 
               if (snapshot.hasError || (snapshot.data?.isEmpty ?? true)) {
+                // Derive a human-readable reason so the user knows what to do.
+                String reason = 'Could not load alternatives. Try again.';
+                if (snapshot.hasError) {
+                  final err = snapshot.error.toString();
+                  if (err.contains('offline') || err.contains('connection')) {
+                    reason = 'No internet connection. Connect and try again.';
+                  } else if (err.contains('limit') || err.contains('429')) {
+                    reason = 'AI usage limit reached. Try again later.';
+                  } else if (err.contains('timeout') || err.contains('504')) {
+                    reason = 'Request timed out. Try again.';
+                  }
+                }
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 24),
                   child: Center(
-                    child: Text(
-                      'Could not load alternatives. Try again.',
-                      style: theme.textTheme.bodyMedium,
+                    child: Column(
+                      children: [
+                        Text(
+                          reason,
+                          style: theme.textTheme.bodyMedium,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 12),
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              _alternativesFuture = ref
+                                  .read(mealPlanProvider(widget.profileId)
+                                      .notifier)
+                                  .getSwapAlternatives(
+                                    userId: widget.userId,
+                                    itemId: widget.item.id,
+                                  );
+                            });
+                          },
+                          child: const Text('Retry'),
+                        ),
+                      ],
                     ),
                   ),
                 );

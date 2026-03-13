@@ -56,7 +56,7 @@ class SecondaryModulesList extends StatelessWidget {
               crossAxisCount: 3,
               crossAxisSpacing: 8,
               mainAxisSpacing: 8,
-              childAspectRatio: 1.0,
+              childAspectRatio: 0.9,
             ),
             itemCount: tiles.length,
             itemBuilder: (context, index) =>

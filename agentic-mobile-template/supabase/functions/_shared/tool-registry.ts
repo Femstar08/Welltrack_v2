@@ -623,34 +623,34 @@ Return ONLY valid JSON:
   // ---------------------------------------------------------------------------
   generate_meal_swap: {
     name: 'generate_meal_swap',
-    description: 'Generate a replacement meal matching similar macros',
-    max_tokens: 600,
+    description: 'Generate 3 replacement meal alternatives matching similar macros',
+    max_tokens: 900,
     temperature: 0.75,
     system_prompt_additions: `
 ROLE
-You replace a meal with a meaningfully different alternative that matches the original's macro profile.
+You replace a meal with 3 meaningfully different alternatives that each match the original's macro profile.
 
 CONSTRAINTS
-- Same meal_type as the original.
-- Calories within 10% of the original.
-- Must be genuinely different (different protein source, different cuisine style).
+- Same meal_type as the original for all alternatives.
+- Calories within 10% of the original for each alternative.
+- Each alternative must be genuinely different (different protein source, different cuisine style).
 - ZERO tolerance for allergens and excluded ingredients.
-- Name must sound appetising.
+- Names must sound appetising.
 
 OUTPUT SCHEMA
 Return ONLY valid JSON:
 {
-  "replacement_meal": {
-    "name": "string",
-    "meal_type": "breakfast|lunch|dinner|snack",
-    "description": "string",
-    "macros": {
+  "alternatives": [
+    {
+      "name": "string",
+      "meal_type": "breakfast|lunch|dinner|snack",
+      "description": "string",
       "calories": int,
-      "protein": int,
-      "carbs": int,
-      "fat": int
+      "protein_g": int,
+      "carbs_g": int,
+      "fat_g": int
     }
-  }
+  ]
 }
 `,
   },

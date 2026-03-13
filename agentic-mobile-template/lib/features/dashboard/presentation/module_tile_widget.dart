@@ -146,7 +146,7 @@ class ModuleTileWidget extends StatelessWidget {
   static String? _getModuleRoute(WellTrackModule module) {
     switch (module) {
       case WellTrackModule.meals:
-        return '/pantry';
+        return '/meals/plan';
       case WellTrackModule.nutrients:
         return '/insights';
       case WellTrackModule.supplements:
@@ -214,9 +214,9 @@ class CompactModuleTile extends StatelessWidget {
               Icon(
                 module.icon,
                 color: accentColor,
-                size: 36,
+                size: 32,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Text(
                 module.displayName,
                 style: AppTypography.labelMedium.copyWith(
