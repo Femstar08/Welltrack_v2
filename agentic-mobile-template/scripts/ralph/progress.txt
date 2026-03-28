@@ -246,3 +246,43 @@ Branch: ralph/phase-11-to-15-autonomous
   - MacroTargets is in macro_calculator.dart, not a separate file
   - currentPlanTierProvider is autoDispose — watch inside FutureProvider
 ---
+
+## 2026-03-28 - P14-002
+- Added smooth_page_indicator: ^1.1.0 to pubspec.yaml (resolved as 1.2.1)
+- Created lib/shared/core/constants/fab_colors.dart with 4 const Color values:
+  - kFabColorLogFood (green), kFabColorBarcode (blue), kFabColorVoice (purple), kFabColorMealScan (orange)
+- flutter pub get succeeded, flutter analyze 0 issues
+- Files changed: pubspec.yaml, pubspec.lock, lib/shared/core/constants/fab_colors.dart
+- **Learnings for future iterations:**
+  - smooth_page_indicator 1.2.1 resolves cleanly with current constraints
+  - FAB color constants are top-level const, not in a class (matches Dart convention for simple constants)
+---
+
+## 2026-03-28 - P14-003
+- Created NutritionSummaryCarousel with 4-page PageView + smooth_page_indicator dots
+- Created 6 new widget files:
+  - nutrient_progress_bar.dart — shared reusable bar for Heart Healthy / Low Carb pages
+  - macro_rings_carousel_page.dart — Page 1: 3 CustomPainter rings (80x80) for protein/carbs/fat with "Xg left/over"
+  - calories_budget_carousel_page.dart — Page 2: large ring (120x120) with Base Goal/Food/Exercise breakdown + recovery badge
+  - heart_healthy_carousel_page.dart — Page 3: Fat/Sodium/Cholesterol progress bars, FreemiumGate wrapped
+  - low_carb_carousel_page.dart — Page 4: Carbs/Sugar/Fiber progress bars, FreemiumGate wrapped
+  - nutrition_summary_carousel.dart — container with PageView, dot indicator, shimmer loading, error/zero states
+- Replaced hardcoded _buildNutritionCarousel and _buildMacroRing in dashboard_screen.dart
+- Each page tappable → /nutrition?tab=macros|calories|heart|lowcarb
+- Over-goal: ring color switches to amber when consumed > goal
+- Zero-state: "No food logged today" with "Log your first meal" button → /meals/food-search
+- Files changed:
+  - lib/features/dashboard/presentation/widgets/nutrient_progress_bar.dart (new)
+  - lib/features/dashboard/presentation/widgets/macro_rings_carousel_page.dart (new)
+  - lib/features/dashboard/presentation/widgets/calories_budget_carousel_page.dart (new)
+  - lib/features/dashboard/presentation/widgets/heart_healthy_carousel_page.dart (new)
+  - lib/features/dashboard/presentation/widgets/low_carb_carousel_page.dart (new)
+  - lib/features/dashboard/presentation/widgets/nutrition_summary_carousel.dart (new)
+  - lib/features/dashboard/presentation/dashboard_screen.dart (modified)
+- **Learnings for future iterations:**
+  - SmoothPageIndicator WormEffect uses const constructor (dotColor/activeDotColor are const AppColors)
+  - FreemiumGate wraps entire page content — acceptable for full-page gating inside carousel
+  - CustomPainter rings: use drawArc with -pi/2 start angle for top-start
+  - Dashboard NutritionSummaryCarousel is ConsumerStatefulWidget to own PageController lifecycle
+  - todayNutritionDashboardProvider combines macros+calories+micro into single async state
+---

@@ -292,7 +292,7 @@
     {
       "id": "P14-002",
       "title": "Add smooth_page_indicator package and fab_colors constants",
-      "passes": false,
+      "passes": true,
       "priority": 17,
       "acceptanceCriteria": [
         "Check pubspec.yaml for smooth_page_indicator",
@@ -306,7 +306,7 @@
     {
       "id": "P14-003",
       "title": "Create NutritionSummaryCarousel with 4 pages",
-      "passes": false,
+      "passes": true,
       "priority": 18,
       "acceptanceCriteria": [
         "Read PRPs/meals-v5-implementation-plan.md sections 5.1-5.4",
