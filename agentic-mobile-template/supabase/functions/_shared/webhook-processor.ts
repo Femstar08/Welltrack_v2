@@ -1,6 +1,6 @@
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { encodeHex } from 'https://deno.land/std@0.224.0/encoding/hex.ts'
-import { refreshStravaToken } from './token-refresh.ts'
+import { refreshGarminToken, refreshStravaToken } from './token-refresh.ts'
 
 /**
  * Webhook Event Processor
@@ -253,6 +253,8 @@ async function processStravaEvent(
         }
       } catch (refreshErr) {
         console.error('[Webhook Processor] Strava token refresh failed:', refreshErr)
+        // Mark connection as needing re-authorization
+        await markConnectionNeedsReauth(adminClient, 'strava', event.strava_athlete_id)
         return metrics
       }
     }
@@ -877,6 +879,41 @@ async function handleStravaDeauthorization(
 
   if (error) {
     console.error('[Webhook Processor] Failed to update Strava connection:', error)
+  }
+}
+
+/**
+ * Mark a connection as needing re-authorization after a token refresh failure.
+ * Sets is_connected = false so the UI prompts the user to reconnect.
+ */
+async function markConnectionNeedsReauth(
+  adminClient: SupabaseClient,
+  provider: 'garmin' | 'strava',
+  externalId: string | null | undefined
+): Promise<void> {
+  if (!externalId) return
+
+  const idField = provider === 'garmin'
+    ? 'connection_metadata->>garmin_user_id'
+    : 'connection_metadata->>athlete_id'
+
+  console.warn(`[Webhook Processor] Marking ${provider} connection as needing re-auth for ${externalId}`)
+
+  const { error } = await adminClient
+    .from('wt_health_connections')
+    .update({
+      is_connected: false,
+      connection_metadata: {
+        needs_reauth: true,
+        reauth_reason: 'token_refresh_failed',
+        reauth_at: new Date().toISOString(),
+      },
+    })
+    .eq('provider', provider)
+    .eq(idField, externalId)
+
+  if (error) {
+    console.error(`[Webhook Processor] Failed to mark ${provider} connection for re-auth:`, error)
   }
 }
 

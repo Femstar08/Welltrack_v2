@@ -203,24 +203,31 @@ async function backfillGarmin(
 
   if (expiresAt && expiresAt <= nowPlusBuffer) {
     if (!connection.refresh_token_encrypted) {
+      await markConnectionNeedsReauth(adminClient, profileId, 'garmin')
       throw new Error('[Backfill Garmin] Token expired and no refresh token available')
     }
-    console.log('[Backfill Garmin] Access token expired — refreshing')
-    const refreshed = await refreshGarminToken(connection.refresh_token_encrypted)
-    accessToken = refreshed.accessToken
+    try {
+      console.log('[Backfill Garmin] Access token expired — refreshing')
+      const refreshed = await refreshGarminToken(connection.refresh_token_encrypted)
+      accessToken = refreshed.accessToken
 
-    // Persist refreshed tokens
-    await adminClient
-      .from('wt_health_connections')
-      .update({
-        access_token_encrypted: refreshed.accessToken,
-        refresh_token_encrypted: refreshed.refreshToken,
-        token_expires_at: refreshed.expiresAt,
-      })
-      .eq('profile_id', profileId)
-      .eq('provider', 'garmin')
+      // Persist refreshed tokens
+      await adminClient
+        .from('wt_health_connections')
+        .update({
+          access_token_encrypted: refreshed.accessToken,
+          refresh_token_encrypted: refreshed.refreshToken,
+          token_expires_at: refreshed.expiresAt,
+        })
+        .eq('profile_id', profileId)
+        .eq('provider', 'garmin')
 
-    console.log('[Backfill Garmin] Tokens refreshed and persisted')
+      console.log('[Backfill Garmin] Tokens refreshed and persisted')
+    } catch (refreshErr) {
+      console.error('[Backfill Garmin] Token refresh failed:', refreshErr)
+      await markConnectionNeedsReauth(adminClient, profileId, 'garmin')
+      throw refreshErr
+    }
   }
 
   // Build date range: today going back 14 days (inclusive)
@@ -348,24 +355,31 @@ async function backfillStrava(
 
   if (expiresAt && expiresAt <= nowPlusBuffer) {
     if (!connection.refresh_token_encrypted) {
+      await markConnectionNeedsReauth(adminClient, profileId, 'strava')
       throw new Error('[Backfill Strava] Token expired and no refresh token available')
     }
-    console.log('[Backfill Strava] Access token expired — refreshing')
-    const refreshed = await refreshStravaToken(connection.refresh_token_encrypted)
-    accessToken = refreshed.accessToken
+    try {
+      console.log('[Backfill Strava] Access token expired — refreshing')
+      const refreshed = await refreshStravaToken(connection.refresh_token_encrypted)
+      accessToken = refreshed.accessToken
 
-    // Persist refreshed tokens — Strava ALWAYS rotates on refresh
-    await adminClient
-      .from('wt_health_connections')
-      .update({
-        access_token_encrypted: refreshed.accessToken,
-        refresh_token_encrypted: refreshed.refreshToken,
-        token_expires_at: refreshed.expiresAt,
-      })
-      .eq('profile_id', profileId)
-      .eq('provider', 'strava')
+      // Persist refreshed tokens — Strava ALWAYS rotates on refresh
+      await adminClient
+        .from('wt_health_connections')
+        .update({
+          access_token_encrypted: refreshed.accessToken,
+          refresh_token_encrypted: refreshed.refreshToken,
+          token_expires_at: refreshed.expiresAt,
+        })
+        .eq('profile_id', profileId)
+        .eq('provider', 'strava')
 
-    console.log('[Backfill Strava] Tokens refreshed and persisted')
+      console.log('[Backfill Strava] Tokens refreshed and persisted')
+    } catch (refreshErr) {
+      console.error('[Backfill Strava] Token refresh failed:', refreshErr)
+      await markConnectionNeedsReauth(adminClient, profileId, 'strava')
+      throw refreshErr
+    }
   }
 
   // Epoch timestamp 14 days ago (Strava uses UNIX seconds for the after param)
@@ -468,6 +482,36 @@ async function upsertMetrics(adminClient: any, metrics: HealthMetric[]): Promise
   }
 
   return successCount
+}
+
+/**
+ * Mark a connection as needing re-authorization after a token refresh failure.
+ * Sets is_connected = false so the UI prompts the user to reconnect.
+ */
+async function markConnectionNeedsReauth(
+  // deno-lint-ignore no-explicit-any
+  adminClient: any,
+  profileId: string,
+  provider: 'garmin' | 'strava'
+): Promise<void> {
+  console.warn(`[Backfill] Marking ${provider} connection as needing re-auth for profile ${profileId}`)
+
+  const { error } = await adminClient
+    .from('wt_health_connections')
+    .update({
+      is_connected: false,
+      connection_metadata: {
+        needs_reauth: true,
+        reauth_reason: 'token_refresh_failed',
+        reauth_at: new Date().toISOString(),
+      },
+    })
+    .eq('profile_id', profileId)
+    .eq('provider', provider)
+
+  if (error) {
+    console.error(`[Backfill] Failed to mark ${provider} connection for re-auth:`, error)
+  }
 }
 
 /**

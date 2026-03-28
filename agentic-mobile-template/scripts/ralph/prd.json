@@ -76,7 +76,7 @@
     {
       "id": "P11-005",
       "title": "Verify token refresh works for expired tokens",
-      "passes": false,
+      "passes": true,
       "priority": 5,
       "acceptanceCriteria": [
         "Read supabase/functions/_shared/token-refresh.ts",

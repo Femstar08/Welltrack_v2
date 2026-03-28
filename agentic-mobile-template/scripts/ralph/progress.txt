@@ -86,3 +86,20 @@ Branch: ralph/phase-11-to-15-autonomous
 - Health connection screen shows confirmation dialog before disconnect (added in P11-001)
 - No additional code changes needed — all fixes made in P11-001 and P11-002
 ---
+
+## 2026-03-28 - P11-005
+- Verified token refresh for both Garmin and Strava
+- refreshGarminToken() and refreshStravaToken() properly implemented in _shared/token-refresh.ts
+- Both imported and called in backfill-health-data with 60-second expiry buffer
+- Strava token refresh was already wired in webhook-processor.ts; added refreshGarminToken import
+- Added markConnectionNeedsReauth() helper to both webhook-processor and backfill-health-data
+- When token refresh fails, connection is now marked is_connected=false with needs_reauth metadata
+- Files changed:
+  - supabase/functions/_shared/webhook-processor.ts (import refreshGarminToken, add re-auth marking)
+  - supabase/functions/backfill-health-data/index.ts (wrap refresh in try/catch, add re-auth marking)
+- **Learnings for future iterations:**
+  - Garmin webhook events push data in payload, no API call needed — only backfill needs tokens
+  - Strava webhook events require fetching activity details from API — needs tokens
+  - Strava ALWAYS rotates both tokens on refresh — must persist new refresh_token
+  - 60-second buffer before expiry to account for request latency
+---
