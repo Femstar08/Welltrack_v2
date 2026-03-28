@@ -41,3 +41,23 @@ Branch: ralph/phase-11-to-15-autonomous
   - Garmin OAuth requires two-step flow: initiateGarminOAuth() for request token, then launchUrl
   - Strava OAuth uses direct URL from buildStravaAuthorizationUrl() helper
 ---
+
+## 2026-03-28 - P11-002
+- Verified Garmin OAuth flow end-to-end, found and fixed 4 issues:
+  1. Edge Function had no 'initiate' action — added it to return OAuth 2.0 auth URL (client_id stays server-side)
+  2. Repository connectGarmin expected `data['connection']` but EF returns `{status, garmin_user_id}` — fixed to re-fetch from DB
+  3. Repository disconnect methods used POST but EF expects DELETE — fixed to use HttpMethod.delete
+  4. Deep link handler extracted `oauth_verifier` (OAuth 1.0a) — fixed to also check `code` (OAuth 2.0)
+- Also fixed connectStrava with same response parsing issue
+- Provider initiateGarminOAuth now returns the full auth URL from Edge Function directly
+- Files changed:
+  - supabase/functions/oauth-garmin/index.ts (added initiate action)
+  - lib/features/health/data/health_connections_repository.dart (response parsing + DELETE method)
+  - lib/features/health/presentation/health_connections_provider.dart (doc update)
+  - lib/app.dart (deep link handler: code + oauth_verifier)
+- **Learnings for future iterations:**
+  - Edge Functions route by HTTP method (POST/DELETE), not action field in body — except initiate which uses action field
+  - Supabase functions.invoke defaults to POST; use `method: HttpMethod.delete` for DELETE
+  - Edge Functions return minimal status responses, not full entities — re-fetch from DB after mutations
+  - The actual Garmin integration uses OAuth 2.0 (not 1.0a despite comments)
+---

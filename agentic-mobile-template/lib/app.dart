@@ -75,13 +75,15 @@ class _WellTrackAppState extends ConsumerState<WellTrackApp> {
     if (uri.scheme != 'welltrack' || uri.host != 'oauth') return;
 
     if (uri.path == '/garmin/callback') {
-      // Garmin uses OAuth 1.0a — the verifier is the effective "code".
-      final verifier = uri.queryParameters['oauth_verifier'];
-      if (verifier != null && verifier.isNotEmpty) {
-        _logger.info('Garmin OAuth verifier received, completing connection…');
+      // Garmin OAuth 2.0 returns an authorization code.
+      // Also check oauth_verifier for backwards compatibility.
+      final code = uri.queryParameters['code'] ??
+          uri.queryParameters['oauth_verifier'];
+      if (code != null && code.isNotEmpty) {
+        _logger.info('Garmin OAuth code received, completing connection…');
         await ref
             .read(healthConnectionsProvider(profileId).notifier)
-            .connectGarmin(verifier, garminOAuthRedirectUri);
+            .connectGarmin(code, garminOAuthRedirectUri);
       }
     } else if (uri.path == '/strava/callback') {
       final code = uri.queryParameters['code'];

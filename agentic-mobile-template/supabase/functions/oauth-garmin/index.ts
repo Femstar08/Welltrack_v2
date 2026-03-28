@@ -33,12 +33,12 @@ Deno.serve(async (req: Request) => {
   }
 
   // ---------------------------------------------------------------------------
-  // POST — Authorization code exchange
+  // POST — Initiate (get auth URL) or Authorization code exchange
   // ---------------------------------------------------------------------------
   if (req.method === 'POST') {
     try {
       // --- Parse and validate request body ---
-      let body: { authorization_code?: string; redirect_uri?: string; profile_id?: string }
+      let body: { action?: string; authorization_code?: string; redirect_uri?: string; profile_id?: string }
 
       try {
         body = await req.json()
@@ -49,8 +49,45 @@ Deno.serve(async (req: Request) => {
         )
       }
 
-      const { authorization_code, redirect_uri, profile_id } = body
+      const { action, authorization_code, redirect_uri, profile_id } = body
 
+      // --- Initiate action: return OAuth 2.0 authorization URL ---
+      if (action === 'initiate') {
+        if (!profile_id) {
+          return new Response(
+            JSON.stringify({ error: 'profile_id is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        const garminClientId = Deno.env.get('GARMIN_CLIENT_ID')
+        if (!garminClientId) {
+          console.error('[OAuth Garmin] GARMIN_CLIENT_ID not configured')
+          return new Response(
+            JSON.stringify({ error: 'Server configuration error' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        // Build OAuth 2.0 authorization URL — client_id stays server-side
+        const garminRedirectUri = 'welltrack://oauth/garmin/callback'
+        const params = new URLSearchParams({
+          client_id: garminClientId,
+          redirect_uri: garminRedirectUri,
+          response_type: 'code',
+          scope: 'ACTIVITY_IMPORT DAILY HEALTH_SNAPSHOT',
+        })
+
+        const authUrl = `https://connect.garmin.com/oauthConfirm?${params.toString()}`
+        console.log('[OAuth Garmin] Initiate: returning auth URL for profile:', profile_id)
+
+        return new Response(
+          JSON.stringify({ oauth_token: authUrl }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // --- Connect action (default POST): exchange authorization code for tokens ---
       if (!authorization_code || !redirect_uri || !profile_id) {
         return new Response(
           JSON.stringify({ error: 'authorization_code, redirect_uri, and profile_id are required' }),

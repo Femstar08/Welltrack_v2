@@ -131,7 +131,6 @@ class HealthConnectionsRepository {
       final response = await _client.functions.invoke(
         'oauth-garmin',
         body: {
-          'action': 'connect',
           'profile_id': profileId,
           'authorization_code': authorizationCode,
           'redirect_uri': redirectUri,
@@ -139,13 +138,27 @@ class HealthConnectionsRepository {
       );
 
       final data = response.data as Map<String, dynamic>?;
-      if (data == null || data['connection'] == null) {
+      if (data == null || data['status'] != 'connected') {
         throw Exception(
-            'oauth-garmin returned no connection data: ${response.data}');
+            'oauth-garmin returned unexpected status: ${response.data}');
+      }
+
+      // Edge Function returns {status, garmin_user_id} — fetch the full
+      // connection record from the database to get a complete entity.
+      final rows = await _client
+          .from('wt_health_connections')
+          .select()
+          .eq('profile_id', profileId)
+          .eq('provider', 'garmin')
+          .limit(1);
+
+      final list = rows as List;
+      if (list.isEmpty) {
+        throw Exception('Connection row not found after successful connect');
       }
 
       return HealthConnectionEntity.fromJson(
-          data['connection'] as Map<String, dynamic>);
+          list.first as Map<String, dynamic>);
     } catch (e) {
       _logger.error(
           'HealthConnectionsRepository.connectGarmin failed: $e');
@@ -164,8 +177,8 @@ class HealthConnectionsRepository {
 
       await _client.functions.invoke(
         'oauth-garmin',
+        method: HttpMethod.delete,
         body: {
-          'action': 'disconnect',
           'profile_id': profileId,
         },
       );
@@ -198,20 +211,33 @@ class HealthConnectionsRepository {
       final response = await _client.functions.invoke(
         'oauth-strava',
         body: {
-          'action': 'connect',
           'profile_id': profileId,
           'authorization_code': authorizationCode,
         },
       );
 
       final data = response.data as Map<String, dynamic>?;
-      if (data == null || data['connection'] == null) {
+      if (data == null || data['status'] != 'connected') {
         throw Exception(
-            'oauth-strava returned no connection data: ${response.data}');
+            'oauth-strava returned unexpected status: ${response.data}');
+      }
+
+      // Edge Function returns {status, athlete_id} — fetch the full
+      // connection record from the database to get a complete entity.
+      final rows = await _client
+          .from('wt_health_connections')
+          .select()
+          .eq('profile_id', profileId)
+          .eq('provider', 'strava')
+          .limit(1);
+
+      final list = rows as List;
+      if (list.isEmpty) {
+        throw Exception('Connection row not found after successful connect');
       }
 
       return HealthConnectionEntity.fromJson(
-          data['connection'] as Map<String, dynamic>);
+          list.first as Map<String, dynamic>);
     } catch (e) {
       _logger.error(
           'HealthConnectionsRepository.connectStrava failed: $e');
@@ -227,8 +253,8 @@ class HealthConnectionsRepository {
 
       await _client.functions.invoke(
         'oauth-strava',
+        method: HttpMethod.delete,
         body: {
-          'action': 'disconnect',
           'profile_id': profileId,
         },
       );

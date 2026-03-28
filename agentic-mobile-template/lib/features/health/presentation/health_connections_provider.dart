@@ -150,18 +150,22 @@ class HealthConnectionsNotifier
     }
   }
 
-  /// Fetches a Garmin OAuth 1.0a request token from the Edge Function and
-  /// returns the full authorization URL to open in the browser.
+  /// Fetches a Garmin OAuth authorization URL from the Edge Function.
+  ///
+  /// The Edge Function builds the URL server-side so the client_id stays
+  /// secret. Returns the full URL ready to open in the browser.
   ///
   /// Sets [isConnecting] to true while the request is in flight so the UI
   /// can show a loading indicator.  On failure, sets [error] and returns null.
   Future<String?> initiateGarminOAuth() async {
     state = state.copyWith(isConnecting: true, clearError: true);
     try {
-      final requestToken =
+      // The Edge Function's initiate action returns the full auth URL
+      // in the oauth_token field.
+      final authUrl =
           await _repository.getGarminRequestToken(_profileId);
       state = state.copyWith(isConnecting: false);
-      return buildGarminAuthorizationUrl(requestToken);
+      return authUrl;
     } catch (e) {
       _logger.error('HealthConnectionsNotifier.initiateGarminOAuth failed: $e');
       state = state.copyWith(

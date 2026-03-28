@@ -22,7 +22,7 @@
     {
       "id": "P11-002",
       "title": "Verify Garmin OAuth 1.0a flow end-to-end",
-      "passes": false,
+      "passes": true,
       "priority": 2,
       "acceptanceCriteria": [
         "Read lib/features/health/presentation/health_connections_provider.dart first",
