@@ -149,3 +149,14 @@ Branch: ralph/phase-11-to-15-autonomous
   - Body battery is Garmin-exclusive, only shows when Garmin data exists in wt_health_metrics
   - Source priority enforced in background sync: Garmin > Health Connect for stress/vo2max
 ---
+
+## 2026-03-28 - P12-001
+- Verified habit creation, toggle, and streak calculation — all criteria pass
+- 4 preset habits: porn_free, kegels, sleep_target, steps_target — all display correctly
+- Toggle calls logHabitDay() with optimistic UI update, reverts on failure
+- Streak recalculation walks backwards from today counting consecutive completed days
+- current_streak_days resets to 0 when a day is skipped (loop breaks at first gap)
+- longest_streak_days only increases (uses max comparison)
+- 30-day grid: green=completed, grey=incomplete, ring border=today
+- No code changes needed — implementation is correct
+---
