@@ -76,3 +76,13 @@ Branch: ralph/phase-11-to-15-autonomous
   - Strava deauth endpoint: https://www.strava.com/oauth/deauthorize (best-effort)
   - Strava stores athlete_id as string in connection_metadata
 ---
+
+## 2026-03-28 - P11-004
+- Verified disconnect flow for both Garmin and Strava providers
+- Garmin: Edge Function fetches token, calls Garmin user deregistration (best-effort), clears tokens, sets is_connected=false
+- Strava: Edge Function fetches token, calls Strava deauthorize endpoint (best-effort), clears tokens, sets is_connected=false
+- Repository uses HttpMethod.delete for both (fixed in P11-002)
+- Provider updates UI state immediately (garminConnected/stravaConnected = false, lastSync = null)
+- Health connection screen shows confirmation dialog before disconnect (added in P11-001)
+- No additional code changes needed — all fixes made in P11-001 and P11-002
+---

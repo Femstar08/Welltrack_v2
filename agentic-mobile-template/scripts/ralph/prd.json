@@ -59,7 +59,7 @@
     {
       "id": "P11-004",
       "title": "Verify disconnect flow for both providers",
-      "passes": false,
+      "passes": true,
       "priority": 4,
       "acceptanceCriteria": [
         "Read the disconnect methods in health_connections_provider.dart",
