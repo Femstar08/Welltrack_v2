@@ -103,3 +103,17 @@ Branch: ralph/phase-11-to-15-autonomous
   - Strava ALWAYS rotates both tokens on refresh — must persist new refresh_token
   - 60-second buffer before expiry to account for request latency
 ---
+
+## 2026-03-28 - P11-006
+- Verified webhook ingestion pipeline for both Garmin and Strava
+- Garmin webhook: validates HMAC-SHA1 signature (X-Garmin-Signature), queues to wt_webhook_events, responds 200 immediately
+- Strava webhook: handles GET hub.challenge verification, queues POST events, responds 200 immediately
+- process-webhooks: batch processes pending events, normalizes to wt_health_metrics with dedupe_hash
+- Deregistration: Garmin handleGarminDeregistration() and Strava handleStravaDeauthorization() both mark is_connected=false
+- No code changes needed — pipeline is correctly implemented
+- **Learnings for future iterations:**
+  - Garmin pushes data in webhook payload; Strava sends event notifications requiring API fetch
+  - Strava doesn't sign individual webhook POSTs — security is via hub.challenge subscription verification
+  - Garmin uses HMAC-SHA1 for request validation
+  - All processing is async via wt_webhook_events queue, never inline in webhook handler
+---

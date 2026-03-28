@@ -92,7 +92,7 @@
     {
       "id": "P11-006",
       "title": "Verify webhook ingestion pipeline (Garmin + Strava)",
-      "passes": false,
+      "passes": true,
       "priority": 6,
       "acceptanceCriteria": [
         "Read supabase/functions/webhook-garmin/index.ts and webhook-strava/index.ts",
