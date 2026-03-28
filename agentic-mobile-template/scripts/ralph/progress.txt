@@ -178,3 +178,12 @@ Branch: ralph/phase-11-to-15-autonomous
 - Pause cancels timer, resume restarts it
 - No code changes needed
 ---
+
+## 2026-03-28 - P12-004
+- Verified bloodwork logging — all criteria pass
+- 12 test types in 4 tabs (Hormones 3, Metabolic 2, Cardiovascular 5, Vitamins 2)
+- Color indicators: green (in range), amber (borderline 10%), red (out of range)
+- Edit via long-press, delete with confirmation dialog
+- is_out_of_range is Postgres GENERATED column, correctly omitted from toJson()
+- No code changes needed
+---

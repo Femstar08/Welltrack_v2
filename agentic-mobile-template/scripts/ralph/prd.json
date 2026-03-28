@@ -200,7 +200,7 @@
     {
       "id": "P12-004",
       "title": "Verify bloodwork logging with reference ranges and out-of-range detection",
-      "passes": false,
+      "passes": true,
       "priority": 12,
       "acceptanceCriteria": [
         "Read lib/features/bloodwork/presentation/bloodwork_screen.dart",
