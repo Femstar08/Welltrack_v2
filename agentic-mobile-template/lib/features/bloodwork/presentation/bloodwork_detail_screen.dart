@@ -622,6 +622,7 @@ class _TrendChartState extends State<_TrendChart> {
 
       // ── Line bars ───────────────────────────────────────────────────
       lineBarsData: [
+        // Index 0: actual data line
         LineChartBarData(
           spots: spots,
           isCurved: true,
@@ -645,8 +646,49 @@ class _TrendChartState extends State<_TrendChart> {
           ),
           belowBarData: BarAreaData(show: false),
         ),
+        // Index 1: invisible lower reference bound line (for BetweenBarsData)
+        ..._buildRangeBoundLines(spots, chartMinY, chartMaxY),
       ],
     );
+  }
+
+  /// Returns two invisible LineChartBarData entries at indices 1 (lower bound)
+  /// and 2 (upper bound) to support [BetweenBarsData] reference shading.
+  List<LineChartBarData> _buildRangeBoundLines(
+    List<FlSpot> mainSpots,
+    double chartMinY,
+    double chartMaxY,
+  ) {
+    final low = widget.refLow;
+    final high = widget.refHigh;
+    if (low == null && high == null) return [];
+    if (mainSpots.isEmpty) return [];
+
+    final bandLow = (low ?? chartMinY).clamp(chartMinY, chartMaxY);
+    final bandHigh = (high ?? chartMaxY).clamp(chartMinY, chartMaxY);
+    if (bandLow >= bandHigh) return [];
+
+    final xMin = mainSpots.first.x;
+    final xMax = mainSpots.last.x;
+
+    return [
+      // Index 1: lower bound
+      LineChartBarData(
+        spots: [FlSpot(xMin, bandLow.toDouble()), FlSpot(xMax, bandLow.toDouble())],
+        isCurved: false,
+        color: Colors.transparent,
+        barWidth: 0,
+        dotData: const FlDotData(show: false),
+      ),
+      // Index 2: upper bound
+      LineChartBarData(
+        spots: [FlSpot(xMin, bandHigh.toDouble()), FlSpot(xMax, bandHigh.toDouble())],
+        isCurved: false,
+        color: Colors.transparent,
+        barWidth: 0,
+        dotData: const FlDotData(show: false),
+      ),
+    ];
   }
 
   /// Builds a band shading the reference range.  Uses two transparent spots

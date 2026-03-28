@@ -219,7 +219,7 @@
     {
       "id": "P12-005",
       "title": "Verify bloodwork detail trend chart and AI interpretation",
-      "passes": false,
+      "passes": true,
       "priority": 13,
       "acceptanceCriteria": [
         "Read lib/features/bloodwork/presentation/bloodwork_detail_screen.dart",

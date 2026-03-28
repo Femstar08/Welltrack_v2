@@ -187,3 +187,19 @@ Branch: ralph/phase-11-to-15-autonomous
 - is_out_of_range is Postgres GENERATED column, correctly omitted from toJson()
 - No code changes needed
 ---
+
+## 2026-03-28 - P12-005
+- Verified bloodwork detail trend chart and AI interpretation
+- Fixed: reference range band shading was broken — BetweenBarsData referenced indices 1,2 but no invisible bound lines existed
+- Added _buildRangeBoundLines() to create two invisible LineChartBarData entries for lower/upper bounds
+- Chart handles single data point via _SingleValueDisplay fallback
+- AI consent check via ai_consent_bloodwork profile field
+- AI uses 'interpret_bloodwork' workflow via ai_orchestrator_service
+- Deterministic fallback builds text from out-of-range/borderline results
+- 3-second debounce via _lastAiCall timestamp
+- Medical disclaimer always visible in amber box
+- Files changed: lib/features/bloodwork/presentation/bloodwork_detail_screen.dart
+- **Learnings for future iterations:**
+  - FL Chart BetweenBarsData requires actual LineChartBarData entries at the referenced indices
+  - Add invisible bound lines (barWidth: 0, color: transparent) to support between-bars shading
+---
