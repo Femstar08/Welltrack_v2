@@ -264,4 +264,43 @@ class HealthConnectionsRepository {
       throw Exception('Failed to disconnect Strava: $e');
     }
   }
+
+  // -------------------------------------------------------------------------
+  // Manual Sync
+  // -------------------------------------------------------------------------
+
+  /// Triggers a manual backfill for [provider] via the `backfill-health-data`
+  /// Edge Function.
+  ///
+  /// The Edge Function has a built-in 24-hour rate limit. If the last backfill
+  /// was less than 24 hours ago, it returns `{ status: 'rate_limited' }`.
+  ///
+  /// Returns `true` if the sync was triggered, `false` if rate-limited.
+  Future<bool> triggerManualSync(
+    String profileId,
+    String provider,
+  ) async {
+    try {
+      _logger.info(
+          'HealthConnectionsRepository: triggering manual sync for $provider, profile $profileId');
+
+      final response = await _client.functions.invoke(
+        'backfill-health-data',
+        body: {
+          'profile_id': profileId,
+          'provider': provider,
+        },
+      );
+
+      final data = response.data as Map<String, dynamic>?;
+      if (data?['status'] == 'rate_limited') {
+        return false;
+      }
+      return true;
+    } catch (e) {
+      _logger.error(
+          'HealthConnectionsRepository.triggerManualSync failed: $e');
+      throw Exception('Failed to sync $provider data: $e');
+    }
+  }
 }

@@ -117,3 +117,19 @@ Branch: ralph/phase-11-to-15-autonomous
   - Garmin uses HMAC-SHA1 for request validation
   - All processing is async via wt_webhook_events queue, never inline in webhook handler
 ---
+
+## 2026-03-28 - P11-007
+- Verified AndroidManifest.xml has intent filters for welltrack://oauth/garmin/callback and welltrack://oauth/strava/callback
+- Added triggerManualSync() to HealthConnectionsRepository — calls backfill-health-data Edge Function
+- Added triggerManualSync() to HealthConnectionsNotifier with optimistic lastSync update
+- Added Sync Now icon button to settings screen connected provider tiles
+- Rate limit: Edge Function returns rate_limited status, shown as 'Already synced recently' SnackBar
+- Loading spinner via isConnecting state, success/rate-limit SnackBar after
+- Files changed:
+  - lib/features/health/data/health_connections_repository.dart (triggerManualSync method)
+  - lib/features/health/presentation/health_connections_provider.dart (triggerManualSync method)
+  - lib/features/settings/presentation/settings_screen.dart (Sync Now button + _triggerSync)
+- **Learnings for future iterations:**
+  - backfill-health-data Edge Function has built-in 24h rate limit
+  - Use IconButton with constraints: BoxConstraints() for compact icon buttons in ListTile trailing
+---

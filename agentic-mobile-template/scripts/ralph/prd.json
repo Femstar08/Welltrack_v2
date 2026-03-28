@@ -110,7 +110,7 @@
     {
       "id": "P11-007",
       "title": "Verify deep-link configuration and add manual sync button",
-      "passes": false,
+      "passes": true,
       "priority": 7,
       "acceptanceCriteria": [
         "Read android/app/src/main/AndroidManifest.xml",

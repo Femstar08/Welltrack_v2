@@ -551,8 +551,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             : Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  IconButton(
+                    icon: const Icon(Icons.sync, size: 20),
+                    tooltip: 'Sync Now',
+                    onPressed: () => _triggerSync(provider),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  const SizedBox(width: 4),
                   Icon(Icons.check_circle, color: Colors.green[600], size: 20),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 4),
                   TextButton(
                     onPressed: () => _confirmDisconnect(provider, label),
                     style: TextButton.styleFrom(
@@ -685,6 +693,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Disconnected from ${_capitalise(provider)}'),
+        ),
+      );
+    }
+  }
+
+  /// Triggers a manual backfill for the given provider.
+  Future<void> _triggerSync(String provider) async {
+    final profileId = ref.read(activeProfileIdProvider) ?? '';
+    if (profileId.isEmpty) return;
+
+    final triggered = await ref
+        .read(healthConnectionsProvider(profileId).notifier)
+        .triggerManualSync(provider);
+
+    if (!mounted) return;
+
+    if (triggered) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Syncing ${_capitalise(provider)} data…'),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Already synced recently. Try again in 24 hours.'),
         ),
       );
     }

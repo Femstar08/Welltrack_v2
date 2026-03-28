@@ -279,6 +279,37 @@ class HealthConnectionsNotifier
     }
   }
 
+  /// Triggers a manual sync for [provider] via the backfill-health-data
+  /// Edge Function.
+  ///
+  /// Returns `true` if sync was triggered, `false` if rate-limited (< 24h).
+  Future<bool> triggerManualSync(String provider) async {
+    state = state.copyWith(isConnecting: true, clearError: true);
+    try {
+      final triggered =
+          await _repository.triggerManualSync(_profileId, provider);
+      state = state.copyWith(isConnecting: false);
+      if (triggered) {
+        // Update lastSync optimistically
+        final now = DateTime.now();
+        if (provider == 'garmin') {
+          state = state.copyWith(garminLastSync: now);
+        } else {
+          state = state.copyWith(stravaLastSync: now);
+        }
+      }
+      return triggered;
+    } catch (e) {
+      _logger.error(
+          'HealthConnectionsNotifier.triggerManualSync ($provider) failed: $e');
+      state = state.copyWith(
+        isConnecting: false,
+        error: 'Failed to sync $provider data. Please try again.',
+      );
+      return false;
+    }
+  }
+
   /// Clears any displayed error without changing connection state.
   void clearError() {
     state = state.copyWith(clearError: true);
