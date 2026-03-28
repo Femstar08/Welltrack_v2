@@ -160,3 +160,11 @@ Branch: ralph/phase-11-to-15-autonomous
 - 30-day grid: green=completed, grey=incomplete, ring border=today
 - No code changes needed — implementation is correct
 ---
+
+## 2026-03-28 - P12-002
+- Verified custom habit creation and soft delete — all criteria pass
+- Custom habit creation: free-text TextField, auto-generated type key (custom_label_timestamp)
+- Soft delete: sets is_active=false, preserves streak data and logs
+- is_active filter in getActiveHabits() ensures deleted habits hidden on reload
+- No code changes needed
+---

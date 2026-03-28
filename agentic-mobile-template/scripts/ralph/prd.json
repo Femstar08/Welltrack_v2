@@ -163,7 +163,7 @@
     {
       "id": "P12-002",
       "title": "Verify custom habit creation and soft delete",
-      "passes": false,
+      "passes": true,
       "priority": 10,
       "acceptanceCriteria": [
         "Read lib/features/habits/presentation/habits_screen.dart",
