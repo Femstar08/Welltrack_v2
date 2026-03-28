@@ -239,7 +239,7 @@
     {
       "id": "P12-006",
       "title": "Verify habits and bloodwork surface on main dashboard",
-      "passes": false,
+      "passes": true,
       "priority": 14,
       "acceptanceCriteria": [
         "Read lib/features/dashboard/presentation/dashboard_screen.dart",

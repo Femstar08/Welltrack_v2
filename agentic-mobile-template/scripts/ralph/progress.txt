@@ -203,3 +203,16 @@ Branch: ralph/phase-11-to-15-autonomous
   - FL Chart BetweenBarsData requires actual LineChartBarData entries at the referenced indices
   - Add invisible bound lines (barWidth: 0, color: transparent) to support between-bars shading
 ---
+
+## 2026-03-28 - P12-006
+- Connected habits and bloodwork to real data on main dashboard
+- Replaced hardcoded "5-Day Streak!" with real habitProvider data (best active streak)
+- Added bloodwork summary card showing flagged results count from bloodworkProvider
+- Both cards navigate to /habits and /bloodwork on tap
+- Both handle empty state (no habits → "Start tracking habits", no bloodwork → "Log your first blood test")
+- Bloodwork card: red icon when flagged, green when all in range
+- Files changed: lib/features/dashboard/presentation/dashboard_screen.dart
+- **Learnings for future iterations:**
+  - HabitEntity uses `habitLabel` not `displayName`
+  - BloodworkState exposes `outOfRangeCount` and `results.length` for dashboard summaries
+---
