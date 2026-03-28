@@ -228,3 +228,21 @@ Branch: ralph/phase-11-to-15-autonomous
   - All bloodwork defaults to is_sensitive=true — must explicitly mark false to include in AI context
   - RLS pattern: profile_id IN (SELECT id FROM wt_profiles WHERE user_id = auth.uid())
 ---
+
+## 2026-03-28 - P14-001
+- Created lib/features/meals/presentation/today_nutrition_provider.dart:
+  - todayMacroSummaryProvider(profileId) — consumed vs goal for protein, carbs, fat
+  - todayCalorieSummaryProvider(profileId) — base/adjusted goals with recovery badge for PRO
+  - todayMicronutrientSummaryProvider(profileId) — fat, sodium, cholesterol, carbs, sugar, fiber (null=untracked)
+  - todayNutritionDashboardProvider(profileId) — combined single async state
+  - todayStepsProvider(profileId) — from Health Connect/Garmin
+- Created lib/features/insights/presentation/today_recovery_score_provider.dart:
+  - todayRecoveryScoreProvider(profileId) — reads latestRecoveryScore from insightsProvider
+- PlanType→dayType mapping: push→strength, normal→cardio, easy/rest→rest
+- PRO users get MacroCalculator.applyRecoveryAdjustment with calorieModifier and calorieAdjustmentPercent
+- **Learnings for future iterations:**
+  - RecoveryScoreEntity uses `recoveryScore` not `score`
+  - HealthRepository.getMetrics takes positional params (profileId, metricType)
+  - MacroTargets is in macro_calculator.dart, not a separate file
+  - currentPlanTierProvider is autoDispose — watch inside FutureProvider
+---
