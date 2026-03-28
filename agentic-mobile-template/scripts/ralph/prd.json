@@ -257,7 +257,7 @@
     {
       "id": "P12-007",
       "title": "Verify RLS policies and sensitive data handling for habits/bloodwork",
-      "passes": false,
+      "passes": true,
       "priority": 15,
       "acceptanceCriteria": [
         "Read supabase/migrations for wt_habit_streaks, wt_habit_logs, wt_bloodwork_results",

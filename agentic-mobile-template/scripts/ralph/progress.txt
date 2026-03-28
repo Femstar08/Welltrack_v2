@@ -216,3 +216,15 @@ Branch: ralph/phase-11-to-15-autonomous
   - HabitEntity uses `habitLabel` not `displayName`
   - BloodworkState exposes `outOfRangeCount` and `results.length` for dashboard summaries
 ---
+
+## 2026-03-28 - P12-007
+- Verified RLS policies: all 4 tables use profile_id IN (SELECT id FROM wt_profiles WHERE user_id = auth.uid())
+- Verified indexes: idx_habit_streaks_profile_active, idx_habit_logs_profile_type_date, idx_bloodwork_profile_test_date all present
+- Fixed: context-builder.ts was not filtering by is_sensitive when fetching bloodwork for AI context — added .eq('is_sensitive', false)
+- No print/debugPrint statements found in habits or bloodwork code
+- is_sensitive field exists on wt_bloodwork_results with default true
+- Files changed: supabase/functions/_shared/context-builder.ts
+- **Learnings for future iterations:**
+  - All bloodwork defaults to is_sensitive=true — must explicitly mark false to include in AI context
+  - RLS pattern: profile_id IN (SELECT id FROM wt_profiles WHERE user_id = auth.uid())
+---

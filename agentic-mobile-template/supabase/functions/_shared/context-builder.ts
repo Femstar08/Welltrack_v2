@@ -196,6 +196,7 @@ export async function buildContextSnapshot(
       .from('wt_bloodwork_results')
       .select('test_name, value_num, unit, reference_range_low, reference_range_high, is_out_of_range, test_date')
       .eq('profile_id', profileId)
+      .eq('is_sensitive', false)
       .order('test_date', { ascending: false })
       .limit(30)
 
