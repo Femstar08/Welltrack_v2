@@ -41,6 +41,7 @@ dependencies:
   # UI Components
   fl_chart: ^0.68.0
   cached_network_image: ^3.3.0
+  google_fonts: ^6.2.1
 
   # Health Data
   health: ^13.3.0
@@ -71,6 +72,9 @@ dependencies:
   # Deep links & browser launch (OAuth flows)
   url_launcher: ^6.3.0
   app_links: ^6.3.4
+
+  # UI — dot page indicators
+  smooth_page_indicator: ^1.1.0
 
 dev_dependencies:
   flutter_test:
