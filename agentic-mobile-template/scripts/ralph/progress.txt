@@ -61,3 +61,18 @@ Branch: ralph/phase-11-to-15-autonomous
   - Edge Functions return minimal status responses, not full entities — re-fetch from DB after mutations
   - The actual Garmin integration uses OAuth 2.0 (not 1.0a despite comments)
 ---
+
+## 2026-03-28 - P11-003
+- Verified Strava OAuth 2.0 flow end-to-end — all components working correctly
+- buildStravaAuthorizationUrl() correctly builds URL with client_id, redirect_uri, response_type=code, scope
+- Deep link handler correctly catches welltrack://oauth/strava/callback and extracts code
+- Edge Function exchanges code at https://www.strava.com/oauth/token for access_token + refresh_token
+- Tokens stored encrypted in wt_health_connections with athlete metadata (firstname, lastname, athlete_id)
+- UI updates to Connected state after successful OAuth via provider state
+- Issues already fixed in P11-002: response parsing + HttpMethod.delete for disconnect
+- No additional code changes needed
+- **Learnings for future iterations:**
+  - Strava webhook validation handles both GET (hub.challenge) and POST (event data)
+  - Strava deauth endpoint: https://www.strava.com/oauth/deauthorize (best-effort)
+  - Strava stores athlete_id as string in connection_metadata
+---
