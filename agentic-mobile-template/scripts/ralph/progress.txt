@@ -1,11 +1,13 @@
-# Ralph Progress Log — Phase 13: UX Refinement & Critical Fixes
-Started: 2026-03-12
-Branch: ralph/phase-13-ux-refinement
----
+# Ralph Progress Log — Phases 11-15 Autonomous Run
+Started: 2026-03-28
+Branch: ralph/phase-11-to-15-autonomous
 
 ## Codebase Patterns
+- Use `cmd.exe /c` to run Flutter commands on WSL2
+- Must pass `--dart-define-from-file=.env` for Supabase credentials
 - All navigation uses GoRouter — NEVER use Navigator.pushNamed()
-- Dashboard route is `/` not `/dashboard`
+- Dashboard route is `/` not `/dashboard` — use `context.go('/')`
+- `wt_users` has NO email column — get email from `auth.currentUser`
 - All Supabase calls must go through repository classes
 - Riverpod providers: use .family keyed by profileId for user-scoped state
 - After mutations, invalidate downstream providers with ref.invalidate()
@@ -14,17 +16,28 @@ Branch: ralph/phase-13-ux-refinement
 - All entities use Freezed for immutability
 - Use context.push() for stack navigation, context.go() for replacement
 - All screens pushed via context.push() MUST have AppBar with back button
+- PrescriptionEngine is static class, not a provider
+- Recovery score accessed via insightsProvider, not standalone provider
+- `FreemiumGate` internally uses Navigator.push — new widgets should use `context.push('/paywall')` directly
+- Freemium gates use `currentPlanTierProvider` (FutureProvider)
+- `onboarding_completed` is on `wt_users`, NOT `wt_profiles`
+- minSdk = 28, AGP 8.11.1, Kotlin 2.2.20
+- GarminAttributionWidget/StravaAttributionWidget use `visible` param (default true)
+- healthConnectionsProvider is family keyed by profileId, returns HealthConnectionsState
 ---
 
-## Exploration Notes
-- 67 routes defined in app_router.dart
-- 40 Riverpod providers across the codebase
-- 108 files changed in latest commit
-- NotificationService exists but initialize() never called
-- dashboard_provider._loadRecoveryScore is a Future.delayed(500ms) stub
-- PrescriptionEngine bedtime formula has documented off-by-one bug
-- 6 pushed screens have no back button
-- AI calls in bloodwork/insights/checkin have no debounce
-- MorningCheckInNotifier.submit() makes 5 sequential independent queries
-- OverloadDetectionService has N+1 query pattern
+## 2026-03-28 - P11-001
+- Removed isComingSoon=true from Garmin and Strava cards in health_connection_screen.dart
+- Replaced static _buildConnectionCard with _buildGarminCard and _buildStravaCard methods
+- Cards now read real connection status from healthConnectionsProvider
+- Connected state shows: provider name, last sync time, attribution widget, Disconnect button with confirmation dialog
+- Disconnected state shows: Connect button that launches OAuth flow (Garmin via Edge Function, Strava via direct URL)
+- Added imports: url_launcher, health_connections_provider, garmin_attribution_widget, strava_attribution_widget
+- Pull-to-refresh now also reloads provider connections
+- Files changed: lib/features/health/presentation/health_connection_screen.dart
+- **Learnings for future iterations:**
+  - Attribution widgets use `visible` not `isVisible` parameter
+  - healthConnectionsProvider exposes garminConnected/stravaConnected booleans + lastSync DateTimes
+  - Garmin OAuth requires two-step flow: initiateGarminOAuth() for request token, then launchUrl
+  - Strava OAuth uses direct URL from buildStravaAuthorizationUrl() helper
 ---

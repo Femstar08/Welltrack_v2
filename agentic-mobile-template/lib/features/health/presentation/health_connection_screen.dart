@@ -3,7 +3,11 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'health_provider.dart';
+import 'health_connections_provider.dart';
+import 'widgets/garmin_attribution_widget.dart';
+import 'widgets/strava_attribution_widget.dart';
 import '../domain/health_metric_entity.dart';
 
 class HealthConnectionScreen extends ConsumerWidget {
@@ -20,6 +24,7 @@ class HealthConnectionScreen extends ConsumerWidget {
     final baselineStatus = ref.watch(baselineStatusProvider(profileId));
     final calibrationProgress = ref.watch(calibrationProgressProvider(profileId));
     final latestMetrics = ref.watch(latestMetricsProvider(profileId));
+    final providerConnections = ref.watch(healthConnectionsProvider(profileId));
 
     return Scaffold(
       appBar: AppBar(
@@ -36,6 +41,7 @@ class HealthConnectionScreen extends ConsumerWidget {
           ref.invalidate(baselineStatusProvider(profileId));
           ref.invalidate(latestMetricsProvider(profileId));
           ref.invalidate(calibrationProgressProvider(profileId));
+          await ref.read(healthConnectionsProvider(profileId).notifier).loadConnections();
         },
         child: ListView(
           padding: const EdgeInsets.all(16.0),
@@ -50,23 +56,9 @@ class HealthConnectionScreen extends ConsumerWidget {
             const SizedBox(height: 16),
             _buildLatestMetricsCard(context, latestMetrics),
             const SizedBox(height: 16),
-            _buildConnectionCard(
-              context,
-              title: 'Garmin',
-              subtitle: 'Stress, VO2 max, and detailed workout metrics',
-              icon: Icons.watch,
-              isConnected: false,
-              isComingSoon: true,
-            ),
+            _buildGarminCard(context, ref, providerConnections),
             const SizedBox(height: 16),
-            _buildConnectionCard(
-              context,
-              title: 'Strava',
-              subtitle: 'Activities, routes, and performance analytics',
-              icon: Icons.directions_run,
-              isConnected: false,
-              isComingSoon: true,
-            ),
+            _buildStravaCard(context, ref, providerConnections),
           ],
         ),
       ),
@@ -333,47 +325,204 @@ class HealthConnectionScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildConnectionCard(
-    BuildContext context, {
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required bool isConnected,
-    bool isComingSoon = false,
-  }) {
+  Widget _buildGarminCard(
+    BuildContext context,
+    WidgetRef ref,
+    HealthConnectionsState connState,
+  ) {
     return Card(
       elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 32, color: Colors.grey[400]),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleLarge,
+            Row(
+              children: [
+                Icon(Icons.watch, size: 32, color: connState.garminConnected ? Theme.of(context).primaryColor : Colors.grey[400]),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Garmin', style: Theme.of(context).textTheme.titleLarge),
+                      Text(
+                        'Stress, VO2 max, and detailed workout metrics',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+                      ),
+                    ],
                   ),
-                  Text(
-                    subtitle,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey[600],
-                        ),
-                  ),
-                ],
-              ),
+                ),
+                _buildConnectionStatusBadge(context, connState.garminConnected),
+              ],
             ),
-            if (isComingSoon)
-              Chip(
-                label: const Text('Coming Soon', style: TextStyle(fontSize: 11)),
-                backgroundColor: Colors.grey[200],
-                padding: EdgeInsets.zero,
-              )
-            else
-              _buildConnectionStatusBadge(context, isConnected),
+            if (connState.garminConnected) ...[
+              const SizedBox(height: 12),
+              if (connState.garminLastSync != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: Row(
+                    children: [
+                      Icon(Icons.sync, size: 16, color: Colors.grey[600]),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Last synced: ${_formatLastSync(connState.garminLastSync!)}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
+                ),
+              const GarminAttributionWidget(),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: connState.isConnecting
+                    ? null
+                    : () async {
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('Disconnect Garmin?'),
+                            content: const Text('Your data will be preserved but no new data will sync.'),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                              TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Disconnect')),
+                            ],
+                          ),
+                        );
+                        if (confirmed == true) {
+                          await ref.read(healthConnectionsProvider(profileId).notifier).disconnectGarmin();
+                        }
+                      },
+                icon: const Icon(Icons.link_off),
+                label: const Text('Disconnect'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 48),
+                  foregroundColor: Colors.red,
+                ),
+              ),
+            ] else ...[
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                onPressed: connState.isConnecting
+                    ? null
+                    : () async {
+                        final authUrl = await ref
+                            .read(healthConnectionsProvider(profileId).notifier)
+                            .initiateGarminOAuth();
+                        if (authUrl != null) {
+                          final uri = Uri.parse(authUrl);
+                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        }
+                      },
+                icon: connState.isConnecting
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.link),
+                label: Text(connState.isConnecting ? 'Connecting...' : 'Connect'),
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 48),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStravaCard(
+    BuildContext context,
+    WidgetRef ref,
+    HealthConnectionsState connState,
+  ) {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.directions_run, size: 32, color: connState.stravaConnected ? const Color(0xFFFC4C02) : Colors.grey[400]),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Strava', style: Theme.of(context).textTheme.titleLarge),
+                      Text(
+                        'Activities, routes, and performance analytics',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
+                ),
+                _buildConnectionStatusBadge(context, connState.stravaConnected),
+              ],
+            ),
+            if (connState.stravaConnected) ...[
+              const SizedBox(height: 12),
+              if (connState.stravaLastSync != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: Row(
+                    children: [
+                      Icon(Icons.sync, size: 16, color: Colors.grey[600]),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Last synced: ${_formatLastSync(connState.stravaLastSync!)}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
+                ),
+              const StravaAttributionWidget(),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: connState.isConnecting
+                    ? null
+                    : () async {
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('Disconnect Strava?'),
+                            content: const Text('Your data will be preserved but no new data will sync.'),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                              TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Disconnect')),
+                            ],
+                          ),
+                        );
+                        if (confirmed == true) {
+                          await ref.read(healthConnectionsProvider(profileId).notifier).disconnectStrava();
+                        }
+                      },
+                icon: const Icon(Icons.link_off),
+                label: const Text('Disconnect'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 48),
+                  foregroundColor: Colors.red,
+                ),
+              ),
+            ] else ...[
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                onPressed: connState.isConnecting
+                    ? null
+                    : () async {
+                        final authUrl = buildStravaAuthorizationUrl();
+                        final uri = Uri.parse(authUrl);
+                        await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      },
+                icon: connState.isConnecting
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.link),
+                label: Text(connState.isConnecting ? 'Connecting...' : 'Connect'),
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 48),
+                ),
+              ),
+            ],
           ],
         ),
       ),
