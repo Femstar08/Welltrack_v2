@@ -14,6 +14,7 @@ import 'widgets/pantry_recipe_card.dart';
 import 'widgets/workouts_card.dart';
 import 'widgets/daily_coach_card.dart';
 import 'widgets/dashboard_scenario_nudges.dart';
+import 'widgets/nutrition_summary_carousel.dart';
 import '../../goals/domain/goal_entity.dart';
 import '../../goals/presentation/goals_provider.dart';
 import '../../habits/presentation/habit_provider.dart';
@@ -90,7 +91,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
                   // 1. Nutrition Carousel
                   SliverToBoxAdapter(
-                    child: _buildNutritionCarousel(context),
+                    child: NutritionSummaryCarousel(profileId: widget.profileId),
                   ),
                   const SliverToBoxAdapter(child: SizedBox(height: 32)),
 
@@ -164,80 +165,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   const SliverToBoxAdapter(child: SizedBox(height: 100)),
                 ],
               ),
-      ),
-    );
-  }
-
-  Widget _buildNutritionCarousel(BuildContext context) {
-    return SizedBox(
-      height: 160,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        children: [
-          _buildMacroRing(context, 'Protein', 120, 160, AppColors.primary, 'g'),
-          const SizedBox(width: 24),
-          _buildMacroRing(context, 'Carbs', 150, 250, AppColors.secondary, 'g'),
-          const SizedBox(width: 24),
-          _buildMacroRing(context, 'Fat', 45, 65, AppColors.tertiary, 'g'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMacroRing(BuildContext context, String title, int current, int total, Color color, String unit) {
-    final double progress = (current / total).clamp(0.0, 1.0);
-    return Container(
-      width: 140,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              SizedBox(
-                width: 80,
-                height: 80,
-                child: TweenAnimationBuilder<double>(
-                  tween: Tween<double>(begin: 0, end: progress),
-                  duration: const Duration(milliseconds: 1000),
-                  curve: Curves.easeOutCubic,
-                  builder: (context, value, _) => CircularProgressIndicator(
-                    value: value,
-                    strokeWidth: 8,
-                    backgroundColor: AppColors.surfaceContainerHighest,
-                    valueColor: AlwaysStoppedAnimation<Color>(color),
-                    strokeCap: StrokeCap.round,
-                  ),
-                ),
-              ),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '$current',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimaryDark,
-                        ),
-                  ),
-                  Text(
-                    title,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: AppColors.textSecondaryDark,
-                        ),
-                  ),
-                ],
-              )
-            ],
-          ),
-        ],
       ),
     );
   }
@@ -590,19 +517,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           mainAxisSpacing: 16,
           childAspectRatio: 1.2,
           children: [
-            _buildDiscoverTile(context, 'Sleep', Icons.bedtime, AppColors.sleepTile),
-            _buildDiscoverTile(context, 'Recipes', Icons.restaurant_menu, AppColors.mealsTile),
-            _buildDiscoverTile(context, 'Workouts', Icons.fitness_center, AppColors.workoutsTile),
-            _buildDiscoverTile(context, 'Recovery', Icons.spa, AppColors.secondary),
+            _buildDiscoverTile(context, 'Sleep', Icons.bedtime, AppColors.sleepTile, '/health/sleep'),
+            _buildDiscoverTile(context, 'Recipes', Icons.restaurant_menu, AppColors.mealsTile, '/recipes'),
+            _buildDiscoverTile(context, 'Workouts', Icons.fitness_center, AppColors.workoutsTile, '/workouts'),
+            _buildDiscoverTile(context, 'Recovery', Icons.spa, AppColors.secondary, '/recovery-detail'),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildDiscoverTile(BuildContext context, String title, IconData icon, Color color) {
+  Widget _buildDiscoverTile(BuildContext context, String title, IconData icon, Color color, String route) {
     return InkWell(
-      onTap: () {}, // Ready for navigation
+      onTap: () => context.push(route),
       borderRadius: BorderRadius.circular(24),
       child: Container(
         decoration: BoxDecoration(
