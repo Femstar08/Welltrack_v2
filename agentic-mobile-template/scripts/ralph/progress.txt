@@ -168,3 +168,13 @@ Branch: ralph/phase-11-to-15-autonomous
 - is_active filter in getActiveHabits() ensures deleted habits hidden on reload
 - No code changes needed
 ---
+
+## 2026-03-28 - P12-003
+- Verified kegel timer with all 3 protocols and auto-logging — all criteria pass
+- Quick Flicks: 3x10, 1s/1s, 10s rest ✓ | Long Holds: 3x5, 5s/5s, 15s rest ✓ | Reverse: 3x5, 5s/5s, 15s rest ✓
+- Phase transitions correct: squeeze→relax→next rep/rest→next set/complete
+- Timer.periodic(1s) drives countdown, phaseProgress property for ring
+- Auto-logs kegels habit via habitRepo.logHabitDay() on session complete (best-effort)
+- Pause cancels timer, resume restarts it
+- No code changes needed
+---
