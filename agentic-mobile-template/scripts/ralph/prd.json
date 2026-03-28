@@ -127,7 +127,7 @@
     {
       "id": "P11-008",
       "title": "Show Garmin/Strava data in insights dashboard",
-      "passes": false,
+      "passes": true,
       "priority": 8,
       "acceptanceCriteria": [
         "Read lib/features/insights/presentation/insights_dashboard_screen.dart",

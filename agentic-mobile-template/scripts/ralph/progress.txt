@@ -133,3 +133,19 @@ Branch: ralph/phase-11-to-15-autonomous
   - backfill-health-data Edge Function has built-in 24h rate limit
   - Use IconButton with constraints: BoxConstraints() for compact icon buttons in ListTile trailing
 ---
+
+## 2026-03-28 - P11-008
+- Verified charts don't filter by source='health_connect' — all sources included
+- Garmin stress data shown in stress chart, VO2 max from Garmin/Strava in VO2 chart
+- Added body battery (Garmin-exclusive) to insights dashboard:
+  - insights_provider.dart: fetches body_battery trend, includes in metricTrends map only when non-empty
+  - insights_dashboard_screen.dart: body battery chart section shown conditionally when data exists
+  - Uses teal color, 0-100 range (same as stress chart)
+- Files changed:
+  - lib/features/insights/presentation/insights_provider.dart (body_battery trend fetch)
+  - lib/features/insights/presentation/insights_dashboard_screen.dart (body battery chart)
+- **Learnings for future iterations:**
+  - metricTrends is a Map<String, List<DataPoint>> — conditionally include keys for optional metrics
+  - Body battery is Garmin-exclusive, only shows when Garmin data exists in wt_health_metrics
+  - Source priority enforced in background sync: Garmin > Health Connect for stress/vo2max
+---

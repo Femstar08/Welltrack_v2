@@ -236,6 +236,14 @@ class _InsightsDashboardScreenState
                         _buildStressTrend(state),
                         const SizedBox(height: 24),
 
+                        // Body battery (Garmin-exclusive)
+                        if (state.metricTrends.containsKey('body_battery')) ...[
+                          _buildSectionHeader('Body Battery'),
+                          const SizedBox(height: 12),
+                          _buildBodyBatteryTrend(state),
+                          const SizedBox(height: 24),
+                        ],
+
                         // AI weekly summary (gated during baseline)
                         _buildSectionHeader('AI Weekly Summary'),
                         const SizedBox(height: 12),
@@ -646,6 +654,18 @@ class _InsightsDashboardScreenState
       dataPoints: stressData,
       yAxisLabel: 'Stress (0–100)',
       color: Colors.orange,
+      minY: 0,
+      maxY: 100,
+    );
+  }
+
+  Widget _buildBodyBatteryTrend(InsightsState state) {
+    final bodyBatteryData = state.metricTrends['body_battery'] ?? [];
+    if (bodyBatteryData.isEmpty) return const SizedBox.shrink();
+    return TrendChartWidget(
+      dataPoints: bodyBatteryData,
+      yAxisLabel: 'Body Battery (0–100)',
+      color: Colors.teal,
       minY: 0,
       maxY: 100,
     );

@@ -257,6 +257,14 @@ class InsightsNotifier extends StateNotifier<InsightsState> {
       endDate: dateRange.end,
     );
 
+    // Body battery (Garmin-exclusive metric)
+    final bodyBatteryTrend = await _repository.getMetricTrend(
+      profileId: _profileId,
+      metricType: 'body_battery',
+      startDate: dateRange.start,
+      endDate: dateRange.end,
+    );
+
     // --- Overtraining metrics: always use a 4-week rolling window ---
     final now = DateTime.now();
     final todayDate = DateTime(now.year, now.month, now.day);
@@ -384,6 +392,7 @@ class InsightsNotifier extends StateNotifier<InsightsState> {
         'sleep': sleepTrend,
         'vo2max': vo2maxTrend,
         'stress': stressTrend,
+        if (bodyBatteryTrend.isNotEmpty) 'body_battery': bodyBatteryTrend,
       },
       weeklyLoadTotal: weeklyLoadTotal,
       lastWeekLoadTotal: lastWeekLoadTotal,
