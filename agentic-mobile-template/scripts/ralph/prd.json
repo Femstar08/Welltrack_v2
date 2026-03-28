@@ -327,7 +327,7 @@
     {
       "id": "P14-004",
       "title": "Create Steps and Exercise summary tiles",
-      "passes": false,
+      "passes": true,
       "priority": 19,
       "acceptanceCriteria": [
         "Read PRPs/meals-v5-implementation-plan.md section 5.5",

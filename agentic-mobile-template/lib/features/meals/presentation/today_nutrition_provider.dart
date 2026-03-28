@@ -8,6 +8,7 @@ import '../../freemium/data/freemium_repository.dart';
 import '../../freemium/domain/plan_tier.dart';
 import '../../health/data/health_repository.dart';
 import '../../health/domain/health_metric_entity.dart';
+import '../../workouts/data/workout_repository.dart';
 
 // ---------------------------------------------------------------------------
 // State classes
@@ -254,6 +255,47 @@ final todayStepsProvider =
 
   if (metrics.isEmpty) return null;
   return metrics.fold<double>(0, (sum, m) => sum + (m.valueNum ?? 0)).toInt();
+});
+
+/// Today's exercise summary: calories burned and total duration.
+class ExerciseSummary {
+  const ExerciseSummary({
+    required this.caloriesBurned,
+    required this.durationMinutes,
+  });
+  final int caloriesBurned;
+  final int durationMinutes;
+}
+
+/// Today's exercise calories + duration from completed workouts and health metrics.
+final todayExerciseProvider =
+    FutureProvider.family<ExerciseSummary, String>((ref, profileId) async {
+  final today = DateTime.now();
+  final startOfDay = DateTime(today.year, today.month, today.day);
+  final endOfDay = startOfDay.add(const Duration(days: 1));
+
+  // Active calories from Health Connect / Garmin
+  final healthRepo = ref.watch(healthRepositoryProvider);
+  final calMetrics = await healthRepo.getMetrics(
+    profileId,
+    MetricType.calories,
+    startDate: startOfDay,
+    endDate: endOfDay,
+  );
+  final activeCals =
+      calMetrics.fold<double>(0, (sum, m) => sum + (m.valueNum ?? 0)).toInt();
+
+  // Duration from completed workouts today
+  final workoutRepo = ref.watch(workoutRepositoryProvider);
+  final todayWorkouts = await workoutRepo.getTodayWorkouts(profileId);
+  final totalMinutes = todayWorkouts
+      .where((w) => w.completed)
+      .fold<int>(0, (sum, w) => sum + (w.durationMinutes ?? 0));
+
+  return ExerciseSummary(
+    caloriesBurned: activeCals,
+    durationMinutes: totalMinutes,
+  );
 });
 
 // ---------------------------------------------------------------------------

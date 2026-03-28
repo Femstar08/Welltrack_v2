@@ -286,3 +286,22 @@ Branch: ralph/phase-11-to-15-autonomous
   - Dashboard NutritionSummaryCarousel is ConsumerStatefulWidget to own PageController lifecycle
   - todayNutritionDashboardProvider combines macros+calories+micro into single async state
 ---
+
+## 2026-03-28 - P14-004
+- Created StepsSummaryTile and ExerciseSummaryTile as ConsumerWidgets reading real provider data
+- Added todayExerciseProvider to today_nutrition_provider.dart — combines active calories from wt_health_metrics + duration from completed workouts
+- Steps tile: shows step count vs 10k target with progress ring, '-- steps' + Connect link when no health data
+- Exercise tile: shows active calories + duration in minutes from completed workouts
+- Replaced hardcoded _buildMetricsRow (static '12,450' / '850') with real data tiles
+- Removed unused _buildGlassMetricCard method and dart:ui import from dashboard_screen.dart
+- Both tiles side-by-side in Row with Expanded children, glassmorphism style matching existing design
+- Files changed:
+  - lib/features/meals/presentation/today_nutrition_provider.dart (ExerciseSummary class + todayExerciseProvider)
+  - lib/features/dashboard/presentation/widgets/steps_summary_tile.dart (new)
+  - lib/features/dashboard/presentation/widgets/exercise_summary_tile.dart (new)
+  - lib/features/dashboard/presentation/dashboard_screen.dart (wired tiles, removed old methods)
+- **Learnings for future iterations:**
+  - WorkoutEntity has durationMinutes but no caloriesBurned — exercise calories come from MetricType.calories in wt_health_metrics
+  - workoutRepositoryProvider exposes getTodayWorkouts(profileId) for same-day workout queries
+  - todayStepsProvider already existed in today_nutrition_provider.dart from P14-001
+---

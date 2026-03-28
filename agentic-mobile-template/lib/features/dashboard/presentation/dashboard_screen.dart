@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,6 +14,8 @@ import 'widgets/workouts_card.dart';
 import 'widgets/daily_coach_card.dart';
 import 'widgets/dashboard_scenario_nudges.dart';
 import 'widgets/nutrition_summary_carousel.dart';
+import 'widgets/steps_summary_tile.dart';
+import 'widgets/exercise_summary_tile.dart';
 import '../../goals/domain/goal_entity.dart';
 import '../../goals/presentation/goals_provider.dart';
 import '../../habits/presentation/habit_provider.dart';
@@ -95,11 +96,21 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ),
                   const SliverToBoxAdapter(child: SizedBox(height: 32)),
 
-                  // 2. Metrics Row
+                  // 2. Steps + Exercise Row
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: _buildMetricsRow(context),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: StepsSummaryTile(profileId: widget.profileId),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: ExerciseSummaryTile(profileId: widget.profileId),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   const SliverToBoxAdapter(child: SizedBox(height: 32)),
@@ -165,83 +176,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   const SliverToBoxAdapter(child: SizedBox(height: 100)),
                 ],
               ),
-      ),
-    );
-  }
-
-  Widget _buildMetricsRow(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildGlassMetricCard(
-            context,
-            icon: Icons.directions_walk,
-            iconColor: AppColors.secondary,
-            value: '12,450',
-            label: 'Steps',
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildGlassMetricCard(
-            context,
-            icon: Icons.local_fire_department,
-            iconColor: AppColors.primary,
-            value: '850',
-            label: 'kcal',
-            subtitle: 'Exercise',
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildGlassMetricCard(
-    BuildContext context, {
-    required IconData icon,
-    required Color iconColor,
-    required String value,
-    required String label,
-    String? subtitle,
-  }) {
-    // Glassmorphism effect via ClipRRect & BackdropFilter, layered on surfaceContainerLow
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceContainerLow.withValues(alpha: 0.6),
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: iconColor.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: iconColor, size: 24),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                value,
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-              ),
-              Text(
-                subtitle ?? label,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textSecondaryDark,
-                    ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
