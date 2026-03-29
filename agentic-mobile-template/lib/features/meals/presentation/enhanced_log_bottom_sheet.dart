@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../shared/core/constants/fab_colors.dart';
+import '../../../shared/core/router/app_router.dart';
 import '../../freemium/data/freemium_repository.dart';
 import '../../freemium/domain/plan_tier.dart';
+import '../../health/presentation/water_log_provider.dart';
 
 /// Opens the enhanced FAB bottom sheet with a 2x2 action grid + list.
 void showEnhancedLogSheet(BuildContext context) {
@@ -23,6 +25,7 @@ class _EnhancedLogBottomSheet extends ConsumerWidget {
     final theme = Theme.of(context);
     final tierAsync = ref.watch(currentPlanTierProvider);
     final isPro = tierAsync.valueOrNull == PlanTier.pro;
+    final profileId = ref.watch(activeProfileIdProvider) ?? '';
 
     return DraggableScrollableSheet(
       initialChildSize: 0.55,
@@ -137,7 +140,7 @@ class _EnhancedLogBottomSheet extends ConsumerWidget {
                 subtitle: 'Log hydration',
                 onTap: () {
                   Navigator.pop(context);
-                  _showWaterStepper(context);
+                  _showWaterStepper(context, profileId);
                 },
               ),
               _QuickActionItem(
@@ -190,10 +193,10 @@ class _EnhancedLogBottomSheet extends ConsumerWidget {
     );
   }
 
-  void _showWaterStepper(BuildContext context) {
+  void _showWaterStepper(BuildContext context, String profileId) {
     showModalBottomSheet<void>(
       context: context,
-      builder: (_) => const _WaterStepperSubSheet(),
+      builder: (_) => _WaterStepperSubSheet(profileId: profileId),
     );
   }
 }
@@ -314,15 +317,17 @@ class _QuickActionItem extends StatelessWidget {
   }
 }
 
-/// Inline water stepper sub-sheet.
-class _WaterStepperSubSheet extends StatefulWidget {
-  const _WaterStepperSubSheet();
+/// Inline water stepper sub-sheet with real persistence.
+class _WaterStepperSubSheet extends ConsumerStatefulWidget {
+  const _WaterStepperSubSheet({required this.profileId});
+  final String profileId;
 
   @override
-  State<_WaterStepperSubSheet> createState() => _WaterStepperSubSheetState();
+  ConsumerState<_WaterStepperSubSheet> createState() =>
+      _WaterStepperSubSheetState();
 }
 
-class _WaterStepperSubSheetState extends State<_WaterStepperSubSheet> {
+class _WaterStepperSubSheetState extends ConsumerState<_WaterStepperSubSheet> {
   int _glasses = 1;
 
   @override
@@ -387,14 +392,19 @@ class _WaterStepperSubSheetState extends State<_WaterStepperSubSheet> {
           SizedBox(
             width: double.infinity,
             child: FilledButton(
-              onPressed: () {
-                // Water logging will be wired in P14-013
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Logged $_glasses glass${_glasses > 1 ? 'es' : ''} of water'),
-                  ),
-                );
+              onPressed: () async {
+                await ref
+                    .read(waterLogProvider(widget.profileId).notifier)
+                    .addWater(_glasses);
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                          'Logged $_glasses glass${_glasses > 1 ? 'es' : ''} of water'),
+                    ),
+                  );
+                }
               },
               child: const Text('Save'),
             ),

@@ -429,3 +429,19 @@ Branch: ralph/phase-11-to-15-autonomous
   - MicronutrientSummary uses fatG/sodiumMg/cholesterolMg/carbsG/sugarG/fiberG (int?)
   - activeProfileIdProvider is in app_router.dart, not session_manager.dart
 ---
+
+## 2026-03-29 - P14-013
+- Created WaterLogNotifier + waterLogProvider for water logging via wt_health_metrics
+- Water stored as metric_type='water' (string query, not in MetricType enum)
+- loadTodayWater queries wt_health_metrics filtered by date range
+- addWater inserts new row with ml value, optimistic state update
+- Wired WaterStepperSubSheet to real provider — save now persists to Supabase
+- Passed profileId through from sheet -> water stepper via activeProfileIdProvider
+- Files changed:
+  - lib/features/health/presentation/water_log_provider.dart (new)
+  - lib/features/meals/presentation/enhanced_log_bottom_sheet.dart (wired provider)
+- **Learnings for future iterations:**
+  - 'water' is not in MetricType enum — must query with raw string, not enum value
+  - WaterStepperSubSheet needs to be ConsumerStatefulWidget for provider access
+  - activeProfileIdProvider available from app_router.dart
+---
