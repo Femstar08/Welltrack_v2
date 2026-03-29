@@ -3,15 +3,11 @@
 class ApiConstants {
   ApiConstants._();
 
-  // Supabase — values loaded from environment
-  static const String supabaseUrl = String.fromEnvironment(
-    'SUPABASE_URL',
-    defaultValue: 'https://nppjffhzkzfduulbbcih.supabase.co',
-  );
-  static const String supabaseAnonKey = String.fromEnvironment(
-    'SUPABASE_ANON_KEY',
-    defaultValue: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5wcGpmZmh6a3pmZHV1bGJiY2loIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAyMjQ2MTAsImV4cCI6MjA2NTgwMDYxMH0.OrwLcR8sXcsyMUVEAXgw2WNureeAKrwgrhrPGT6lgTU',
-  );
+  // Supabase — values MUST be provided via --dart-define-from-file=.env
+  // Build will fail at runtime if these are empty, which is intentional —
+  // never ship hardcoded credentials in the binary.
+  static const String supabaseUrl = String.fromEnvironment('SUPABASE_URL');
+  static const String supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
 
   // AI Orchestrator
   static const String aiOrchestrateEndpoint = '/functions/v1/ai-orchestrate';

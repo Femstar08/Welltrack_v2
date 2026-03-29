@@ -6,7 +6,7 @@
     {
       "id": "SEC-001",
       "title": "Remove hardcoded defaultValue credentials from api_constants.dart",
-      "passes": false,
+      "passes": true,
       "priority": 1,
       "acceptanceCriteria": [
         "Read lib/shared/core/constants/api_constants.dart",

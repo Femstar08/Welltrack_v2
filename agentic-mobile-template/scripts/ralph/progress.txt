@@ -25,3 +25,10 @@ Source: Comprehensive 5-agent review (Design, Security, BA, PM, Architecture)
 - ref.watch must NOT be used after await in async providers — use ref.read
 - GoRouter needs refreshListenable for reactive auth guard re-evaluation
 ---
+
+## 2026-03-29 - SEC-001
+- Removed hardcoded defaultValue for supabaseUrl and supabaseAnonKey from api_constants.dart
+- Build now fails at runtime if --dart-define-from-file=.env is not passed (intentional)
+- Verified no other hardcoded Supabase URLs in lib/ directory
+- Files changed: lib/shared/core/constants/api_constants.dart
+---
