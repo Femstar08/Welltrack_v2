@@ -582,7 +582,7 @@
     {
       "id": "P15-005",
       "title": "Verify AndroidManifest.xml has all required permissions and metadata",
-      "passes": false,
+      "passes": true,
       "priority": 34,
       "acceptanceCriteria": [
         "Read android/app/src/main/AndroidManifest.xml",
@@ -601,7 +601,7 @@
     {
       "id": "P15-006",
       "title": "Verify offline-first behavior and notification service",
-      "passes": false,
+      "passes": true,
       "priority": 35,
       "acceptanceCriteria": [
         "Read lib/shared/core/sync/sync_engine.dart",

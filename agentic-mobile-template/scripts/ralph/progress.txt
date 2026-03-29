@@ -498,3 +498,16 @@ Branch: ralph/phase-11-to-15-autonomous
 - Files changed:
   - lib/features/meals/data/food_database_service.dart
 ---
+
+## 2026-03-29 - P15-005 + P15-006
+- AndroidManifest.xml verified: all 13 Health Connect READ permissions, POST_NOTIFICATIONS, SCHEDULE_EXACT_ALARM, RECEIVE_BOOT_COMPLETED, CAMERA, INTERNET, deep link intent filters
+- health_permissions.xml exists with 7 permission entries
+- Health Connect rationale activity + activity-alias for Android 14+ present
+- Boot receiver for notification persistence present
+- Offline-first verified: SyncEngine + ConflictResolver exist in shared/core/sync/
+- WorkManager initialized in main.dart: HealthBackgroundSync.initialize() + registerPeriodicSync()
+- Notification service: FlutterLocalNotificationsPlugin initialized in main.dart before runApp
+- Cold-launch from notification handled: getNotificationAppLaunchDetails() resolves payload to route
+- NotificationService has channel creation, timezone init, permission request
+- No code changes needed — verification only
+---
