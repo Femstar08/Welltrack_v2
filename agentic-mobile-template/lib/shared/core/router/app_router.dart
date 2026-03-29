@@ -100,6 +100,8 @@ import '../../../features/health/presentation/screens/vo2max_entry_screen.dart'
     as vo2max_entry;
 import '../../../features/health/presentation/screens/weight_log_screen.dart'
     as weight_log;
+import '../../../features/health/presentation/screens/health_permissions_rationale_screen.dart'
+    as health_rationale;
 
 // Insights
 import '../../../features/insights/presentation/insights_dashboard_screen.dart'
@@ -496,6 +498,12 @@ class AppRouter {
                       name: 'weightLog',
                       builder: (context, state) =>
                           const weight_log.WeightLogScreen(),
+                    ),
+                    GoRoute(
+                      path: 'health/permissions-rationale',
+                      name: 'healthPermissionsRationale',
+                      builder: (context, state) =>
+                          const health_rationale.HealthPermissionsRationaleScreen(),
                     ),
                     // ── Health ───────────────────────────────────────
                     GoRoute(

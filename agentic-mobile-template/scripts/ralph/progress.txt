@@ -462,3 +462,17 @@ Branch: ralph/phase-11-to-15-autonomous
   - Supabase upsert uses onConflict parameter for conflict resolution
   - Weight dedupe key: profileId:weight:YYYY-MM-DD prevents duplicate daily entries
 ---
+
+## 2026-03-29 - P15-001
+- Created HealthPermissionsRationaleScreen with 7 permission explanations
+- Each permission: icon, name, reason (user-friendly why)
+- Continue button calls healthService.requestHealthPermissions()
+- Decline button shows dialog explaining limited features still work
+- Route registered at /health/permissions-rationale in app_router.dart
+- Files changed:
+  - lib/features/health/presentation/screens/health_permissions_rationale_screen.dart (new)
+  - lib/shared/core/router/app_router.dart (new route)
+- **Learnings for future iterations:**
+  - HealthService method is requestHealthPermissions() not requestPermissions()
+  - healthServiceProvider is in shared/core/health/health_service.dart
+---

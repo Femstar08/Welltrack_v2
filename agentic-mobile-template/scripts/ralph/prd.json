@@ -515,7 +515,7 @@
     {
       "id": "P15-001",
       "title": "Create Health Permissions Rationale screen (Google Play requirement)",
-      "passes": false,
+      "passes": true,
       "priority": 30,
       "acceptanceCriteria": [
         "Create lib/features/health/presentation/screens/health_permissions_rationale_screen.dart",
