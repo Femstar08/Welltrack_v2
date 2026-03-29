@@ -66,12 +66,14 @@ class _MacroRing extends StatelessWidget {
     final diff = (consumed - goal).abs();
     final ringColor = isOver ? Colors.amber : color;
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(
-          width: 80,
-          height: 80,
+    return Semantics(
+      label: '$label: $consumed of $goal grams consumed',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 80,
+            height: 80,
           child: CustomPaint(
             painter: _RingPainter(
               progress: goal > 0 ? (consumed / goal).clamp(0.0, 1.0) : 0.0,
@@ -109,6 +111,7 @@ class _MacroRing extends StatelessWidget {
               ),
         ),
       ],
+      ),
     );
   }
 }

@@ -321,11 +321,16 @@ class _HabitCard extends StatelessWidget {
                   label: isCompletedToday ? 'Mark habit incomplete' : 'Mark habit complete',
                   button: true,
                   child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
                     onTap: onToggle,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      width: 36,
-                      height: 36,
+                    child: SizedBox(
+                      width: 48,
+                      height: 48,
+                      child: Center(
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          width: 36,
+                          height: 36,
                       decoration: BoxDecoration(
                         color: isCompletedToday
                             ? accentColor
@@ -339,6 +344,8 @@ class _HabitCard extends StatelessWidget {
                       child: isCompletedToday
                           ? const Icon(Icons.check, color: Colors.white, size: 20)
                           : null,
+                    ),
+                      ),
                     ),
                   ),
                 ),
