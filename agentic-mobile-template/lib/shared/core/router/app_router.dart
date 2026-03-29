@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 // Auth screens
 import '../../../features/auth/presentation/login_screen.dart'
@@ -195,14 +197,34 @@ final activeProfileIdProvider = StateProvider<String?>((ref) => null);
 /// Active display name provider
 final activeDisplayNameProvider = StateProvider<String>((ref) => 'User');
 
+/// Converts a Supabase auth state stream into a [ChangeNotifier] that
+/// triggers GoRouter's redirect re-evaluation on auth changes (ARCH-001).
+class GoRouterAuthRefresh extends ChangeNotifier {
+  GoRouterAuthRefresh() {
+    _subscription = Supabase.instance.client.auth.onAuthStateChange
+        .listen((_) => notifyListeners());
+  }
+
+  late final StreamSubscription<AuthState> _subscription;
+
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
+  }
+}
+
 /// GoRouter configuration with authentication and onboarding guards
 class AppRouter {
   AppRouter._();
 
   static GoRouter createRouter(Ref ref) {
+    final authRefresh = GoRouterAuthRefresh();
+
     return GoRouter(
       initialLocation: '/splash',
       debugLogDiagnostics: true,
+      refreshListenable: authRefresh,
       redirect: (context, state) {
         final isAuthenticated = ref.read(authStateProvider);
         final isOnboardingComplete = ref.read(onboardingCompleteProvider);

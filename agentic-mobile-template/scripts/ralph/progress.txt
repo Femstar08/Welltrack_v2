@@ -75,3 +75,11 @@ Source: Comprehensive 5-agent review (Design, Security, BA, PM, Architecture)
   - supabase/functions/webhook-strava/index.ts
   - supabase/functions/process-webhooks/index.ts
 ---
+
+## 2026-03-29 - ARCH-001
+- Created GoRouterAuthRefresh (ChangeNotifier wrapping Supabase auth stream)
+- Passed as refreshListenable to GoRouter constructor
+- Auth state changes now automatically re-evaluate route guards
+- Session expiry on a protected route will redirect to /login immediately
+- Files changed: lib/shared/core/router/app_router.dart
+---
