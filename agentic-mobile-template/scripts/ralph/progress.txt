@@ -41,3 +41,10 @@ Branch: ralph/review-fixes
   - lib/features/profile/presentation/onboarding/screens/quick_profile_screen.dart
   - lib/features/profile/presentation/onboarding/onboarding_flow_screen.dart
 ---
+
+## 2026-03-29 - QUAL-004
+- ALREADY DONE: recovery_score_dashboard_card.dart line 188-237 has _buildCalibrating()
+- Shows 'Day X of 14' with LinearProgressIndicator
+- Baseline state checked before recovery score display
+- No code changes needed
+---

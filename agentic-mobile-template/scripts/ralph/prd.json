@@ -52,7 +52,7 @@
     {
       "id": "QUAL-004",
       "title": "Add 14-day calibration progress indicator on dashboard",
-      "passes": false,
+      "passes": true,
       "priority": 4,
       "acceptanceCriteria": [
         "Read lib/features/dashboard/presentation/widgets/recovery_score_dashboard_card.dart",
