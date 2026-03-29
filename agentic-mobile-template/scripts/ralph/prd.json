@@ -163,7 +163,7 @@
     {
       "id": "PROD-004",
       "title": "Wire scheduleNotification to reminder creation UI path",
-      "passes": false,
+      "passes": true,
       "priority": 11,
       "acceptanceCriteria": [
         "Read lib/features/reminders/data/notification_service.dart for scheduleNotification method",
