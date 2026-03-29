@@ -91,3 +91,10 @@ Source: Comprehensive 5-agent review (Design, Security, BA, PM, Architecture)
 - Pattern: ref.watch for sync subscriptions BEFORE await, ref.read for everything AFTER
 - Files changed: lib/features/meals/presentation/today_nutrition_provider.dart
 ---
+
+## 2026-03-29 - ARCH-003
+- Added SnackBar display for dashboardProvider.errorMessage in dashboard_screen.dart
+- Error auto-clears after display via clearError()
+- Uses addPostFrameCallback to avoid build-during-build
+- Files changed: lib/features/dashboard/presentation/dashboard_screen.dart
+---

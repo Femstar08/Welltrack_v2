@@ -101,7 +101,7 @@
     {
       "id": "ARCH-003",
       "title": "Surface DashboardState.errorMessage in the UI",
-      "passes": false,
+      "passes": true,
       "priority": 7,
       "acceptanceCriteria": [
         "Read lib/features/dashboard/presentation/dashboard_screen.dart",

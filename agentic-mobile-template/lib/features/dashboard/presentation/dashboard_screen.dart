@@ -57,6 +57,27 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final homeState = ref.watch(dashboardHomeProvider);
+    final dashState = ref.watch(dashboardProvider);
+
+    // Show error banner if dashboard loading failed (ARCH-003)
+    if (dashState.errorMessage != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(dashState.errorMessage!),
+              action: SnackBarAction(
+                label: 'Dismiss',
+                onPressed: () {
+                  ref.read(dashboardProvider.notifier).clearError();
+                },
+              ),
+            ),
+          );
+          ref.read(dashboardProvider.notifier).clearError();
+        }
+      });
+    }
 
     return Scaffold(
       body: RefreshIndicator(
