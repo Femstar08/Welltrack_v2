@@ -163,3 +163,11 @@ Source: Comprehensive 5-agent review (Design, Security, BA, PM, Architecture)
 - Files changed: lib/features/dashboard/presentation/dashboard_screen.dart
 - Note: habit toggle (36->48dp) and macro ring semantics deferred — separate widget files need careful review
 ---
+
+## 2026-03-29 - UX-004
+- Moved FAB from centerFloat to endFloat to avoid overlapping Log tab
+- Fixed AppBar titleTextStyle from headlineMedium (28sp) to titleLarge (22sp) in dark theme
+- Files changed:
+  - lib/shared/core/router/scaffold_with_bottom_nav.dart
+  - lib/shared/core/theme/app_theme.dart
+---

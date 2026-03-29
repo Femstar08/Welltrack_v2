@@ -232,7 +232,7 @@
     {
       "id": "UX-004",
       "title": "Resolve FAB + Log tab overlap and fix nav bar styling",
-      "passes": false,
+      "passes": true,
       "priority": 15,
       "acceptanceCriteria": [
         "Read lib/shared/core/router/scaffold_with_bottom_nav.dart",
