@@ -78,6 +78,12 @@ import '../../../features/meals/presentation/food_search_screen.dart'
     as food_search;
 import '../../../features/meals/presentation/weekly_nutrition_summary_screen.dart'
     as weekly_nutrition;
+import '../../../features/meals/presentation/nutrition_detail_screen.dart'
+    as nutrition_detail;
+import '../../../features/meals/presentation/voice_log_screen.dart'
+    as voice_log;
+import '../../../features/meals/presentation/meal_scan_screen.dart'
+    as meal_scan;
 
 // Health
 import '../../../features/health/presentation/health_connection_screen.dart'
@@ -92,6 +98,8 @@ import '../../../features/health/presentation/screens/weight_body_screen.dart'
     as weight_body;
 import '../../../features/health/presentation/screens/vo2max_entry_screen.dart'
     as vo2max_entry;
+import '../../../features/health/presentation/screens/weight_log_screen.dart'
+    as weight_log;
 
 // Insights
 import '../../../features/insights/presentation/insights_dashboard_screen.dart'
@@ -460,6 +468,34 @@ class AppRouter {
                           profileId: profileId,
                         );
                       },
+                    ),
+                    GoRoute(
+                      path: 'nutrition',
+                      name: 'nutritionDetail',
+                      builder: (context, state) {
+                        final tab = state.uri.queryParameters['tab'];
+                        return nutrition_detail.NutritionDetailScreen(
+                          initialTab: tab,
+                        );
+                      },
+                    ),
+                    GoRoute(
+                      path: 'meals/voice-log',
+                      name: 'voiceLog',
+                      builder: (context, state) =>
+                          const voice_log.VoiceLogScreen(),
+                    ),
+                    GoRoute(
+                      path: 'meals/meal-scan',
+                      name: 'mealScan',
+                      builder: (context, state) =>
+                          const meal_scan.MealScanScreen(),
+                    ),
+                    GoRoute(
+                      path: 'weight/log',
+                      name: 'weightLog',
+                      builder: (context, state) =>
+                          const weight_log.WeightLogScreen(),
                     ),
                     // ── Health ───────────────────────────────────────
                     GoRoute(

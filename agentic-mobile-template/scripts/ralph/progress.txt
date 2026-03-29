@@ -399,3 +399,16 @@ Branch: ralph/phase-11-to-15-autonomous
 - Files changed:
   - lib/shared/core/router/scaffold_with_bottom_nav.dart
 ---
+
+## 2026-03-29 - P14-011
+- Registered 4 new GoRoute routes in app_router.dart Branch 0
+- /nutrition with tab query param, /meals/voice-log, /meals/meal-scan, /weight/log
+- Created stub screens for all 4 (full impl in P14-012/13/14)
+- All stubs have AppBar with back button via context.pop
+- Files changed:
+  - lib/shared/core/router/app_router.dart
+  - lib/features/meals/presentation/nutrition_detail_screen.dart (new)
+  - lib/features/meals/presentation/voice_log_screen.dart (new)
+  - lib/features/meals/presentation/meal_scan_screen.dart (new)
+  - lib/features/health/presentation/screens/weight_log_screen.dart (new)
+---

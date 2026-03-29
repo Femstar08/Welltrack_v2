@@ -447,7 +447,7 @@
     {
       "id": "P14-011",
       "title": "Register new routes in app_router.dart",
-      "passes": false,
+      "passes": true,
       "priority": 26,
       "acceptanceCriteria": [
         "Read lib/shared/core/router/app_router.dart",
