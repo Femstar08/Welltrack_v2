@@ -2,6 +2,7 @@
 
 import 'dart:async';
 import 'dart:math' as math;
+import '../../../../shared/core/theme/app_colors.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -375,9 +376,9 @@ class _RecoveryScoreDashboardCardState
   Widget _buildTrendArrow(RecoveryTrend trend) {
     return switch (trend) {
       RecoveryTrend.up =>
-        const Icon(Icons.trending_up, color: Colors.green, size: 18),
+        const Icon(Icons.trending_up, color: AppColors.recoveryExcellent, size: 18),
       RecoveryTrend.down =>
-        const Icon(Icons.trending_down, color: Colors.red, size: 18),
+        const Icon(Icons.trending_down, color: AppColors.recoveryLow, size: 18),
       RecoveryTrend.flat =>
         const Icon(Icons.trending_flat, color: Colors.grey, size: 18),
     };
@@ -385,10 +386,7 @@ class _RecoveryScoreDashboardCardState
 
   /// PRD-exact colour thresholds.
   Color _scoreColor(double score) {
-    if (score >= 80) return Colors.green;
-    if (score >= 60) return Colors.yellow.shade700;
-    if (score >= 40) return Colors.orange;
-    return Colors.red;
+    return AppColors.getRecoveryColor(score);
   }
 }
 
@@ -403,10 +401,7 @@ class _SparklinePainter extends CustomPainter {
 
   /// Map a score value to a paint colour.
   Color _colorForScore(double score) {
-    if (score >= 80) return Colors.green;
-    if (score >= 60) return Colors.yellow.shade700;
-    if (score >= 40) return Colors.orange;
-    return Colors.red;
+    return AppColors.getRecoveryColor(score);
   }
 
   @override

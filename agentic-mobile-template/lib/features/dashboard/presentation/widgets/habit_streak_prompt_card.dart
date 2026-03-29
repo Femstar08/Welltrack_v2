@@ -125,11 +125,11 @@ class HabitStreakPromptCard extends ConsumerWidget {
   Color _cardColor(ThemeData theme, String iconKey) {
     switch (iconKey) {
       case 'recovery':
-        return const Color(0xFFFFF3E0); // amber light
+        return const Color(0xFFFF9800).withValues(alpha: 0.1);
       case 'recovery_high':
-        return const Color(0xFFE8F5E9); // green light
+        return const Color(0xFF4CAF50).withValues(alpha: 0.1);
       case 'streak':
-        return const Color(0xFFFCE4EC); // pink light
+        return const Color(0xFFE91E63).withValues(alpha: 0.1);
       default:
         return theme.colorScheme.surface;
     }
@@ -138,11 +138,11 @@ class HabitStreakPromptCard extends ConsumerWidget {
   Color _borderColor(ThemeData theme, String iconKey) {
     switch (iconKey) {
       case 'recovery':
-        return const Color(0xFFFFCC80);
+        return const Color(0xFFFF9800).withValues(alpha: 0.3);
       case 'recovery_high':
-        return const Color(0xFFA5D6A7);
+        return const Color(0xFF4CAF50).withValues(alpha: 0.3);
       case 'streak':
-        return const Color(0xFFF48FB1);
+        return const Color(0xFFE91E63).withValues(alpha: 0.3);
       default:
         return theme.colorScheme.outlineVariant;
     }

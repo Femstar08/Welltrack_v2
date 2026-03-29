@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../../shared/core/theme/app_colors.dart';
 import '../../../insights/data/insights_repository.dart';
 import '../../../insights/data/performance_engine.dart';
 
@@ -101,11 +102,11 @@ class _OvertTrainingWarningCardState
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Card(
-        color: Colors.orange.shade50,
+        color: AppColors.warning.withValues(alpha: 0.12),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
           side: BorderSide(
-            color: Colors.orange.shade300,
+            color: AppColors.warning.withValues(alpha: 0.3),
             width: 1,
           ),
         ),
@@ -116,7 +117,7 @@ class _OvertTrainingWarningCardState
             children: [
               Icon(
                 Icons.warning_amber_rounded,
-                color: Colors.orange.shade700,
+                color: AppColors.warning,
                 size: 22,
               ),
               const SizedBox(width: 10),
@@ -125,7 +126,7 @@ class _OvertTrainingWarningCardState
                   'Your training load is higher than usual. '
                   'Consider a rest day.',
                   style: TextStyle(
-                    color: Colors.orange.shade900,
+                    color: AppColors.warning,
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                     height: 1.4,

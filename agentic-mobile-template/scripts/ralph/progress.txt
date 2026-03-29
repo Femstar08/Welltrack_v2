@@ -144,3 +144,14 @@ Source: Comprehensive 5-agent review (Design, Security, BA, PM, Architecture)
   - lib/features/dashboard/presentation/widgets/habit_streak_prompt_card.dart
   - lib/features/dashboard/presentation/widgets/discover_quick_access_grid.dart
 ---
+
+## 2026-03-29 - UX-002
+- Fixed HabitStreakPromptCard: replaced light-mode pastels with dark-safe alpha-blended colors
+- Fixed OvertrainingWarningCard: replaced Colors.orange.shade50/300/900 with AppColors.warning at alpha
+- Fixed RecoveryScoreDashboardCard: replaced Colors.green/yellow/orange/red with AppColors.getRecoveryColor()
+- All cards now use consistent dark theme tokens
+- Files changed:
+  - lib/features/dashboard/presentation/widgets/habit_streak_prompt_card.dart
+  - lib/features/dashboard/presentation/widgets/overtraining_warning_card.dart
+  - lib/features/dashboard/presentation/widgets/recovery_score_dashboard_card.dart
+---

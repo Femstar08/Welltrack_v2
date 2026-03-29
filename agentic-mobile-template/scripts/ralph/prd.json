@@ -194,7 +194,7 @@
     {
       "id": "UX-002",
       "title": "Fix dark theme color consistency — replace light-mode pastels and raw Colors.*",
-      "passes": false,
+      "passes": true,
       "priority": 13,
       "acceptanceCriteria": [
         "Read lib/features/dashboard/presentation/widgets/habit_streak_prompt_card.dart",
