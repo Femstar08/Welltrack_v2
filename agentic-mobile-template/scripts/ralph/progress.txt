@@ -1,52 +1,16 @@
-
-# Ralph Progress Log — Meal Generation UX
+# Ralph Progress Log — Quality Fixes
 Started: 2026-03-29
 Branch: ralph/review-fixes
 
 ## Codebase Patterns
 - Use cmd.exe /c to run Flutter commands on WSL2
 - Must pass --dart-define-from-file=.env for Supabase credentials
-- All navigation uses GoRouter — NEVER use Navigator.pushNamed()
+- All navigation uses GoRouter
 - All Supabase calls through repository classes
-- AI calls through ai_orchestrator_service.dart only
-- Freemium gates use currentPlanTierProvider (FutureProvider)
-- PrescriptionEngine is static class — day type mapping in today_nutrition_provider.dart
-- RecipeGenerationNotifier is in recipe_generation_provider.dart
-- PantryItemEntity has: name, category, quantity, unit, isAvailable, expiryDate
-- pantryRepositoryProvider for pantry data access
-- Hive for local settings (use Hive.box('settings'))
----
-
-## 2026-03-29 - MEAL-001
-- Replaced blocking spinner states with non-blocking LinearProgressIndicator + text banner
-- Generating/generatingSteps/saving states now show progress at top while keeping content visible
-- User can navigate away during generation — provider survives (not autoDispose)
-- Error state now shows SnackBar with Retry action instead of blocking error screen
-- Fixed Navigator.pushReplacement to context.pushReplacement for GoRouter consistency
-- Removed unused RecipeDetailScreen import
-- Files changed: lib/features/recipes/presentation/recipe_suggestions_screen.dart
----
-
-## 2026-03-29 - MEAL-002
-- Added 'Auto-generate daily meal plan' toggle to settings under Meals section
-- Toggle is PRO-gated — free users see it locked, tapping goes to /paywall
-- Preference stored in Hive settings box (auto_generate_meals key)
-- meal_plan_screen auto-generates if toggle on + today + no existing plan
-- Shows SnackBar during auto-generation, non-blocking
-- Files changed:
-  - lib/features/settings/presentation/settings_screen.dart (toggle + Hive)
-  - lib/features/meals/presentation/meal_plan_screen.dart (auto-gen check)
----
-
-## 2026-03-29 - MEAL-003 + MEAL-004
-- Created ingredient_selection_sheet.dart with DraggableScrollableSheet
-- Two input modes: free-text comma-separated + pantry checkbox selection
-- PRO-gated: free users see upgrade prompt
-- Added 'Generate from ingredients' to meal_plan_screen popup menu
-- Added ingredients parameter to generatePlan() in meal_plan_provider
-- Ingredients included in both AI prompt text and contextOverride
-- Files changed:
-  - lib/features/meals/presentation/ingredient_selection_sheet.dart (new)
-  - lib/features/meals/presentation/meal_plan_screen.dart
-  - lib/features/meals/presentation/meal_plan_provider.dart
+- Riverpod providers: ref.watch before await, ref.read after
+- AppColors for all color tokens
+- wt_profiles has gender column (String)
+- MacroCalculator accepts gender parameter
+- FoodItem has caloriesPer100g, proteinPer100g, carbsPer100g, fatPer100g
+- BaselineEntity has daysCount for calibration progress
 ---
