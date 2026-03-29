@@ -445,3 +445,20 @@ Branch: ralph/phase-11-to-15-autonomous
   - WaterStepperSubSheet needs to be ConsumerStatefulWidget for provider access
   - activeProfileIdProvider available from app_router.dart
 ---
+
+## 2026-03-29 - P14-014
+- WeightLogScreen: full Supabase persistence with dedupe_hash (md5 of profileId:weight:date)
+- Upserts to wt_health_metrics with onConflict='dedupe_hash' for same-day updates
+- Loading state with spinner, error handling with SnackBar
+- VoiceLogScreen and MealScanScreen: functional MVP stubs with mic/camera icons
+- Voice and meal scan AI interpretation marked as Coming Soon
+- All screens have back button, proper navigation
+- Files changed:
+  - lib/features/health/presentation/screens/weight_log_screen.dart (full impl)
+  - lib/features/meals/presentation/voice_log_screen.dart (created in P14-011)
+  - lib/features/meals/presentation/meal_scan_screen.dart (created in P14-011)
+- **Learnings for future iterations:**
+  - crypto package provides md5 for dedupe hash
+  - Supabase upsert uses onConflict parameter for conflict resolution
+  - Weight dedupe key: profileId:weight:YYYY-MM-DD prevents duplicate daily entries
+---

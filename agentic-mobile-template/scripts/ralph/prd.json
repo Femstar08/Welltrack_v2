@@ -498,7 +498,7 @@
     {
       "id": "P14-014",
       "title": "Create VoiceLogScreen, MealScanScreen, and WeightLogScreen",
-      "passes": false,
+      "passes": true,
       "priority": 29,
       "acceptanceCriteria": [
         "Create lib/features/meals/presentation/voice_log_screen.dart — PRO-only, mic button with text input fallback",
