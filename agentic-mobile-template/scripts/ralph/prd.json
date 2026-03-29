@@ -1,328 +1,80 @@
 {
   "project": "WellTrack",
   "branchName": "ralph/review-fixes",
-  "description": "Fix critical issues from comprehensive 5-agent review: security hardening, architecture fixes, product gaps, UX polish. Priority order: security > architecture > product > UX.",
+  "description": "Meal Generation UX Improvements — background generation, auto-daily meal plans, pantry-based ingredient selection for meal generation",
   "userStories": [
     {
-      "id": "SEC-001",
-      "title": "Remove hardcoded defaultValue credentials from api_constants.dart",
-      "passes": true,
+      "id": "MEAL-001",
+      "title": "Background meal generation — don't block user on spinner screen",
+      "passes": false,
       "priority": 1,
       "acceptanceCriteria": [
-        "Read lib/shared/core/constants/api_constants.dart",
-        "Remove defaultValue parameter from supabaseUrl String.fromEnvironment",
-        "Remove defaultValue parameter from supabaseAnonKey String.fromEnvironment",
-        "Build must fail loudly if --dart-define-from-file=.env is not passed",
-        "Verify no other hardcoded Supabase URLs or keys exist in lib/",
+        "Read lib/features/recipes/presentation/recipe_suggestions_screen.dart",
+        "Read lib/features/recipes/presentation/recipe_generation_provider.dart",
+        "When user taps 'Cook with these' or triggers AI generation, show a SnackBar 'Generating meal suggestions...' and allow navigation away",
+        "RecipeGenerationNotifier must continue generating even if suggestions screen is disposed",
+        "When generation completes, show a SnackBar 'Suggestions ready! Tap to view' with action to navigate to suggestions screen",
+        "If user is still on suggestions screen when generation completes, show results immediately",
+        "If generation fails, show error SnackBar instead of blocking error screen",
         "flutter analyze returns 0 errors"
       ],
-      "technicalNotes": "The defaultValue bakes live credentials into every compiled binary. Remove them so the build fails without --dart-define-from-file=.env. The .env file itself is gitignored."
+      "technicalNotes": "Currently recipe_suggestions_screen.dart:101-117 shows a blocking spinner. The provider should be a StateNotifierProvider (not autoDispose) so it survives screen disposal. Use ScaffoldMessenger for SnackBars that persist across navigation."
     },
     {
-      "id": "SEC-002",
-      "title": "Add column-level REVOKE on plan_tier and onboarding_completed",
-      "passes": true,
+      "id": "MEAL-002",
+      "title": "Auto-generate daily meal plan toggle (PRO feature)",
+      "passes": false,
       "priority": 2,
       "acceptanceCriteria": [
-        "Create supabase/migrations/20260329000001_revoke_sensitive_columns.sql",
-        "REVOKE UPDATE (plan_tier) ON public.wt_users FROM authenticated",
-        "REVOKE UPDATE (onboarding_completed) ON public.wt_users FROM authenticated",
-        "Remove FreemiumRepository.updatePlanTier() from Flutter client — plan tier must only change server-side",
-        "Verify onboarding completion still works (it should use service role via Edge Function or trigger)",
+        "Read lib/features/meals/presentation/meal_plan_screen.dart",
+        "Read lib/features/settings/presentation/settings_screen.dart",
+        "Add 'Auto-generate daily meal plan' toggle to settings screen under a 'Meals' section",
+        "Toggle is PRO-gated — free users see the toggle with a lock icon, tapping navigates to /paywall",
+        "Store preference in Hive (key: 'auto_generate_meals', default: false)",
+        "On meal_plan_screen load, if toggle is on AND no meals exist for today, auto-trigger generation",
+        "Auto-generation uses the day type from PrescriptionEngine (push/normal/easy/rest) to set calorie targets",
+        "Show a subtle banner 'Auto-generating today's plan...' during generation, not a blocking spinner",
+        "If generation is already in progress, don't trigger duplicate",
         "flutter analyze returns 0 errors"
       ],
-      "technicalNotes": "Currently any authenticated user can set plan_tier='pro' via Supabase REST API. The UPDATE RLS policy has no column restriction. Fix with column-level REVOKE."
+      "technicalNotes": "Use Hive.box('settings').get('auto_generate_meals', defaultValue: false). Check currentPlanTierProvider before allowing toggle. The day type mapping is in today_nutrition_provider.dart _planTypeToDayType(). Don't use Supabase for this preference — it's a local device setting."
     },
     {
-      "id": "SEC-003",
-      "title": "Add OAuth state parameter for CSRF protection",
-      "passes": true,
+      "id": "MEAL-003",
+      "title": "Ingredient selection sheet for meal generation",
+      "passes": false,
       "priority": 3,
       "acceptanceCriteria": [
-        "Read lib/features/health/presentation/health_connections_provider.dart",
-        "Read lib/app.dart deep link handler",
-        "Generate cryptographically random state value (min 128 bits) before initiating OAuth",
-        "Store state in flutter_secure_storage or a StateProvider",
-        "Pass state as query parameter in both Garmin and Strava authorization URLs",
-        "In deep link callback, verify returned state matches stored value before calling connect",
-        "Reject and log if state mismatch",
+        "Read lib/features/pantry/presentation/pantry_screen.dart for existing 'Cook with these' pattern",
+        "Read lib/features/meals/presentation/meal_plan_screen.dart",
+        "Create lib/features/meals/presentation/ingredient_selection_sheet.dart",
+        "Sheet has two sections: 'Type ingredients' text field at top, 'From pantry' list below",
+        "Text field accepts comma-separated ingredient names (free text)",
+        "Pantry section shows available (non-expired) items from pantry with checkboxes",
+        "Select/deselect pantry items to include in generation",
+        "'Generate Plan' button at bottom passes selected ingredients + typed ingredients to meal plan generator",
+        "This option is PRO-gated — free users see 'Upgrade to generate from ingredients'",
+        "Add a button in meal_plan_screen.dart to open this sheet: 'Generate from ingredients'",
         "flutter analyze returns 0 errors"
       ],
-      "technicalNotes": "Without a state parameter, an attacker can craft a malicious deep link that links their Strava/Garmin account to the victim's WellTrack profile."
+      "technicalNotes": "Reuse pantryRepositoryProvider to load pantry items. PantryItemEntity has name, category, quantity, unit, isAvailable, expiryDate. Filter to isAvailable=true and non-expired. Pass ingredients as List<String> to the meal generation provider."
     },
     {
-      "id": "SEC-004",
-      "title": "Fix Edge Function security: userClient key, webhook fallbacks, process-webhooks auth",
-      "passes": true,
+      "id": "MEAL-004",
+      "title": "Wire ingredient-based generation to AI orchestrator",
+      "passes": false,
       "priority": 4,
       "acceptanceCriteria": [
-        "Read supabase/functions/_shared/supabase-client.ts",
-        "Change userClient to use SUPABASE_ANON_KEY instead of service role key",
-        "Read supabase/functions/webhook-garmin/index.ts",
-        "Change missing GARMIN_CONSUMER_SECRET from return true to return false",
-        "Read supabase/functions/webhook-strava/index.ts and oauth-strava/index.ts",
-        "Remove hardcoded WELLTRACK_STRAVA_2026 fallback — function must reject if STRAVA_VERIFY_TOKEN not set",
-        "Read supabase/functions/process-webhooks/index.ts",
-        "Add service-role JWT check at function entry — reject unauthorized requests",
-        "Cap batchSize to maximum of 50"
-      ],
-      "technicalNotes": "Multiple Edge Function security gaps found by security audit. Fix all in one story."
-    },
-    {
-      "id": "ARCH-001",
-      "title": "Add refreshListenable to GoRouter for reactive auth guard re-evaluation",
-      "passes": true,
-      "priority": 5,
-      "acceptanceCriteria": [
-        "Read lib/shared/core/router/app_router.dart",
-        "Create a GoRouterRefreshStream or ChangeNotifier that wraps the Supabase auth state stream",
-        "Pass it as refreshListenable to GoRouter constructor",
-        "When auth state changes (logout, session expiry), router automatically re-evaluates redirect",
-        "Test: user on a protected route when session expires should be redirected to /login",
+        "Read lib/features/meals/presentation/meal_plan_screen.dart generation logic",
+        "Read lib/shared/core/ai/ai_orchestrator_service.dart for workflow patterns",
+        "When generating from ingredients, include the ingredient list in the AI prompt context",
+        "AI prompt should say: 'Generate meals using these available ingredients: [list]. Fill gaps with common items.'",
+        "Generated meals should prioritize the specified ingredients",
+        "If no ingredients specified, fall back to standard generation (current behavior)",
+        "Generation must go through ai_orchestrator_service — never direct API calls",
         "flutter analyze returns 0 errors"
       ],
-      "technicalNotes": "Currently ref.read(authStateProvider) is a snapshot that doesn't trigger re-evaluation. GoRouter needs a Listenable to reactively re-check guards."
-    },
-    {
-      "id": "ARCH-002",
-      "title": "Fix ref.watch in async bodies to ref.read in today_nutrition_provider.dart",
-      "passes": true,
-      "priority": 6,
-      "acceptanceCriteria": [
-        "Read lib/features/meals/presentation/today_nutrition_provider.dart",
-        "Find all ref.watch() calls inside async FutureProvider bodies",
-        "Change ref.watch() after any await to ref.read()",
-        "Keep ref.watch() calls that are before the first await (these are fine for subscription setup)",
-        "Verify todayNutritionDashboardProvider still composes correctly",
-        "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "ref.watch inside async bodies does not re-subscribe after await. Riverpod docs require ref.read after async gaps. ~15 instances to fix."
-    },
-    {
-      "id": "ARCH-003",
-      "title": "Surface DashboardState.errorMessage in the UI",
-      "passes": true,
-      "priority": 7,
-      "acceptanceCriteria": [
-        "Read lib/features/dashboard/presentation/dashboard_screen.dart",
-        "Read lib/features/dashboard/presentation/dashboard_provider.dart for errorMessage field",
-        "When dashboardProvider state has a non-null errorMessage, show a dismissable error banner or SnackBar",
-        "Error should use user-friendly text, not raw exception strings",
-        "Dismissing the error clears it from state",
-        "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "DashboardState.errorMessage is set in DashboardNotifier but nothing reads it. Errors are silently swallowed."
-    },
-    {
-      "id": "PROD-001",
-      "title": "Add Recovery Score card to top of dashboard",
-      "passes": true,
-      "priority": 8,
-      "acceptanceCriteria": [
-        "Read lib/features/dashboard/presentation/dashboard_screen.dart",
-        "Read lib/features/dashboard/presentation/widgets/recovery_score_dashboard_card.dart",
-        "Insert RecoveryScoreDashboardCard as the first or second section after the header",
-        "Card should show today's recovery score with color coding and trend arrow",
-        "During 14-day calibration, show progress indicator (Day X of 14)",
-        "Free users see teased score (number visible but breakdown locked)",
-        "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "The widget exists and is wired to real data but is not in DashboardScreen. This is the app's core differentiator — must be prominent."
-    },
-    {
-      "id": "PROD-002",
-      "title": "Fix decimal input in onboarding height/weight fields",
-      "passes": true,
-      "priority": 9,
-      "acceptanceCriteria": [
-        "Read lib/features/profile/presentation/onboarding/onboarding_flow_screen.dart",
-        "Find height and weight TextFormField inputs",
-        "Replace FilteringTextInputFormatter.digitsOnly with a formatter that allows decimal points",
-        "Use TextInputType.numberWithOptions(decimal: true) for keyboard type",
-        "Add validation: weight 20-500 kg, height 50-280 cm",
-        "Disable Continue button when required fields are empty or invalid",
-        "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "digitsOnly strips the decimal point — 75.5 kg becomes 755. Also Continue button is always enabled even with empty fields."
-    },
-    {
-      "id": "PROD-003",
-      "title": "Add display name field to onboarding QuickProfileScreen",
-      "passes": true,
-      "priority": 10,
-      "acceptanceCriteria": [
-        "Read lib/features/profile/presentation/onboarding/ for QuickProfileScreen or the biometrics step",
-        "Add a 'Display Name' text field (first name or preferred name)",
-        "Save to wt_profiles or wt_users (whichever has a display_name column)",
-        "Dashboard greeting should use this name instead of email prefix",
-        "Field is required — cannot proceed without entering a name",
-        "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "Currently dashboard shows 'Good morning, john.doe' derived from email. Need a proper name."
-    },
-    {
-      "id": "PROD-004",
-      "title": "Wire scheduleNotification to reminder creation UI path",
-      "passes": true,
-      "priority": 11,
-      "acceptanceCriteria": [
-        "Read lib/features/reminders/data/notification_service.dart for scheduleNotification method",
-        "Read lib/features/reminders/ for the reminder creation flow",
-        "After ReminderRepository.createReminder() succeeds, call NotificationService.scheduleNotification()",
-        "Pass the reminder's time, repeat rule, title, and deep-link payload",
-        "Verify a test reminder actually fires as a device notification",
-        "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "NotificationService is fully implemented but scheduleNotification() is never called from the create-reminder path. The handoff is missing."
-    },
-    {
-      "id": "UX-001",
-      "title": "Replace hardcoded top:60 with SafeArea and fix horizontal padding consistency",
-      "passes": true,
-      "priority": 12,
-      "acceptanceCriteria": [
-        "Read lib/features/dashboard/presentation/dashboard_screen.dart",
-        "Replace top:60 padding with SafeArea or MediaQuery.paddingOf(context).top",
-        "Standardize all horizontal padding to a single value (20dp recommended)",
-        "Fix weight_trend_chart_widget.dart, habit_streak_prompt_card.dart, discover_quick_access_grid.dart to match",
-        "Fix _GoalsSummaryCard, DailyCoachCard padding to match",
-        "Dashboard should have a consistent left edge on scroll",
-        "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "Currently mixed 16dp/24dp horizontal padding creates jagged left edge. Header uses hardcoded top:60 which clips on notch devices."
-    },
-    {
-      "id": "UX-002",
-      "title": "Fix dark theme color consistency — replace light-mode pastels and raw Colors.*",
-      "passes": true,
-      "priority": 13,
-      "acceptanceCriteria": [
-        "Read lib/features/dashboard/presentation/widgets/habit_streak_prompt_card.dart",
-        "Replace Color(0xFFFFF3E0), Color(0xFFE8F5E9), Color(0xFFFCE4EC) with AppColors equivalents at 10% alpha",
-        "Read lib/features/dashboard/presentation/widgets/overtraining_warning_card.dart",
-        "Replace Colors.orange.shade50/300/900 with AppColors.warning at appropriate alpha levels",
-        "Read lib/features/dashboard/presentation/widgets/recovery_score_dashboard_card.dart",
-        "Replace Colors.green/yellow/orange/red with AppColors.recoveryExcellent/Good/Moderate/Low/Critical",
-        "Read lib/features/dashboard/presentation/widgets/daily_coach_card.dart",
-        "Replace any Colors.green/amber/red with AppColors tokens",
-        "All cards should look native to the dark Obsidian Vitality theme",
-        "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "Light-mode pastel backgrounds create bright 'white islands' in the dark theme. AppColors has recovery color tokens defined but unused."
-    },
-    {
-      "id": "UX-003",
-      "title": "Fix touch targets, semantics, and accessibility gaps",
-      "passes": true,
-      "priority": 14,
-      "acceptanceCriteria": [
-        "Read lib/features/dashboard/presentation/dashboard_screen.dart",
-        "Replace GestureDetector + Container on bloodwork card with Material + InkWell + Semantics(button: true)",
-        "Fix goal status badge fontSize from 9 to AppTypography.labelSmall (11sp minimum)",
-        "Read lib/features/habits/presentation/habits_screen.dart",
-        "Expand habit toggle from 36dp to 48dp minimum touch target",
-        "Read lib/features/dashboard/presentation/widgets/macro_rings_carousel_page.dart",
-        "Add Semantics(label: 'Protein: X of Y grams') to each macro ring",
-        "Read lib/features/dashboard/presentation/widgets/steps_summary_tile.dart",
-        "Replace GestureDetector 'Connect' CTA with TextButton (48dp target)",
-        "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "Multiple WCAG violations: sub-48dp touch targets, missing semantic labels, no ink feedback on interactive elements."
-    },
-    {
-      "id": "UX-004",
-      "title": "Resolve FAB + Log tab overlap and fix nav bar styling",
-      "passes": true,
-      "priority": 15,
-      "acceptanceCriteria": [
-        "Read lib/shared/core/router/scaffold_with_bottom_nav.dart",
-        "Remove the 'Log' BottomNavigationBarItem since FAB subsumes it",
-        "Update branch indexes: Home(0), Workouts(1), Profile(2)",
-        "Or alternatively move FAB to endFloat position if Log tab must stay",
-        "Add top border to BottomNavigationBar for visual separation",
-        "Add fontWeight distinction: selected w700, unselected w400",
-        "Fix AppBar titleTextStyle from 28sp to titleLarge (22sp) in app_theme.dart dark theme",
-        "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "FAB at centerFloat overlaps the Log nav item. Either remove Log tab (cleaner) or reposition FAB. Also nav bar has no visual separator against dark content."
-    },
-    {
-      "id": "UX-005",
-      "title": "Fix BackdropFilter performance and shimmer loading skeleton",
-      "passes": true,
-      "priority": 16,
-      "acceptanceCriteria": [
-        "Read lib/features/dashboard/presentation/widgets/steps_summary_tile.dart",
-        "Read lib/features/dashboard/presentation/widgets/exercise_summary_tile.dart",
-        "Remove BackdropFilter from both — use solid container color instead",
-        "Add no-data state to ExerciseSummaryTile showing '-- kcal' when exercise is null (matching steps pattern)",
-        "Read lib/features/dashboard/presentation/widgets/shimmer_loading.dart",
-        "Rebuild DashboardShimmer to match actual 2025 dashboard: header -> 180dp carousel -> 2 tiles -> chart -> card -> grid",
-        "Make ShimmerBox self-animating or ensure it's always used inside DashboardShimmer",
-        "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "BackdropFilter forces compositing layer repaints on every scroll frame — 3-5ms per frame hit on mid-range Android. Shimmer skeleton has wrong layout causing CLS-equivalent jump."
-    },
-    {
-      "id": "UX-006",
-      "title": "Fix carousel height consistency and add greeting time awareness",
-      "passes": true,
-      "priority": 17,
-      "acceptanceCriteria": [
-        "Read lib/features/dashboard/presentation/widgets/nutrition_summary_carousel.dart",
-        "Unify loading, zero-state, and data heights to 180dp consistently",
-        "Read lib/features/dashboard/presentation/dashboard_screen.dart header section",
-        "Replace hardcoded 'Good morning,' with time-aware greeting (morning/afternoon/evening)",
-        "A _greeting() helper already exists in daily_coach_card.dart — reuse or extract to shared utils",
-        "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "Carousel has 180dp data, 160dp loading, 160dp zero — causing 20dp layout jump on state transition."
-    },
-    {
-      "id": "ARCH-004",
-      "title": "Move weight log Supabase call into repository and replace MD5 with SHA-256",
-      "passes": true,
-      "priority": 18,
-      "acceptanceCriteria": [
-        "Read lib/features/health/presentation/screens/weight_log_screen.dart",
-        "Move the Supabase upsert call into HealthRepository (add a logWeight method)",
-        "Screen should call the repository via a provider, not Supabase directly",
-        "Replace md5.convert with sha256.convert for dedupe_hash (per CLAUDE.md spec)",
-        "Also check lib/features/health/data/health_normalizer.dart for MD5 usage and replace",
-        "Show previous weight above the input ('Last logged: 82.4 kg on Mar 27')",
-        "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "Direct Supabase call from screen violates architecture, bypasses offline-first, and is untestable. MD5 is cryptographically broken — use SHA-256 per project spec."
-    },
-    {
-      "id": "SEC-005",
-      "title": "Add freemium tier check to GoRouter redirect for Pro-only routes",
-      "passes": true,
-      "priority": 19,
-      "acceptanceCriteria": [
-        "Read lib/shared/core/router/app_router.dart redirect callback",
-        "Define a list of Pro-only route prefixes: /insights, /daily-coach/plan, /recovery-detail",
-        "In the redirect callback, check currentPlanTierProvider for these routes",
-        "If user is free tier and navigating to a Pro route, redirect to /paywall",
-        "Verify free users can still access all free features",
-        "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "Currently router only checks auth + onboarding. A free user who knows the route paths can access /insights directly. Defense-in-depth alongside widget-level FreemiumGate."
-    },
-    {
-      "id": "SEC-006",
-      "title": "Fix email validation on login and raise password minimum to 8 characters",
-      "passes": true,
-      "priority": 20,
-      "acceptanceCriteria": [
-        "Read lib/features/auth/presentation/login_screen.dart email validator",
-        "Replace contains('@') check with proper regex matching signup screen pattern",
-        "Read lib/features/auth/presentation/signup_screen.dart password validator",
-        "Raise minimum from 6 to 8 characters",
-        "Update error message to match",
-        "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "Login accepts '@' as valid email. Password min 6 is below NIST SP 800-63B standard of 8 for apps handling sensitive health data."
+      "technicalNotes": "The AI orchestrator uses workflow types. Add ingredient context to the existing 'generate_meal_plan' workflow. The context builder should include ingredients as a field. Deterministic fallback should still work when AI is unavailable."
     }
   ]
 }
