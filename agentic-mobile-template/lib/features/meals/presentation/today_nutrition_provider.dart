@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/meal_repository.dart';
 import '../data/macro_calculator.dart';
+import '../domain/meal_entity.dart';
 import 'nutrition_targets_provider.dart';
 import '../../daily_coach/data/daily_prescription_repository.dart';
 import '../../daily_coach/domain/daily_prescription_entity.dart';
@@ -80,13 +81,20 @@ class TodayNutritionDashboard {
 // Providers
 // ---------------------------------------------------------------------------
 
+/// Shared provider for today's meals — prevents duplicate getMeals() queries.
+/// All nutrition providers watch this instead of calling getMeals independently.
+final todayMealsProvider =
+    FutureProvider.family<List<MealEntity>, String>((ref, profileId) async {
+  final mealRepo = ref.watch(mealRepositoryProvider);
+  final today = DateTime.now();
+  return mealRepo.getMeals(profileId, today);
+});
+
 /// Macro summary for today: consumed vs goal for protein, carbs, fat.
 final todayMacroSummaryProvider = FutureProvider.family<
     ({MacroSummary protein, MacroSummary carbs, MacroSummary fat}),
     String>((ref, profileId) async {
-  final mealRepo = ref.watch(mealRepositoryProvider);
-  final today = DateTime.now();
-  final meals = await mealRepo.getMeals(profileId, today);
+  final meals = await ref.watch(todayMealsProvider(profileId).future);
 
   int consumedProtein = 0;
   int consumedCarbs = 0;
@@ -115,12 +123,10 @@ final todayMacroSummaryProvider = FutureProvider.family<
 final todayCalorieSummaryProvider =
     FutureProvider.family<CalorieSummary, String>((ref, profileId) async {
   // Read all dependencies before any await (Riverpod best practice)
-  final mealRepo = ref.watch(mealRepositoryProvider);
   final prescriptionRepo = ref.watch(dailyPrescriptionRepositoryProvider);
   final targetsState = ref.watch(nutritionTargetsProvider(profileId));
 
-  final today = DateTime.now();
-  final meals = await mealRepo.getMeals(profileId, today);
+  final meals = await ref.watch(todayMealsProvider(profileId).future);
 
   int consumed = 0;
   for (final meal in meals) {
@@ -171,9 +177,7 @@ final todayCalorieSummaryProvider =
 final todayMicronutrientSummaryProvider =
     FutureProvider.family<MicronutrientSummary, String>(
         (ref, profileId) async {
-  final mealRepo = ref.watch(mealRepositoryProvider);
-  final today = DateTime.now();
-  final meals = await mealRepo.getMeals(profileId, today);
+  final meals = await ref.watch(todayMealsProvider(profileId).future);
 
   int? fatG, sodiumMg, cholesterolMg, carbsG, sugarG, fiberG;
 

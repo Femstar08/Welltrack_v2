@@ -68,7 +68,7 @@
     {
       "id": "QUAL-005",
       "title": "Reduce dashboard N+1 queries with coordinated loading",
-      "passes": false,
+      "passes": true,
       "priority": 5,
       "acceptanceCriteria": [
         "Read lib/features/dashboard/presentation/dashboard_home_provider.dart",

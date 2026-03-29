@@ -48,3 +48,11 @@ Branch: ralph/review-fixes
 - Baseline state checked before recovery score display
 - No code changes needed
 ---
+
+## 2026-03-29 - QUAL-005
+- Created todayMealsProvider as shared FutureProvider.family for today's meals
+- Replaced 3 independent mealRepo.getMeals() calls with todayMealsProvider watch
+- Macro, calorie, and micronutrient providers now share the same meals data (1 query instead of 3)
+- dashboardHomeProvider already uses single getMetrics call (N+1 was partially fixed in Phase 13)
+- Files changed: lib/features/meals/presentation/today_nutrition_provider.dart
+---
