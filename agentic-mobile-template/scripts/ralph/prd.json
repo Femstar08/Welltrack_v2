@@ -430,7 +430,7 @@
     {
       "id": "P14-010",
       "title": "Add FAB to ScaffoldWithBottomNav wired to EnhancedLogBottomSheet",
-      "passes": false,
+      "passes": true,
       "priority": 25,
       "acceptanceCriteria": [
         "Read lib/shared/core/router/scaffold_with_bottom_nav.dart",

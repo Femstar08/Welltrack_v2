@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../features/meals/presentation/enhanced_log_bottom_sheet.dart';
 
 /// Shell scaffold that renders the persistent bottom navigation bar across all
 /// primary tab destinations.  Each branch keeps its own navigation stack so
@@ -15,11 +16,21 @@ class ScaffoldWithBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       // The navigationShell renders the currently active branch's subtree.
       // Each branch's own Scaffold (with its AppBar) sits inside this body,
       // so nested Scaffolds are intentional and fully supported by Flutter.
       body: navigationShell,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => showEnhancedLogSheet(context),
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
+        tooltip: 'Log',
+        child: const Icon(Icons.add),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         currentIndex: navigationShell.currentIndex,
