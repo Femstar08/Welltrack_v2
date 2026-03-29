@@ -409,7 +409,7 @@
     {
       "id": "P14-009",
       "title": "Create EnhancedLogBottomSheet with 2x2 grid and action list",
-      "passes": false,
+      "passes": true,
       "priority": 24,
       "acceptanceCriteria": [
         "Read PRPs/meals-v4-enhanced-fab.md",

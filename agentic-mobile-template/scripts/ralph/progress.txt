@@ -373,3 +373,20 @@ Branch: ralph/phase-11-to-15-autonomous
   - Bloodwork summary card (_buildBloodworkSummary) is still inline — could be extracted later
   - _GoalsSummaryCard is already a separate class at bottom of file — good pattern
 ---
+
+## 2026-03-29 - P14-009
+- Created EnhancedLogBottomSheet with DraggableScrollableSheet
+- 2x2 grid: Log Food (green), Barcode (blue), Voice Log (purple PRO), Meal Scan (orange PRO)
+- Quick action list: Water, Weight, Exercise, AI Suggestions (Coming Soon), Recipes, Quick Add
+- Voice Log + Meal Scan always visible but PRO-locked (lock icon, navigates to /paywall for free)
+- WaterStepperSubSheet: inline +/- glass counter, 250ml per glass, up to 20 glasses
+- showEnhancedLogSheet() top-level function for easy import
+- FabActionTile and QuickActionItem as private widget classes
+- Water save shows SnackBar (actual persistence wired in P14-013)
+- Files changed:
+  - lib/features/meals/presentation/enhanced_log_bottom_sheet.dart (new)
+- **Learnings for future iterations:**
+  - Routes: meals/food-search, meals/food-barcode-scan, meals/log, /recipes, /workouts
+  - Navigator.pop(context) needed before context.push() to close sheet then navigate
+  - DraggableScrollableSheet needs isScrollControlled: true on showModalBottomSheet
+---
