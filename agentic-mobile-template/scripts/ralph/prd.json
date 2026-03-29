@@ -375,7 +375,7 @@
     {
       "id": "P14-007",
       "title": "Create DiscoverQuickAccessGrid replacing SecondaryModulesList",
-      "passes": false,
+      "passes": true,
       "priority": 22,
       "acceptanceCriteria": [
         "Read lib/features/dashboard/presentation/dashboard_screen.dart for existing SecondaryModulesList",

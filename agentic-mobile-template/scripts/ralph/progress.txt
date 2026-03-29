@@ -342,3 +342,18 @@ Branch: ralph/phase-11-to-15-autonomous
   - todayRecoveryScoreProvider returns double? synchronously (Provider.family, not FutureProvider)
   - Dismissible needs unique ValueKey per prompt content
 ---
+
+## 2026-03-29 - P14-007
+- Created DiscoverQuickAccessGrid with 4 tiles: Sleep, Recipes, Workouts, Recovery
+- 2x2 GridView.count with childAspectRatio 2.2 (wide tiles)
+- Each tile: colored icon + label + optional lock icon for PRO features
+- Recovery tile PRO-gated: locked users navigate to /paywall, unlocked to /recovery-detail
+- Reads currentPlanTierProvider for freemium check
+- Widget replaces SecondaryModulesList (will be swapped in dashboard during P14-008)
+- Files changed:
+  - lib/features/dashboard/presentation/widgets/discover_quick_access_grid.dart (new)
+- **Learnings for future iterations:**
+  - SecondaryModulesList is at dashboard_screen.dart line 170 — uses ref.watch(dashboardProvider).tiles
+  - currentPlanTierProvider is FutureProvider.autoDispose — use .valueOrNull for sync check
+  - DiscoverQuickAccessGrid is static (no provider needed) — tiles are const
+---
