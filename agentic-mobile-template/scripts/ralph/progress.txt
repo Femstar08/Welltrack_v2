@@ -324,3 +324,21 @@ Branch: ralph/phase-11-to-15-autonomous
   - Use .withValues(alpha: X) not .withOpacity(X) per Flutter 3.27+ pattern
   - goalsProvider is StateNotifierProvider.family keyed by profileId
 ---
+
+## 2026-03-29 - P14-006
+- Created habitPromptProvider as Provider.family returning HabitPromptData or null
+- Rules engine: low recovery warning > streak celebration > unlogged habits (evening) > high recovery encouragement > morning reminder
+- Created habitPromptDismissedProvider (StateProvider<bool>) for session-only dismissal
+- Created HabitStreakPromptCard as ConsumerWidget with Dismissible swipe + close button
+- Card styling varies by prompt type: amber for low recovery, green for high, pink for streaks
+- Action link navigates to relevant route via context.push
+- Returns SizedBox.shrink when no prompt or dismissed
+- Files changed:
+  - lib/features/meals/presentation/habit_prompt_provider.dart (new)
+  - lib/features/dashboard/presentation/widgets/habit_streak_prompt_card.dart (new)
+- **Learnings for future iterations:**
+  - habitProvider is StateNotifierProvider.family keyed by profileId, not async
+  - HabitEntity.currentStreakDays and todayLogs map are synchronous state
+  - todayRecoveryScoreProvider returns double? synchronously (Provider.family, not FutureProvider)
+  - Dismissible needs unique ValueKey per prompt content
+---
