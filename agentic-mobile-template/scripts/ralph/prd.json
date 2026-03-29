@@ -6,7 +6,7 @@
     {
       "id": "MEAL-001",
       "title": "Background meal generation — don't block user on spinner screen",
-      "passes": false,
+      "passes": true,
       "priority": 1,
       "acceptanceCriteria": [
         "Read lib/features/recipes/presentation/recipe_suggestions_screen.dart",

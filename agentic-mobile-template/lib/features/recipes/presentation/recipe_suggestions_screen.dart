@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'recipe_generation_provider.dart';
-import 'recipe_detail_screen.dart';
 import '../../profile/presentation/profile_provider.dart';
 import '../../pantry/data/pantry_repository.dart';
 import '../../pantry/domain/pantry_item_entity.dart';
@@ -98,75 +97,39 @@ class _RecipeSuggestionsScreenState
             return const Center(child: Text('No active profile'));
           }
 
-          if (generationData.state == RecipeGenerationState.generating) {
-            return const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Generating recipe ideas...'),
-                  SizedBox(height: 8),
-                  Text(
-                    'This may take a few moments',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          if (generationData.state == RecipeGenerationState.generatingSteps) {
-            return const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Preparing your recipe...'),
-                ],
-              ),
-            );
-          }
-
+          // Navigate to recipe detail when generation completes
           if (generationData.state == RecipeGenerationState.complete &&
               generationData.generatedRecipe != null) {
-            // Navigate to recipe detail
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => RecipeDetailScreen(
-                    recipeId: generationData.generatedRecipe!.id,
-                  ),
-                ),
-              );
+              if (mounted) {
+                context.pushReplacement(
+                    '/recipes/${generationData.generatedRecipe!.id}');
+              }
             });
             return const Center(child: CircularProgressIndicator());
           }
 
+          // Show error as SnackBar, not blocking screen
           if (generationData.state == RecipeGenerationState.error) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                  const SizedBox(height: 16),
-                  Text(
-                    generationData.errorMessage ?? 'An error occurred',
-                    textAlign: TextAlign.center,
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                        generationData.errorMessage ?? 'Generation failed'),
+                    action: SnackBarAction(
+                      label: 'Retry',
+                      onPressed: () {
+                        ref.read(recipeGenerationProvider.notifier).reset();
+                        _autoTriggerAttempted = false;
+                        _autoTriggerIfIdle();
+                      },
+                    ),
                   ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      ref.read(recipeGenerationProvider.notifier).reset();
-                      Navigator.pop(context);
-                    },
-                    child: const Text('Go Back'),
-                  ),
-                ],
-              ),
-            );
+                );
+                ref.read(recipeGenerationProvider.notifier).reset();
+              }
+            });
           }
 
           // Idle with no suggestions and auto-trigger already attempted means
@@ -216,9 +179,39 @@ class _RecipeSuggestionsScreenState
             return const Center(child: CircularProgressIndicator());
           }
 
-          // State is 'suggestions' (or idle with pre-loaded suggestions).
+          // State is 'suggestions', 'generating', or 'generatingSteps'.
+          // Show content with non-blocking progress indicator when generating.
+          final isGenerating =
+              generationData.state == RecipeGenerationState.generating ||
+              generationData.state == RecipeGenerationState.generatingSteps ||
+              generationData.state == RecipeGenerationState.saving;
+
           return Column(
             children: [
+              // Non-blocking progress banner during generation
+              if (isGenerating)
+                Column(
+                  children: [
+                    const LinearProgressIndicator(),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      child: Text(
+                        generationData.state ==
+                                RecipeGenerationState.generating
+                            ? 'Generating recipe ideas...'
+                            : generationData.state ==
+                                    RecipeGenerationState.generatingSteps
+                                ? 'Preparing your recipe...'
+                                : 'Saving recipe...',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
               // Error / fallback banner
               if (generationData.errorMessage != null &&
                   (generationData.state == RecipeGenerationState.suggestions ||

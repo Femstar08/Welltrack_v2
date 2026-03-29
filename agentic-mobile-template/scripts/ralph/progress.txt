@@ -16,3 +16,13 @@ Branch: ralph/review-fixes
 - pantryRepositoryProvider for pantry data access
 - Hive for local settings (use Hive.box('settings'))
 ---
+
+## 2026-03-29 - MEAL-001
+- Replaced blocking spinner states with non-blocking LinearProgressIndicator + text banner
+- Generating/generatingSteps/saving states now show progress at top while keeping content visible
+- User can navigate away during generation — provider survives (not autoDispose)
+- Error state now shows SnackBar with Retry action instead of blocking error screen
+- Fixed Navigator.pushReplacement to context.pushReplacement for GoRouter consistency
+- Removed unused RecipeDetailScreen import
+- Files changed: lib/features/recipes/presentation/recipe_suggestions_screen.dart
+---
