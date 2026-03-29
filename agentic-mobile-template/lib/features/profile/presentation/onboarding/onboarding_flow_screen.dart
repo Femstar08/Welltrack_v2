@@ -92,6 +92,7 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
       final updateFields = <String, dynamic>{
         if (data.displayName != null && data.displayName!.isNotEmpty)
           'display_name': data.displayName,
+        if (data.biologicalSex != null) 'gender': data.biologicalSex,
         if (data.primaryGoal != null) 'primary_goal': data.primaryGoal,
         if (data.goalIntensity != null) 'goal_intensity': data.goalIntensity,
         if (data.heightCm != null) 'height_cm': data.heightCm,

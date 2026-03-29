@@ -106,6 +106,54 @@ class _QuickProfileScreenState extends ConsumerState<QuickProfileScreen> {
                     onChanged: (_) => _syncToState(),
                   ),
                   const SizedBox(height: 16),
+
+                  // Biological sex (optional, improves BMR accuracy)
+                  Text(
+                    'Biological sex',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Used for accurate calorie calculations',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(
+                        value: 'male',
+                        label: Text('Male'),
+                        icon: Icon(Icons.male),
+                      ),
+                      ButtonSegment(
+                        value: 'female',
+                        label: Text('Female'),
+                        icon: Icon(Icons.female),
+                      ),
+                    ],
+                    selected: {
+                      if (ref.watch(
+                              onboardingDataProvider
+                                  .select((d) => d.biologicalSex)) !=
+                          null)
+                        ref.watch(
+                            onboardingDataProvider.select((d) => d.biologicalSex))!
+                    },
+                    onSelectionChanged: (values) {
+                      if (values.isNotEmpty) {
+                        ref
+                            .read(onboardingDataProvider.notifier)
+                            .setBiologicalSex(values.first);
+                      }
+                    },
+                    emptySelectionAllowed: true,
+                  ),
+                  const SizedBox(height: 16),
+
                   TextField(
                     controller: _ageController,
                     decoration: const InputDecoration(

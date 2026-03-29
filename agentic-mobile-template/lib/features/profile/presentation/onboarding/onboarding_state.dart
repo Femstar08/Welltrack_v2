@@ -4,6 +4,7 @@ class OnboardingData {
 
   const OnboardingData({
     this.displayName,
+    this.biologicalSex,
     this.primaryGoal,
     this.goalIntensity,
     this.age,
@@ -13,6 +14,7 @@ class OnboardingData {
     this.skippedDevices = false,
   });
   final String? displayName;
+  final String? biologicalSex; // 'male' or 'female'
   final String? primaryGoal;
   final String? goalIntensity;
   final int? age;
@@ -23,6 +25,7 @@ class OnboardingData {
 
   OnboardingData copyWith({
     String? displayName,
+    String? biologicalSex,
     String? primaryGoal,
     String? goalIntensity,
     int? age,
@@ -33,6 +36,7 @@ class OnboardingData {
   }) {
     return OnboardingData(
       displayName: displayName ?? this.displayName,
+      biologicalSex: biologicalSex ?? this.biologicalSex,
       primaryGoal: primaryGoal ?? this.primaryGoal,
       goalIntensity: goalIntensity ?? this.goalIntensity,
       age: age ?? this.age,
@@ -55,6 +59,10 @@ class OnboardingNotifier extends StateNotifier<OnboardingData> {
 
   void setDisplayName(String name) {
     state = state.copyWith(displayName: name);
+  }
+
+  void setBiologicalSex(String sex) {
+    state = state.copyWith(biologicalSex: sex);
   }
 
   void setPrimaryGoal(String goal) {
