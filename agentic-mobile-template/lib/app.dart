@@ -282,12 +282,14 @@ class _WellTrackAppState extends ConsumerState<WellTrackApp> {
   @override
   void dispose() {
     _deepLinkSub?.cancel();
-    // Stop sync engine
+    // Stop sync engine — guarded because ref may be dead during test teardown
     try {
-      final syncEngine = ref.read(syncEngineProvider.notifier);
-      syncEngine.stopSync();
-    } catch (e) {
-      _logger.error('Error stopping sync engine', e);
+      if (mounted) {
+        final syncEngine = ref.read(syncEngineProvider.notifier);
+        syncEngine.stopSync();
+      }
+    } catch (_) {
+      // Non-fatal: sync engine cleanup is best-effort
     }
     super.dispose();
   }

@@ -56,3 +56,14 @@ Branch: ralph/review-fixes
 - dashboardHomeProvider already uses single getMetrics call (N+1 was partially fixed in Phase 13)
 - Files changed: lib/features/meals/presentation/today_nutrition_provider.dart
 ---
+
+## 2026-03-29 - QUAL-006
+- Fixed module count test: 9 -> 11 (bloodwork + habits added in Phase 12)
+- Fixed widget test: added Hive init with temp dir + openBox for settings/rest_timer
+- Fixed app.dart dispose: guarded sync engine stopSync to prevent 'ref after disposed' error
+- All 530 tests pass
+- Files changed:
+  - test/unit/modules/module_metadata_test.dart
+  - test/widget_test.dart
+  - lib/app.dart (dispose guard)
+---

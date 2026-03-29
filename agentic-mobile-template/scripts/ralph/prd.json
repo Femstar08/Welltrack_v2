@@ -84,7 +84,7 @@
     {
       "id": "QUAL-006",
       "title": "Fix failing unit tests",
-      "passes": false,
+      "passes": true,
       "priority": 6,
       "acceptanceCriteria": [
         "Run flutter test and identify all failing tests",
