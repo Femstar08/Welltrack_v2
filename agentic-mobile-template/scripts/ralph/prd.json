@@ -86,7 +86,7 @@
     {
       "id": "ARCH-002",
       "title": "Fix ref.watch in async bodies to ref.read in today_nutrition_provider.dart",
-      "passes": false,
+      "passes": true,
       "priority": 6,
       "acceptanceCriteria": [
         "Read lib/features/meals/presentation/today_nutrition_provider.dart",

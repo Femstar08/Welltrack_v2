@@ -114,7 +114,11 @@ final todayMacroSummaryProvider = FutureProvider.family<
 /// Calorie summary for today with recovery-adjusted goal.
 final todayCalorieSummaryProvider =
     FutureProvider.family<CalorieSummary, String>((ref, profileId) async {
+  // Read all dependencies before any await (Riverpod best practice)
   final mealRepo = ref.watch(mealRepositoryProvider);
+  final prescriptionRepo = ref.watch(dailyPrescriptionRepositoryProvider);
+  final targetsState = ref.watch(nutritionTargetsProvider(profileId));
+
   final today = DateTime.now();
   final meals = await mealRepo.getMeals(profileId, today);
 
@@ -126,19 +130,15 @@ final todayCalorieSummaryProvider =
     }
   }
 
-  final prescriptionRepo = ref.watch(dailyPrescriptionRepositoryProvider);
   final prescription =
       await prescriptionRepo.getTodayPrescription(profileId);
-
-  // Base targets (no recovery adjustment)
-  final targetsState = ref.watch(nutritionTargetsProvider(profileId));
   final dayType = _planTypeToDayType(prescription?.planType);
   final baseDayTargets = targetsState.forDayType(dayType);
   final baseGoal = baseDayTargets.calories;
 
   // Apply recovery adjustment for PRO users
   final tier =
-      await ref.watch(currentPlanTierProvider.future);
+      await ref.read(currentPlanTierProvider.future);
   int adjustedGoal = baseGoal;
   String? recoveryBadge;
 
@@ -217,13 +217,13 @@ final todayMicronutrientSummaryProvider =
 final todayNutritionDashboardProvider =
     FutureProvider.family<TodayNutritionDashboard, String>(
         (ref, profileId) async {
-  final macros = await ref.watch(todayMacroSummaryProvider(profileId).future);
+  final macros = await ref.read(todayMacroSummaryProvider(profileId).future);
   final calories =
-      await ref.watch(todayCalorieSummaryProvider(profileId).future);
+      await ref.read(todayCalorieSummaryProvider(profileId).future);
   final micro =
-      await ref.watch(todayMicronutrientSummaryProvider(profileId).future);
+      await ref.read(todayMicronutrientSummaryProvider(profileId).future);
 
-  final prescriptionRepo = ref.watch(dailyPrescriptionRepositoryProvider);
+  final prescriptionRepo = ref.read(dailyPrescriptionRepositoryProvider);
   final prescription =
       await prescriptionRepo.getTodayPrescription(profileId);
   final dayType = _planTypeToDayType(prescription?.planType);
@@ -316,12 +316,13 @@ String _planTypeToDayType(PlanType? planType) {
 
 Future<MacroTargets> _getTodayTargets(
     Ref ref, String profileId) async {
+  // Read all sync dependencies before any await
   final prescriptionRepo = ref.watch(dailyPrescriptionRepositoryProvider);
+  final targetsState = ref.watch(nutritionTargetsProvider(profileId));
+
   final prescription =
       await prescriptionRepo.getTodayPrescription(profileId);
   final dayType = _planTypeToDayType(prescription?.planType);
-
-  final targetsState = ref.watch(nutritionTargetsProvider(profileId));
   final dayTargets = targetsState.forDayType(dayType);
 
   return MacroTargets(

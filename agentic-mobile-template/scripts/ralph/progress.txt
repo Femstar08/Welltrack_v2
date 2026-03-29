@@ -83,3 +83,11 @@ Source: Comprehensive 5-agent review (Design, Security, BA, PM, Architecture)
 - Session expiry on a protected route will redirect to /login immediately
 - Files changed: lib/shared/core/router/app_router.dart
 ---
+
+## 2026-03-29 - ARCH-002
+- Fixed ref.watch -> ref.read for async .future calls in todayNutritionDashboardProvider
+- Moved sync ref.watch calls before first await in todayCalorieSummaryProvider and _getTodayTargets
+- Changed currentPlanTierProvider.future from ref.watch to ref.read
+- Pattern: ref.watch for sync subscriptions BEFORE await, ref.read for everything AFTER
+- Files changed: lib/features/meals/presentation/today_nutrition_provider.dart
+---
