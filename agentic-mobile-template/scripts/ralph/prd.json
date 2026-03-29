@@ -132,7 +132,7 @@
     {
       "id": "PROD-002",
       "title": "Fix decimal input in onboarding height/weight fields",
-      "passes": false,
+      "passes": true,
       "priority": 9,
       "acceptanceCriteria": [
         "Read lib/features/profile/presentation/onboarding/onboarding_flow_screen.dart",

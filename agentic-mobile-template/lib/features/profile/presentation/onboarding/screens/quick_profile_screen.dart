@@ -112,9 +112,9 @@ class _QuickProfileScreenState extends ConsumerState<QuickProfileScreen> {
                             border: OutlineInputBorder(),
                             prefixIcon: Icon(Icons.height_outlined),
                           ),
-                          keyboardType: TextInputType.number,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
+                            FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
                           ],
                           onChanged: (_) => _syncToState(),
                         ),
@@ -128,9 +128,9 @@ class _QuickProfileScreenState extends ConsumerState<QuickProfileScreen> {
                             border: OutlineInputBorder(),
                             prefixIcon: Icon(Icons.monitor_weight_outlined),
                           ),
-                          keyboardType: TextInputType.number,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
+                            FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
                           ],
                           onChanged: (_) => _syncToState(),
                         ),
