@@ -199,3 +199,10 @@ Source: Comprehensive 5-agent review (Design, Security, BA, PM, Architecture)
   - lib/features/health/data/health_repository.dart (logWeight method)
   - lib/features/health/presentation/screens/weight_log_screen.dart (uses repository)
 ---
+
+## 2026-03-29 - SEC-005
+- Added freemium tier check to GoRouter redirect for /insights and /recovery-detail
+- Free users navigating to Pro-only routes are redirected to /paywall
+- Defense-in-depth alongside widget-level FreemiumGate
+- Files changed: lib/shared/core/router/app_router.dart
+---

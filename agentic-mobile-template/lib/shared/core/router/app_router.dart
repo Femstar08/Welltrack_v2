@@ -161,6 +161,8 @@ import '../../../features/reminders/presentation/reminders_screen.dart'
     as reminders_screen;
 
 // Freemium
+import '../../../features/freemium/data/freemium_repository.dart';
+import '../../../features/freemium/domain/plan_tier.dart';
 import '../../../features/freemium/presentation/paywall_screen.dart'
     as paywall_screen;
 
@@ -239,6 +241,18 @@ class AppRouter {
 
         if (!guardResult.canNavigate) {
           return guardResult.redirectTo;
+        }
+
+        // Freemium tier check for Pro-only routes (SEC-005)
+        const proOnlyPrefixes = ['/insights', '/recovery-detail'];
+        final isProRoute = proOnlyPrefixes.any(
+          (prefix) => requestedPath.startsWith(prefix),
+        );
+        if (isProRoute && isAuthenticated) {
+          final tier = ref.read(currentPlanTierProvider).valueOrNull;
+          if (tier != null && tier != PlanTier.pro) {
+            return '/paywall';
+          }
         }
 
         // Handle splash screen redirect based on auth/onboarding state
