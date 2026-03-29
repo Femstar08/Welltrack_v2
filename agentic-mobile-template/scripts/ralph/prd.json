@@ -536,7 +536,7 @@
     {
       "id": "P15-002",
       "title": "Verify and enforce all freemium gates",
-      "passes": false,
+      "passes": true,
       "priority": 31,
       "acceptanceCriteria": [
         "Read lib/features/freemium/ for gate logic",

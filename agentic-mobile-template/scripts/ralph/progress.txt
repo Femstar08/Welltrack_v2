@@ -476,3 +476,15 @@ Branch: ralph/phase-11-to-15-autonomous
   - HealthService method is requestHealthPermissions() not requestPermissions()
   - healthServiceProvider is in shared/core/health/health_service.dart
 ---
+
+## 2026-03-29 - P15-002
+- Fixed 3 Navigator.of().push(MaterialPageRoute) calls in freemium_gate_widget.dart to use context.push('/paywall')
+- Affected: FreemiumGate._navigateToPaywall, FreemiumGateInline._navigateToPaywall, FreemiumGatedButton._showPaywall
+- Removed unused PaywallScreen import (paywall now accessed via GoRouter)
+- Audit confirmed: PRO features properly gated (recovery, AI plan, VO2, insights, voice/meal scan via isPro check, heart healthy/low carb via FreemiumGate)
+- Audit confirmed: FREE features accessible (Health Connect, basic logging, habits, steps, weight)
+- Enhanced log bottom sheet already correctly gates Voice Log and Meal Scan via isPro check
+- DiscoverQuickAccessGrid already gates Recovery tile via requiresPro flag
+- Files changed:
+  - lib/features/freemium/presentation/freemium_gate_widget.dart
+---
