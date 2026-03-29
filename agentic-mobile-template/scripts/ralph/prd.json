@@ -1,621 +1,328 @@
 {
   "project": "WellTrack",
-  "branchName": "ralph/phase-11-to-15-autonomous",
-  "description": "Phases 11-15 Autonomous Run — Garmin/Strava OAuth verify, Habits/Bloodwork verify, Meals v5 dashboard + FAB implementation, Play Store submission prep. All phases executed sequentially by priority.",
+  "branchName": "ralph/review-fixes",
+  "description": "Fix critical issues from comprehensive 5-agent review: security hardening, architecture fixes, product gaps, UX polish. Priority order: security > architecture > product > UX.",
   "userStories": [
     {
-      "id": "P11-001",
-      "title": "Remove 'Coming Soon' flag from Garmin/Strava in health_connection_screen.dart",
-      "passes": true,
+      "id": "SEC-001",
+      "title": "Remove hardcoded defaultValue credentials from api_constants.dart",
+      "passes": false,
       "priority": 1,
       "acceptanceCriteria": [
-        "Read lib/features/health/presentation/screens/health_connection_screen.dart first",
-        "Remove isComingSoon=true flags on Garmin and Strava cards",
-        "Cards show real connection status from healthConnectionsProvider",
-        "Connected state shows provider name, last sync time, and Disconnect button",
-        "Disconnected state shows Connect button with provider logo",
-        "GarminAttributionWidget and StravaAttributionWidget displayed when connected",
+        "Read lib/shared/core/constants/api_constants.dart",
+        "Remove defaultValue parameter from supabaseUrl String.fromEnvironment",
+        "Remove defaultValue parameter from supabaseAnonKey String.fromEnvironment",
+        "Build must fail loudly if --dart-define-from-file=.env is not passed",
+        "Verify no other hardcoded Supabase URLs or keys exist in lib/",
         "flutter analyze returns 0 errors"
       ],
-      "technicalNotes": "The settings_screen.dart already has working Connect/Disconnect buttons. health_connection_screen.dart is the secondary screen that still hides them. Use the same provider pattern as settings_screen.dart."
+      "technicalNotes": "The defaultValue bakes live credentials into every compiled binary. Remove them so the build fails without --dart-define-from-file=.env. The .env file itself is gitignored."
     },
     {
-      "id": "P11-002",
-      "title": "Verify Garmin OAuth 1.0a flow end-to-end",
-      "passes": true,
+      "id": "SEC-002",
+      "title": "Add column-level REVOKE on plan_tier and onboarding_completed",
+      "passes": false,
       "priority": 2,
       "acceptanceCriteria": [
-        "Read lib/features/health/presentation/health_connections_provider.dart first",
-        "Read supabase/functions/oauth-garmin/index.ts",
-        "Verify initiateGarminOAuth() builds correct Garmin consent URL with request token",
-        "Verify deep link handler in app.dart catches welltrack://oauth/garmin/callback",
-        "Verify connectGarmin() calls oauth-garmin Edge Function to exchange verifier for tokens",
-        "Verify tokens stored encrypted in wt_health_connections",
-        "Verify UI updates to Connected state after successful OAuth",
-        "Verify 14-day backfill fires after connection",
-        "Fix any code issues found during verification",
+        "Create supabase/migrations/20260329000001_revoke_sensitive_columns.sql",
+        "REVOKE UPDATE (plan_tier) ON public.wt_users FROM authenticated",
+        "REVOKE UPDATE (onboarding_completed) ON public.wt_users FROM authenticated",
+        "Remove FreemiumRepository.updatePlanTier() from Flutter client — plan tier must only change server-side",
+        "Verify onboarding completion still works (it should use service role via Edge Function or trigger)",
         "flutter analyze returns 0 errors"
       ],
-      "technicalNotes": "Deep link handler is in app.dart _handleOAuthDeepLink(). Check AndroidManifest.xml has intent filter for welltrack:// scheme. Do not hardcode credentials."
+      "technicalNotes": "Currently any authenticated user can set plan_tier='pro' via Supabase REST API. The UPDATE RLS policy has no column restriction. Fix with column-level REVOKE."
     },
     {
-      "id": "P11-003",
-      "title": "Verify Strava OAuth 2.0 flow end-to-end",
-      "passes": true,
+      "id": "SEC-003",
+      "title": "Add OAuth state parameter for CSRF protection",
+      "passes": false,
       "priority": 3,
       "acceptanceCriteria": [
-        "Read lib/features/health/presentation/health_connections_provider.dart first",
-        "Read supabase/functions/oauth-strava/index.ts",
-        "Verify connectStrava() builds correct Strava authorization URL",
-        "Verify deep link handler catches welltrack://oauth/strava/callback and extracts code",
-        "Verify oauth-strava Edge Function exchanges code for access_token + refresh_token",
-        "Verify tokens stored encrypted in wt_health_connections with athlete metadata",
-        "Verify UI updates to Connected state",
-        "Fix any code issues found during verification",
+        "Read lib/features/health/presentation/health_connections_provider.dart",
+        "Read lib/app.dart deep link handler",
+        "Generate cryptographically random state value (min 128 bits) before initiating OAuth",
+        "Store state in flutter_secure_storage or a StateProvider",
+        "Pass state as query parameter in both Garmin and Strava authorization URLs",
+        "In deep link callback, verify returned state matches stored value before calling connect",
+        "Reject and log if state mismatch",
         "flutter analyze returns 0 errors"
       ],
-      "technicalNotes": "Strava uses standard OAuth 2.0. STRAVA_CLIENT_ID passed via --dart-define at build time."
+      "technicalNotes": "Without a state parameter, an attacker can craft a malicious deep link that links their Strava/Garmin account to the victim's WellTrack profile."
     },
     {
-      "id": "P11-004",
-      "title": "Verify disconnect flow for both providers",
-      "passes": true,
+      "id": "SEC-004",
+      "title": "Fix Edge Function security: userClient key, webhook fallbacks, process-webhooks auth",
+      "passes": false,
       "priority": 4,
       "acceptanceCriteria": [
-        "Read the disconnect methods in health_connections_provider.dart",
-        "Verify Disconnect Garmin shows confirmation dialog then calls disconnectGarmin()",
-        "Verify disconnectGarmin() hits oauth-garmin DELETE endpoint",
-        "Verify Edge Function revokes token and clears wt_health_connections row",
-        "Verify same flow for Strava via disconnectStrava()",
-        "Verify UI updates to Disconnected state immediately",
-        "Fix any code issues found",
-        "flutter analyze returns 0 errors"
+        "Read supabase/functions/_shared/supabase-client.ts",
+        "Change userClient to use SUPABASE_ANON_KEY instead of service role key",
+        "Read supabase/functions/webhook-garmin/index.ts",
+        "Change missing GARMIN_CONSUMER_SECRET from return true to return false",
+        "Read supabase/functions/webhook-strava/index.ts and oauth-strava/index.ts",
+        "Remove hardcoded WELLTRACK_STRAVA_2026 fallback — function must reject if STRAVA_VERIFY_TOKEN not set",
+        "Read supabase/functions/process-webhooks/index.ts",
+        "Add service-role JWT check at function entry — reject unauthorized requests",
+        "Cap batchSize to maximum of 50"
       ],
-      "technicalNotes": "Garmin revocation is best-effort. Strava calls deauthorize endpoint. Both set is_connected=false and clear tokens."
+      "technicalNotes": "Multiple Edge Function security gaps found by security audit. Fix all in one story."
     },
     {
-      "id": "P11-005",
-      "title": "Verify token refresh works for expired tokens",
-      "passes": true,
+      "id": "ARCH-001",
+      "title": "Add refreshListenable to GoRouter for reactive auth guard re-evaluation",
+      "passes": false,
       "priority": 5,
       "acceptanceCriteria": [
-        "Read supabase/functions/_shared/token-refresh.ts",
-        "Read supabase/functions/backfill-health-data/index.ts",
-        "Verify refreshGarminToken() and refreshStravaToken() are imported and called when token expired",
-        "Verify new tokens stored back in wt_health_connections with updated token_expires_at",
-        "If refresh functions are not wired in backfill-health-data or process-webhooks, add the import and call",
-        "If refresh fails, connection should be marked as needing re-authorization",
+        "Read lib/shared/core/router/app_router.dart",
+        "Create a GoRouterRefreshStream or ChangeNotifier that wraps the Supabase auth state stream",
+        "Pass it as refreshListenable to GoRouter constructor",
+        "When auth state changes (logout, session expiry), router automatically re-evaluates redirect",
+        "Test: user on a protected route when session expires should be redirected to /login",
         "flutter analyze returns 0 errors"
       ],
-      "technicalNotes": "Token refresh is in _shared/token-refresh.ts. Verify it's actually imported by backfill-health-data and process-webhooks."
+      "technicalNotes": "Currently ref.read(authStateProvider) is a snapshot that doesn't trigger re-evaluation. GoRouter needs a Listenable to reactively re-check guards."
     },
     {
-      "id": "P11-006",
-      "title": "Verify webhook ingestion pipeline (Garmin + Strava)",
-      "passes": true,
+      "id": "ARCH-002",
+      "title": "Fix ref.watch in async bodies to ref.read in today_nutrition_provider.dart",
+      "passes": false,
       "priority": 6,
       "acceptanceCriteria": [
-        "Read supabase/functions/webhook-garmin/index.ts and webhook-strava/index.ts",
-        "Read supabase/functions/process-webhooks/index.ts",
-        "Verify Garmin webhook validates HMAC signature (X-Garmin-Signature)",
-        "Verify Strava webhook handles GET (hub.challenge) and POST (event queue)",
-        "Verify events queued to wt_webhook_events with correct status and metadata",
-        "Verify process-webhooks normalizes payloads to wt_health_metrics with dedupe_hash",
-        "Verify deregistration events mark connections as disconnected",
-        "Fix any issues found",
+        "Read lib/features/meals/presentation/today_nutrition_provider.dart",
+        "Find all ref.watch() calls inside async FutureProvider bodies",
+        "Change ref.watch() after any await to ref.read()",
+        "Keep ref.watch() calls that are before the first await (these are fine for subscription setup)",
+        "Verify todayNutritionDashboardProvider still composes correctly",
         "flutter analyze returns 0 errors"
       ],
-      "technicalNotes": "Webhook handler must respond 200 within 30 seconds. Never process inline. All processing done by process-webhooks batch function."
+      "technicalNotes": "ref.watch inside async bodies does not re-subscribe after await. Riverpod docs require ref.read after async gaps. ~15 instances to fix."
     },
     {
-      "id": "P11-007",
-      "title": "Verify deep-link configuration and add manual sync button",
-      "passes": true,
+      "id": "ARCH-003",
+      "title": "Surface DashboardState.errorMessage in the UI",
+      "passes": false,
       "priority": 7,
       "acceptanceCriteria": [
-        "Read android/app/src/main/AndroidManifest.xml",
-        "Verify intent filter exists for welltrack:// scheme with host=oauth",
-        "If missing, add the intent filter for deep links",
-        "Add 'Sync Now' button to settings screen next to each connected provider",
-        "Tapping calls backfill-health-data Edge Function for that provider",
-        "Rate limit: if last backfill < 24h ago, show 'Already synced recently' SnackBar",
-        "Loading spinner during sync, success/error SnackBar after",
+        "Read lib/features/dashboard/presentation/dashboard_screen.dart",
+        "Read lib/features/dashboard/presentation/dashboard_provider.dart for errorMessage field",
+        "When dashboardProvider state has a non-null errorMessage, show a dismissable error banner or SnackBar",
+        "Error should use user-friendly text, not raw exception strings",
+        "Dismissing the error clears it from state",
         "flutter analyze returns 0 errors"
       ],
-      "technicalNotes": "backfill-health-data Edge Function already exists with 24h rate limit. Add triggerManualSync() method to HealthConnectionsRepository. Wire to button in settings_screen.dart."
+      "technicalNotes": "DashboardState.errorMessage is set in DashboardNotifier but nothing reads it. Errors are silently swallowed."
     },
     {
-      "id": "P11-008",
-      "title": "Show Garmin/Strava data in insights dashboard",
-      "passes": true,
+      "id": "PROD-001",
+      "title": "Add Recovery Score card to top of dashboard",
+      "passes": false,
       "priority": 8,
       "acceptanceCriteria": [
-        "Read lib/features/insights/presentation/insights_dashboard_screen.dart",
-        "Verify charts don't filter by source='health_connect' only — should include all sources",
-        "When Garmin connected, stress score chart shows Garmin-sourced data",
-        "VO2 max trend includes Garmin/Strava-sourced estimates",
-        "Body battery metric (Garmin-exclusive) displayed when data available",
-        "Charts handle mixed data sources gracefully",
-        "If source filtering exists, remove it so all wt_health_metrics data is shown",
+        "Read lib/features/dashboard/presentation/dashboard_screen.dart",
+        "Read lib/features/dashboard/presentation/widgets/recovery_score_dashboard_card.dart",
+        "Insert RecoveryScoreDashboardCard as the first or second section after the header",
+        "Card should show today's recovery score with color coding and trend arrow",
+        "During 14-day calibration, show progress indicator (Day X of 14)",
+        "Free users see teased score (number visible but breakdown locked)",
         "flutter analyze returns 0 errors"
       ],
-      "technicalNotes": "wt_health_metrics stores source field. Check repository queries for source filters."
+      "technicalNotes": "The widget exists and is wired to real data but is not in DashboardScreen. This is the app's core differentiator — must be prominent."
     },
     {
-      "id": "P12-001",
-      "title": "Verify habit creation, toggle, and streak calculation",
-      "passes": true,
+      "id": "PROD-002",
+      "title": "Fix decimal input in onboarding height/weight fields",
+      "passes": false,
       "priority": 9,
       "acceptanceCriteria": [
-        "Read lib/features/habits/presentation/habit_provider.dart first",
-        "Read lib/features/habits/data/habit_repository.dart",
-        "Verify 4 preset habits display: porn_free, kegels, sleep_target, steps_target",
-        "Verify tapping toggle calls logHabitDay() and updates UI optimistically",
-        "Verify streak recalculation: walks backwards counting consecutive completed days",
-        "Verify current_streak_days resets to 0 when a day is skipped",
-        "Verify longest_streak_days only increases, never decreases",
-        "Verify last 30-day grid shows green/grey/ring correctly",
-        "Fix any issues found",
+        "Read lib/features/profile/presentation/onboarding/onboarding_flow_screen.dart",
+        "Find height and weight TextFormField inputs",
+        "Replace FilteringTextInputFormatter.digitsOnly with a formatter that allows decimal points",
+        "Use TextInputType.numberWithOptions(decimal: true) for keyboard type",
+        "Add validation: weight 20-500 kg, height 50-280 cm",
+        "Disable Continue button when required fields are empty or invalid",
         "flutter analyze returns 0 errors"
       ],
-      "technicalNotes": "Streak calc is client-side in habit_repository.dart. Check UNIQUE(profile_id, habit_type, log_date) constraint."
+      "technicalNotes": "digitsOnly strips the decimal point — 75.5 kg becomes 755. Also Continue button is always enabled even with empty fields."
     },
     {
-      "id": "P12-002",
-      "title": "Verify custom habit creation and soft delete",
-      "passes": true,
+      "id": "PROD-003",
+      "title": "Add display name field to onboarding QuickProfileScreen",
+      "passes": false,
       "priority": 10,
       "acceptanceCriteria": [
-        "Read lib/features/habits/presentation/habits_screen.dart",
-        "Verify custom habit creation with free-text name works",
-        "Verify custom habit gets auto-generated unique type key",
-        "Verify deleting a habit sets is_active=false (soft delete)",
-        "Verify soft-deleted habits do NOT appear on reload",
-        "Verify streak data preserved after soft delete",
-        "Fix any issues found",
+        "Read lib/features/profile/presentation/onboarding/ for QuickProfileScreen or the biometrics step",
+        "Add a 'Display Name' text field (first name or preferred name)",
+        "Save to wt_profiles or wt_users (whichever has a display_name column)",
+        "Dashboard greeting should use this name instead of email prefix",
+        "Field is required — cannot proceed without entering a name",
         "flutter analyze returns 0 errors"
       ],
-      "technicalNotes": "Check is_active filter in repository queries."
+      "technicalNotes": "Currently dashboard shows 'Good morning, john.doe' derived from email. Need a proper name."
     },
     {
-      "id": "P12-003",
-      "title": "Verify kegel timer with all 3 protocols and auto-logging",
-      "passes": true,
+      "id": "PROD-004",
+      "title": "Wire scheduleNotification to reminder creation UI path",
+      "passes": false,
       "priority": 11,
       "acceptanceCriteria": [
-        "Read lib/features/habits/presentation/kegel_timer_provider.dart",
-        "Read lib/features/habits/domain/kegel_protocol.dart",
-        "Verify Quick Flicks: 3 sets x 10 reps, 1s squeeze/relax, 10s rest",
-        "Verify Long Holds: 3 sets x 5 reps, 5s squeeze/relax, 15s rest",
-        "Verify Reverse Kegels: 3 sets x 5 reps, 5s squeeze/relax, 15s rest",
-        "Verify phase transitions: squeeze -> relax -> next rep OR rest -> next set OR complete",
-        "Verify circular progress ring updates every second",
-        "Verify session completion auto-logs kegels habit",
-        "Verify timer can be paused and resumed",
-        "Fix any issues found",
+        "Read lib/features/reminders/data/notification_service.dart for scheduleNotification method",
+        "Read lib/features/reminders/ for the reminder creation flow",
+        "After ReminderRepository.createReminder() succeeds, call NotificationService.scheduleNotification()",
+        "Pass the reminder's time, repeat rule, title, and deep-link payload",
+        "Verify a test reminder actually fires as a device notification",
         "flutter analyze returns 0 errors"
       ],
-      "technicalNotes": "Auto-logging is best-effort (errors suppressed). Verify habitProvider is accessible from kegelTimerProvider."
+      "technicalNotes": "NotificationService is fully implemented but scheduleNotification() is never called from the create-reminder path. The handoff is missing."
     },
     {
-      "id": "P12-004",
-      "title": "Verify bloodwork logging with reference ranges and out-of-range detection",
-      "passes": true,
+      "id": "UX-001",
+      "title": "Replace hardcoded top:60 with SafeArea and fix horizontal padding consistency",
+      "passes": false,
       "priority": 12,
       "acceptanceCriteria": [
-        "Read lib/features/bloodwork/presentation/bloodwork_screen.dart",
-        "Read lib/features/bloodwork/data/bloodwork_repository.dart",
-        "Verify 12+ pre-defined test types in 4 tabs: Hormones, Metabolic, Cardiovascular, Vitamins",
-        "Verify adding result outside reference range shows red indicator",
-        "Verify adding result within range shows green indicator",
-        "Verify borderline results (within 10% of boundary) show amber",
-        "Verify edit and delete work with confirmation dialog on delete",
-        "Verify is_out_of_range is Postgres GENERATED column (read-only from client)",
-        "Fix any issues found",
+        "Read lib/features/dashboard/presentation/dashboard_screen.dart",
+        "Replace top:60 padding with SafeArea or MediaQuery.paddingOf(context).top",
+        "Standardize all horizontal padding to a single value (20dp recommended)",
+        "Fix weight_trend_chart_widget.dart, habit_streak_prompt_card.dart, discover_quick_access_grid.dart to match",
+        "Fix _GoalsSummaryCard, DailyCoachCard padding to match",
+        "Dashboard should have a consistent left edge on scroll",
         "flutter analyze returns 0 errors"
       ],
-      "technicalNotes": "Check bloodwork_entity.dart isBorderline helper. Check bloodwork_test_types.dart for pre-defined types."
+      "technicalNotes": "Currently mixed 16dp/24dp horizontal padding creates jagged left edge. Header uses hardcoded top:60 which clips on notch devices."
     },
     {
-      "id": "P12-005",
-      "title": "Verify bloodwork detail trend chart and AI interpretation",
-      "passes": true,
+      "id": "UX-002",
+      "title": "Fix dark theme color consistency — replace light-mode pastels and raw Colors.*",
+      "passes": false,
       "priority": 13,
       "acceptanceCriteria": [
-        "Read lib/features/bloodwork/presentation/bloodwork_detail_screen.dart",
-        "Read lib/features/bloodwork/presentation/bloodwork_provider.dart lines 224-399",
-        "Verify trend chart plots all historical values with reference range band",
-        "Verify chart handles single data point without crashing",
-        "Verify AI interpretation only triggers when ai_consent_bloodwork=true",
-        "Verify AI call goes through ai_orchestrator_service with 'interpret_bloodwork' workflow",
-        "Verify deterministic fallback when AI fails",
-        "Verify 3-second debounce prevents rapid re-calls",
-        "Verify AiInterpretationCard shows medical disclaimer",
-        "Fix any issues found",
+        "Read lib/features/dashboard/presentation/widgets/habit_streak_prompt_card.dart",
+        "Replace Color(0xFFFFF3E0), Color(0xFFE8F5E9), Color(0xFFFCE4EC) with AppColors equivalents at 10% alpha",
+        "Read lib/features/dashboard/presentation/widgets/overtraining_warning_card.dart",
+        "Replace Colors.orange.shade50/300/900 with AppColors.warning at appropriate alpha levels",
+        "Read lib/features/dashboard/presentation/widgets/recovery_score_dashboard_card.dart",
+        "Replace Colors.green/yellow/orange/red with AppColors.recoveryExcellent/Good/Moderate/Low/Critical",
+        "Read lib/features/dashboard/presentation/widgets/daily_coach_card.dart",
+        "Replace any Colors.green/amber/red with AppColors tokens",
+        "All cards should look native to the dark Obsidian Vitality theme",
         "flutter analyze returns 0 errors"
       ],
-      "technicalNotes": "Uses FL Chart. Consent checked via profile repository getAiConsentBloodwork()."
+      "technicalNotes": "Light-mode pastel backgrounds create bright 'white islands' in the dark theme. AppColors has recovery color tokens defined but unused."
     },
     {
-      "id": "P12-006",
-      "title": "Verify habits and bloodwork surface on main dashboard",
-      "passes": true,
+      "id": "UX-003",
+      "title": "Fix touch targets, semantics, and accessibility gaps",
+      "passes": false,
       "priority": 14,
       "acceptanceCriteria": [
         "Read lib/features/dashboard/presentation/dashboard_screen.dart",
-        "Verify bloodwork summary card shows count of flagged results",
-        "Verify tapping bloodwork card navigates to /bloodwork",
-        "Verify habit streak progress shown for active habits",
-        "Verify tapping habits area navigates to /habits",
-        "Verify cards handle empty state (no habits, no bloodwork)",
-        "Verify providers are invalidated after mutations",
-        "Fix any issues found",
+        "Replace GestureDetector + Container on bloodwork card with Material + InkWell + Semantics(button: true)",
+        "Fix goal status badge fontSize from 9 to AppTypography.labelSmall (11sp minimum)",
+        "Read lib/features/habits/presentation/habits_screen.dart",
+        "Expand habit toggle from 36dp to 48dp minimum touch target",
+        "Read lib/features/dashboard/presentation/widgets/macro_rings_carousel_page.dart",
+        "Add Semantics(label: 'Protein: X of Y grams') to each macro ring",
+        "Read lib/features/dashboard/presentation/widgets/steps_summary_tile.dart",
+        "Replace GestureDetector 'Connect' CTA with TextButton (48dp target)",
         "flutter analyze returns 0 errors"
       ],
-      "technicalNotes": "Phase 13 wired provider invalidation. Check dashboard_provider.dart."
+      "technicalNotes": "Multiple WCAG violations: sub-48dp touch targets, missing semantic labels, no ink feedback on interactive elements."
     },
     {
-      "id": "P12-007",
-      "title": "Verify RLS policies and sensitive data handling for habits/bloodwork",
-      "passes": true,
+      "id": "UX-004",
+      "title": "Resolve FAB + Log tab overlap and fix nav bar styling",
+      "passes": false,
       "priority": 15,
       "acceptanceCriteria": [
-        "Read supabase/migrations for wt_habit_streaks, wt_habit_logs, wt_bloodwork_results",
-        "Verify RLS policies use profile_id IN (SELECT id FROM wt_profiles WHERE user_id = auth.uid())",
-        "Verify indexes exist: idx_habit_streaks_profile_active, idx_habit_logs_profile_type_date, idx_bloodwork_profile_test_date",
-        "Verify bloodwork is_sensitive field excludes data from AI context unless consent given",
-        "Verify no print() statements leak sensitive values in bloodwork or habits code",
-        "Remove any debug print statements found",
+        "Read lib/shared/core/router/scaffold_with_bottom_nav.dart",
+        "Remove the 'Log' BottomNavigationBarItem since FAB subsumes it",
+        "Update branch indexes: Home(0), Workouts(1), Profile(2)",
+        "Or alternatively move FAB to endFloat position if Log tab must stay",
+        "Add top border to BottomNavigationBar for visual separation",
+        "Add fontWeight distinction: selected w700, unselected w400",
+        "Fix AppBar titleTextStyle from 28sp to titleLarge (22sp) in app_theme.dart dark theme",
         "flutter analyze returns 0 errors"
       ],
-      "technicalNotes": "RLS in migrations 20260220000008 and 20260309000002."
+      "technicalNotes": "FAB at centerFloat overlaps the Log nav item. Either remove Log tab (cleaner) or reposition FAB. Also nav bar has no visual separator against dark content."
     },
     {
-      "id": "P14-001",
-      "title": "Create todayNutritionProvider and todayRecoveryScoreProvider",
-      "passes": true,
+      "id": "UX-005",
+      "title": "Fix BackdropFilter performance and shimmer loading skeleton",
+      "passes": false,
       "priority": 16,
       "acceptanceCriteria": [
-        "Read PRPs/meals-v5-implementation-plan.md section 3.1 first",
-        "Read lib/features/meals/presentation/ for existing providers",
-        "Create lib/features/meals/presentation/today_nutrition_provider.dart",
-        "todayMacroSummaryProvider(profileId) returns consumed and goal for protein, carbs, fat",
-        "todayCalorieSummaryProvider(profileId) composes base from nutritionTargetsProvider, applies PlanType->dayType mapping (push->strength, normal->cardio, easy/rest->rest), applies calorieAdjustmentPercent and calorieModifier for PRO users",
-        "todayMicronutrientSummaryProvider(profileId) returns fat, sodium, cholesterol, carbs, sugar, fiber (null for untracked)",
-        "todayNutritionDashboardProvider(profileId) combines all three into single async state",
-        "Create lib/features/insights/presentation/today_recovery_score_provider.dart",
-        "todayRecoveryScoreProvider(profileId) reads from insightsProvider latestRecoveryScore",
+        "Read lib/features/dashboard/presentation/widgets/steps_summary_tile.dart",
+        "Read lib/features/dashboard/presentation/widgets/exercise_summary_tile.dart",
+        "Remove BackdropFilter from both — use solid container color instead",
+        "Add no-data state to ExerciseSummaryTile showing '-- kcal' when exercise is null (matching steps pattern)",
+        "Read lib/features/dashboard/presentation/widgets/shimmer_loading.dart",
+        "Rebuild DashboardShimmer to match actual 2025 dashboard: header -> 180dp carousel -> 2 tiles -> chart -> card -> grid",
+        "Make ShimmerBox self-animating or ensure it's always used inside DashboardShimmer",
         "flutter analyze returns 0 errors"
       ],
-      "technicalNotes": "PrescriptionEngine is static. Daily prescription via DailyPrescriptionRepository.getTodayPrescription(profileId). currentPlanTierProvider for freemium check. Free users get static MacroCalculator target."
+      "technicalNotes": "BackdropFilter forces compositing layer repaints on every scroll frame — 3-5ms per frame hit on mid-range Android. Shimmer skeleton has wrong layout causing CLS-equivalent jump."
     },
     {
-      "id": "P14-002",
-      "title": "Add smooth_page_indicator package and fab_colors constants",
-      "passes": true,
+      "id": "UX-006",
+      "title": "Fix carousel height consistency and add greeting time awareness",
+      "passes": false,
       "priority": 17,
       "acceptanceCriteria": [
-        "Check pubspec.yaml for smooth_page_indicator",
-        "If not present, add smooth_page_indicator: ^1.1.0 to dependencies",
-        "Create lib/shared/core/constants/fab_colors.dart with kFabColorLogFood (green), kFabColorBarcode (blue), kFabColorVoice (purple), kFabColorMealScan (orange)",
-        "Run flutter pub get successfully (use cmd.exe /c for WSL)",
+        "Read lib/features/dashboard/presentation/widgets/nutrition_summary_carousel.dart",
+        "Unify loading, zero-state, and data heights to 180dp consistently",
+        "Read lib/features/dashboard/presentation/dashboard_screen.dart header section",
+        "Replace hardcoded 'Good morning,' with time-aware greeting (morning/afternoon/evening)",
+        "A _greeting() helper already exists in daily_coach_card.dart — reuse or extract to shared utils",
         "flutter analyze returns 0 errors"
       ],
-      "technicalNotes": "If smooth_page_indicator causes version conflicts, use custom AnimatedContainer dot indicator. fab_colors.dart should use const Color values."
+      "technicalNotes": "Carousel has 180dp data, 160dp loading, 160dp zero — causing 20dp layout jump on state transition."
     },
     {
-      "id": "P14-003",
-      "title": "Create NutritionSummaryCarousel with 4 pages",
-      "passes": true,
+      "id": "ARCH-004",
+      "title": "Move weight log Supabase call into repository and replace MD5 with SHA-256",
+      "passes": false,
       "priority": 18,
       "acceptanceCriteria": [
-        "Read PRPs/meals-v5-implementation-plan.md sections 5.1-5.4",
-        "Create lib/features/dashboard/presentation/widgets/nutrition_summary_carousel.dart",
-        "Create macro_rings_carousel_page.dart — 3 CustomPainter rings (80x80dp) for protein, carbs, fat with 'Xg left/over' centre text",
-        "Create calories_budget_carousel_page.dart — large ring (120x120dp), Base Goal/Food/Exercise breakdown, recovery badge for PRO",
-        "Create heart_healthy_carousel_page.dart — Fat/Sodium/Cholesterol progress bars, '--' for untracked, FreemiumGate wrapped",
-        "Create low_carb_carousel_page.dart — Carbs/Sugar/Fiber progress bars, '--' for untracked, FreemiumGate wrapped",
-        "Create nutrient_progress_bar.dart — shared reusable bar component",
-        "Dot indicator below pages using smooth_page_indicator or custom",
-        "ShimmerLoading while async, error card on failure, zero-state when no food logged",
-        "Over-goal: ring color amber when consumed > goal",
-        "Each page tappable -> /nutrition?tab=macros|calories|heart|lowcarb",
+        "Read lib/features/health/presentation/screens/weight_log_screen.dart",
+        "Move the Supabase upsert call into HealthRepository (add a logWeight method)",
+        "Screen should call the repository via a provider, not Supabase directly",
+        "Replace md5.convert with sha256.convert for dedupe_hash (per CLAUDE.md spec)",
+        "Also check lib/features/health/data/health_normalizer.dart for MD5 usage and replace",
+        "Show previous weight above the input ('Last logged: 82.4 kg on Mar 27')",
         "flutter analyze returns 0 errors"
       ],
-      "technicalNotes": "Use PageController with StateProvider<int> for page index. Watch todayNutritionDashboardProvider and currentPlanTierProvider."
+      "technicalNotes": "Direct Supabase call from screen violates architecture, bypasses offline-first, and is untestable. MD5 is cryptographically broken — use SHA-256 per project spec."
     },
     {
-      "id": "P14-004",
-      "title": "Create Steps and Exercise summary tiles",
-      "passes": true,
+      "id": "SEC-005",
+      "title": "Add freemium tier check to GoRouter redirect for Pro-only routes",
+      "passes": false,
       "priority": 19,
       "acceptanceCriteria": [
-        "Read PRPs/meals-v5-implementation-plan.md section 5.5",
-        "Create lib/features/dashboard/presentation/widgets/steps_summary_tile.dart",
-        "Create lib/features/dashboard/presentation/widgets/exercise_summary_tile.dart",
-        "Steps tile reads MetricType.steps, shows step count vs daily target with progress ring",
-        "No Health Connect: show '-- steps' with Connect TextButton -> /health/connections",
-        "Exercise tile shows today's exercise calories + duration from completed workouts",
-        "Both tiles side-by-side in Row with Expanded children",
+        "Read lib/shared/core/router/app_router.dart redirect callback",
+        "Define a list of Pro-only route prefixes: /insights, /daily-coach/plan, /recovery-detail",
+        "In the redirect callback, check currentPlanTierProvider for these routes",
+        "If user is free tier and navigating to a Pro route, redirect to /paywall",
+        "Verify free users can still access all free features",
         "flutter analyze returns 0 errors"
       ],
-      "technicalNotes": "Add todayStepsProvider to today_nutrition_provider.dart. Use health_repository_impl.dart getMetrics for steps."
+      "technicalNotes": "Currently router only checks auth + onboarding. A free user who knows the route paths can access /insights directly. Defense-in-depth alongside widget-level FreemiumGate."
     },
     {
-      "id": "P14-005",
-      "title": "Create WeightTrendChartWidget",
-      "passes": true,
+      "id": "SEC-006",
+      "title": "Fix email validation on login and raise password minimum to 8 characters",
+      "passes": false,
       "priority": 20,
       "acceptanceCriteria": [
-        "Create lib/features/dashboard/presentation/widgets/weight_trend_chart_widget.dart",
-        "90-day line chart using FL Chart, x=date, y=weight",
-        "Goal target line from goalsProvider body_composition goal",
-        "Empty state: 'Log your first weight' with button -> /weight/log",
-        "Chart handles single data point without crashing",
-        "Tappable: navigates to goals or weight detail screen",
+        "Read lib/features/auth/presentation/login_screen.dart email validator",
+        "Replace contains('@') check with proper regex matching signup screen pattern",
+        "Read lib/features/auth/presentation/signup_screen.dart password validator",
+        "Raise minimum from 6 to 8 characters",
+        "Update error message to match",
         "flutter analyze returns 0 errors"
       ],
-      "technicalNotes": "Weight data from wt_health_metrics where metric_type='weight'. Use goalsProvider(profileId) for target line."
-    },
-    {
-      "id": "P14-006",
-      "title": "Create HabitStreakPromptCard and habitPromptProvider",
-      "passes": true,
-      "priority": 21,
-      "acceptanceCriteria": [
-        "Create lib/features/meals/presentation/habit_prompt_provider.dart",
-        "Create lib/features/dashboard/presentation/widgets/habit_streak_prompt_card.dart",
-        "habitPromptProvider returns contextual nudge based on logging streak, recovery state, time of day",
-        "Card is dismissable, dismissal stored, does not reappear same day",
-        "No card when no relevant prompt available",
-        "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "Reads from habitProvider streak data and todayRecoveryScoreProvider. Dismissal state via StateProvider<bool> or Hive."
-    },
-    {
-      "id": "P14-007",
-      "title": "Create DiscoverQuickAccessGrid replacing SecondaryModulesList",
-      "passes": true,
-      "priority": 22,
-      "acceptanceCriteria": [
-        "Read lib/features/dashboard/presentation/dashboard_screen.dart for existing SecondaryModulesList",
-        "Create lib/features/dashboard/presentation/widgets/discover_quick_access_grid.dart",
-        "2x2 grid: Sleep, Recipes, Workouts, Recovery tiles with icons and labels",
-        "Each tile taps to appropriate route",
-        "Remove SecondaryModulesList if it exists in dashboard",
-        "PRO-only tiles show lock icon for free users -> /paywall on tap",
-        "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "Use enabledModulesProvider for dynamic tile list. Navigation via context.push()."
-    },
-    {
-      "id": "P14-008",
-      "title": "Insert all new widgets into DashboardScreen",
-      "passes": true,
-      "priority": 23,
-      "acceptanceCriteria": [
-        "Read lib/features/dashboard/presentation/dashboard_screen.dart",
-        "Insert NutritionSummaryCarousel as SliverToBoxAdapter after header",
-        "Insert Steps/Exercise Row as SliverToBoxAdapter",
-        "Insert WeightTrendChartWidget as SliverToBoxAdapter",
-        "Insert HabitStreakPromptCard (conditional) as SliverToBoxAdapter",
-        "Insert DiscoverQuickAccessGrid as SliverToBoxAdapter (replace SecondaryModulesList if exists)",
-        "Consistent horizontal padding matching existing dashboard style",
-        "Dashboard scrolls smoothly with all new content",
-        "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "DashboardScreen uses CustomScrollView with SliverToBoxAdapter children. Additive only — do not restructure existing layout."
-    },
-    {
-      "id": "P14-009",
-      "title": "Create EnhancedLogBottomSheet with 2x2 grid and action list",
-      "passes": true,
-      "priority": 24,
-      "acceptanceCriteria": [
-        "Read PRPs/meals-v4-enhanced-fab.md",
-        "Create lib/features/meals/presentation/enhanced_log_bottom_sheet.dart",
-        "2x2 grid at top: Log Food (green), Barcode (blue), Voice Log (purple PRO), Meal Scan (orange PRO)",
-        "List below: Water, Weight, Exercise, AI Suggestions (Coming Soon), Recipes, Quick Add",
-        "Log Food -> /meals/food-search, Barcode -> /meals/barcode",
-        "Voice Log -> /meals/voice-log (PRO) or /paywall (free)",
-        "Meal Scan -> /meals/meal-scan (PRO) or /paywall (free)",
-        "Water opens inline WaterStepperSubSheet (glass count +/- buttons)",
-        "Weight opens inline input -> saves to wt_health_metrics",
-        "Exercise -> /workouts/new, Recipes -> /recipes",
-        "DraggableScrollableSheet with rounded corners, initialChildSize ~0.5",
-        "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "Create FabActionTile widget for 2x2 grid items. Use fab_colors.dart constants. Voice/Meal Scan always visible but PRO-locked."
-    },
-    {
-      "id": "P14-010",
-      "title": "Add FAB to ScaffoldWithBottomNav wired to EnhancedLogBottomSheet",
-      "passes": true,
-      "priority": 25,
-      "acceptanceCriteria": [
-        "Read lib/shared/core/router/scaffold_with_bottom_nav.dart",
-        "Add FloatingActionButton to outer Scaffold",
-        "floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat",
-        "FAB icon: Icons.add with primary color",
-        "Tap opens EnhancedLogBottomSheet via showModalBottomSheet",
-        "FAB visible on all main tabs",
-        "FAB does not overlap bottom nav items",
-        "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "No BottomAppBar migration. Use centerFloat with existing BottomNavigationBar."
-    },
-    {
-      "id": "P14-011",
-      "title": "Register new routes in app_router.dart",
-      "passes": true,
-      "priority": 26,
-      "acceptanceCriteria": [
-        "Read lib/shared/core/router/app_router.dart",
-        "Add route: /nutrition -> NutritionDetailScreen (with tab query param)",
-        "Add route: /meals/voice-log -> VoiceLogScreen",
-        "Add route: /meals/meal-scan -> MealScanScreen",
-        "Add route: /water/log -> WaterLogScreen",
-        "Add route: /weight/log -> WeightLogScreen",
-        "Update /recipes to pass selectMode parameter when navigating from meal swap",
-        "All new routes gated by needsProfile guard",
-        "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "Add routes inside Branch 0 (authenticated routes). Import screen files with aliases if needed."
-    },
-    {
-      "id": "P14-012",
-      "title": "Create NutritionDetailScreen",
-      "passes": true,
-      "priority": 27,
-      "acceptanceCriteria": [
-        "Create lib/features/meals/presentation/nutrition_detail_screen.dart",
-        "Tab-based: Macros, Calories, Heart Healthy, Low Carb tabs",
-        "Accepts tab query parameter to open correct tab",
-        "Macros tab: protein/carbs/fat breakdown with daily chart",
-        "Calories tab: calorie budget with food diary entries",
-        "Heart Healthy/Low Carb tabs: PRO-gated with FreemiumGate",
-        "Back button navigates to dashboard",
-        "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "Use TabController with initialIndex from query param. Data from todayNutritionDashboardProvider."
-    },
-    {
-      "id": "P14-013",
-      "title": "Create water logging infrastructure and WaterStepperSubSheet",
-      "passes": true,
-      "priority": 28,
-      "acceptanceCriteria": [
-        "Create lib/features/health/presentation/water_log_provider.dart",
-        "Water logged as wt_health_metrics with metric_type='water' (no new table)",
-        "waterLogProvider(profileId) reads today's water entries, returns total glasses/ml",
-        "addWaterLog(profileId, ml) inserts new metric entry",
-        "WaterStepperSubSheet shows glass count with +/- buttons (each glass = 250ml)",
-        "Save button upserts to wt_health_metrics",
-        "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "Using wt_health_metrics avoids new table per implementation plan section 2.8."
-    },
-    {
-      "id": "P14-014",
-      "title": "Create VoiceLogScreen, MealScanScreen, and WeightLogScreen",
-      "passes": true,
-      "priority": 29,
-      "acceptanceCriteria": [
-        "Create lib/features/meals/presentation/voice_log_screen.dart — PRO-only, mic button with text input fallback",
-        "Create lib/features/meals/presentation/meal_scan_screen.dart — PRO-only, camera capture prompt",
-        "Create lib/features/health/presentation/screens/weight_log_screen.dart — weight input form",
-        "Weight saves to wt_health_metrics with metric_type='weight' and dedupe_hash",
-        "Weight validates: positive number between 20-500 kg",
-        "Voice/Meal screens functional MVP (AI interpretation can be Coming Soon)",
-        "All have back buttons and proper navigation",
-        "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "MVP stubs for voice/meal scan. Weight log uses health_repository_impl.dart saveHealthMetrics."
-    },
-    {
-      "id": "P15-001",
-      "title": "Create Health Permissions Rationale screen (Google Play requirement)",
-      "passes": true,
-      "priority": 30,
-      "acceptanceCriteria": [
-        "Create lib/features/health/presentation/screens/health_permissions_rationale_screen.dart",
-        "Screen explains WHY each health permission is needed with icons and descriptions",
-        "Steps: 'Track daily activity and set movement goals'",
-        "Heart Rate: 'Monitor recovery and calculate training readiness'",
-        "Sleep: 'Optimise rest and adjust tomorrow's plan'",
-        "Weight: 'Track body composition progress toward your goals'",
-        "Exercise/Distance/Calories: 'Personalise workout plans and calorie targets'",
-        "Continue button triggers actual permission request",
-        "Decline button explains limited features still work",
-        "Screen shown BEFORE system permission dialog",
-        "Register route /health/permissions-rationale in app_router.dart",
-        "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "Google Play requires rationale screen for Health Connect apps. Navigate here from onboarding or settings."
-    },
-    {
-      "id": "P15-002",
-      "title": "Verify and enforce all freemium gates",
-      "passes": true,
-      "priority": 31,
-      "acceptanceCriteria": [
-        "Read lib/features/freemium/ for gate logic",
-        "Verify PRO-gated: recovery score, AI daily plan, VO2 max forecasting, meal plan generation, unlimited history, insights dashboard, heart healthy/low carb pages, voice log, meal scan, AI bloodwork interpretation",
-        "Verify FREE: Health Connect sync, basic meal/workout logging, 7-day history, habit tracking, step/weight tracking",
-        "Free users see locked features (not hidden) with lock icon",
-        "All gate checks use currentPlanTierProvider",
-        "All locked feature taps navigate to /paywall via context.push()",
-        "Fix any gates using Navigator.push instead of GoRouter",
-        "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "Some gates use Navigator.push internally — fix to context.push('/paywall')."
-    },
-    {
-      "id": "P15-003",
-      "title": "Remove all debug print statements and fix sensitive data logging",
-      "passes": true,
-      "priority": 32,
-      "acceptanceCriteria": [
-        "Search entire lib/ for print() and debugPrint() statements",
-        "Remove all debug prints from production code",
-        "Known: onboarding_flow_screen.dart has debug prints",
-        "Verify no tokens, passwords, or health values in any log output",
-        "Replace necessary logging with AppLogger (shared/core/utils/app_logger.dart)",
-        "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "Use grep for 'print(' and 'debugPrint(' across lib/. Keep AppLogger calls for error paths."
-    },
-    {
-      "id": "P15-004",
-      "title": "Fix all flutter analyze warnings",
-      "passes": true,
-      "priority": 33,
-      "acceptanceCriteria": [
-        "Run flutter analyze on entire project",
-        "Fix all errors (must be 0)",
-        "Fix all warnings (should be 0)",
-        "Fix info-level: unused imports, unnecessary casts, deprecated APIs",
-        "flutter analyze returns 0 errors, 0 warnings"
-      ],
-      "technicalNotes": "Run via cmd.exe /c. Fix unused imports first, then type issues, then deprecations."
-    },
-    {
-      "id": "P15-005",
-      "title": "Verify AndroidManifest.xml has all required permissions and metadata",
-      "passes": true,
-      "priority": 34,
-      "acceptanceCriteria": [
-        "Read android/app/src/main/AndroidManifest.xml",
-        "All Health Connect read permissions declared (steps, heart_rate, sleep, weight, exercise, distance, calories, body_fat)",
-        "POST_NOTIFICATIONS for Android 13+",
-        "SCHEDULE_EXACT_ALARM for reminders",
-        "RECEIVE_BOOT_COMPLETED for reminder persistence",
-        "Health Connect intent filter on activity",
-        "health_permissions.xml resource file exists",
-        "Internet permission declared",
-        "Deep link intent filter for welltrack:// scheme",
-        "No unnecessary permissions"
-      ],
-      "technicalNotes": "Cross-reference with CLAUDE.md Phase 1 requirements."
-    },
-    {
-      "id": "P15-006",
-      "title": "Verify offline-first behavior and notification service",
-      "passes": true,
-      "priority": 35,
-      "acceptanceCriteria": [
-        "Read lib/shared/core/sync/sync_engine.dart",
-        "Verify app launches with cached data when offline",
-        "Verify meal/workout/habit logging works offline (saved to Hive)",
-        "Verify sync engine pushes pending changes when connectivity returns",
-        "Read lib/features/reminders/data/notification_service.dart",
-        "Verify NotificationService.initialize() called in main.dart",
-        "Verify notification channel created, timezone set, permissions requested",
-        "Verify creating a reminder schedules a device notification",
-        "Fix any issues found",
-        "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "WorkManager must be registered for background sync. Phase 13 US-001 initialized notification service."
+      "technicalNotes": "Login accepts '@' as valid email. Password min 6 is below NIST SP 800-63B standard of 8 for apps handling sensitive health data."
     }
   ]
 }
