@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/health_connections_repository.dart';
 import '../domain/health_connection_entity.dart';
@@ -28,24 +30,34 @@ const _stravaClientId = String.fromEnvironment(
 const _garminAuthorizeBase =
     'https://connect.garmin.com/oauthConfirm';
 
-/// Strava OAuth 2.0 authorization URL (complete, ready for url_launcher).
-String buildStravaAuthorizationUrl() {
+/// Generates a cryptographically random state nonce for OAuth CSRF protection.
+String generateOAuthState() {
+  final random = Random.secure();
+  final bytes = List<int>.generate(32, (_) => random.nextInt(256));
+  return base64Url.encode(bytes);
+}
+
+/// Stores the pending OAuth state nonce for CSRF validation on callback.
+/// Set before launching OAuth, verified when the deep link callback arrives.
+final pendingOAuthStateProvider = StateProvider<String?>((ref) => null);
+
+/// Strava OAuth 2.0 authorization URL with CSRF state parameter.
+String buildStravaAuthorizationUrl(String state) {
   final params = Uri(queryParameters: {
     'client_id': _stravaClientId,
     'redirect_uri': _stravaRedirectUri,
     'response_type': 'code',
     'approval_prompt': 'auto',
     'scope': 'read,activity:read_all',
+    'state': state,
   }).query;
   return 'https://www.strava.com/oauth/authorize?$params';
 }
 
-/// Builds a Garmin authorization URL from a server-issued request token.
-///
-/// [requestToken] is retrieved from the `oauth-garmin` Edge Function
-/// `initiate` action before opening the browser.
-String buildGarminAuthorizationUrl(String requestToken) {
-  return '$_garminAuthorizeBase?oauth_token=$requestToken';
+/// Builds a Garmin authorization URL from a server-issued request token
+/// with CSRF state parameter.
+String buildGarminAuthorizationUrl(String requestToken, String state) {
+  return '$_garminAuthorizeBase?oauth_token=$requestToken&state=$state';
 }
 
 // ---------------------------------------------------------------------------
@@ -120,14 +132,17 @@ class HealthConnectionsNotifier
   HealthConnectionsNotifier({
     required String profileId,
     required HealthConnectionsRepository repository,
+    required Ref ref,
   })  : _profileId = profileId,
         _repository = repository,
+        _ref = ref,
         super(const HealthConnectionsState()) {
     loadConnections();
   }
 
   final String _profileId;
   final HealthConnectionsRepository _repository;
+  final Ref _ref;
 
   // -------------------------------------------------------------------------
   // Public methods
@@ -160,12 +175,17 @@ class HealthConnectionsNotifier
   Future<String?> initiateGarminOAuth() async {
     state = state.copyWith(isConnecting: true, clearError: true);
     try {
+      final oauthState = generateOAuthState();
+      _ref.read(pendingOAuthStateProvider.notifier).state = oauthState;
+
       // The Edge Function's initiate action returns the full auth URL
       // in the oauth_token field.
       final authUrl =
           await _repository.getGarminRequestToken(_profileId);
+      // Append state parameter for CSRF protection
+      final authUrlWithState = '$authUrl&state=$oauthState';
       state = state.copyWith(isConnecting: false);
-      return authUrl;
+      return authUrlWithState;
     } catch (e) {
       _logger.error('HealthConnectionsNotifier.initiateGarminOAuth failed: $e');
       state = state.copyWith(
@@ -364,6 +384,7 @@ final healthConnectionsProvider = StateNotifierProvider.family<
   return HealthConnectionsNotifier(
     profileId: profileId,
     repository: repository,
+    ref: ref,
   );
 });
 

@@ -45,3 +45,18 @@ Source: Comprehensive 5-agent review (Design, Security, BA, PM, Architecture)
   - lib/features/profile/data/profile_repository.dart
 - **Learnings:** Supabase column-level REVOKE works with PostgREST. Use SECURITY DEFINER RPC functions to allow specific operations that bypass the REVOKE.
 ---
+
+## 2026-03-29 - SEC-003
+- Added generateOAuthState() using Random.secure() + base64Url (256-bit nonce)
+- Added pendingOAuthStateProvider to store state before launching OAuth
+- Updated buildStravaAuthorizationUrl() and buildGarminAuthorizationUrl() to accept state parameter
+- Updated deep link handler in app.dart to verify returned state matches expected state
+- State mismatch logs warning and rejects the callback (CSRF protection)
+- Updated settings_screen.dart and health_connection_screen.dart to generate + store state before OAuth
+- Added Ref parameter to HealthConnectionsNotifier for state provider access
+- Files changed:
+  - lib/features/health/presentation/health_connections_provider.dart
+  - lib/app.dart
+  - lib/features/settings/presentation/settings_screen.dart
+  - lib/features/health/presentation/health_connection_screen.dart
+---

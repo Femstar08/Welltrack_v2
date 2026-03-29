@@ -74,6 +74,17 @@ class _WellTrackAppState extends ConsumerState<WellTrackApp> {
 
     if (uri.scheme != 'welltrack' || uri.host != 'oauth') return;
 
+    // CSRF protection: verify state parameter matches what we sent (SEC-003)
+    final returnedState = uri.queryParameters['state'];
+    final expectedState = ref.read(pendingOAuthStateProvider);
+    if (expectedState != null && returnedState != expectedState) {
+      _logger.warning('OAuth state mismatch — possible CSRF attack. '
+          'Expected: $expectedState, got: $returnedState');
+      return;
+    }
+    // Clear pending state after validation
+    ref.read(pendingOAuthStateProvider.notifier).state = null;
+
     if (uri.path == '/garmin/callback') {
       // Garmin OAuth 2.0 returns an authorization code.
       // Also check oauth_verifier for backwards compatibility.

@@ -629,7 +629,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   /// Opens the Strava OAuth flow in the browser.
   Future<void> _connectStrava() async {
-    final authUrl = buildStravaAuthorizationUrl();
+    final oauthState = generateOAuthState();
+    ref.read(pendingOAuthStateProvider.notifier).state = oauthState;
+    final authUrl = buildStravaAuthorizationUrl(oauthState);
     final uri = Uri.parse(authUrl);
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (mounted) {

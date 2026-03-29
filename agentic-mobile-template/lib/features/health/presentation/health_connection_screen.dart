@@ -510,7 +510,9 @@ class HealthConnectionScreen extends ConsumerWidget {
                 onPressed: connState.isConnecting
                     ? null
                     : () async {
-                        final authUrl = buildStravaAuthorizationUrl();
+                        final oauthState = generateOAuthState();
+                        ref.read(pendingOAuthStateProvider.notifier).state = oauthState;
+                        final authUrl = buildStravaAuthorizationUrl(oauthState);
                         final uri = Uri.parse(authUrl);
                         await launchUrl(uri, mode: LaunchMode.externalApplication);
                       },
