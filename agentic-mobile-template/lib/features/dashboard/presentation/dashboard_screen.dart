@@ -209,41 +209,49 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     // Empty state: no bloodwork results
     if (totalResults == 0) {
-      return GestureDetector(
-        onTap: () => context.push('/bloodwork'),
-        child: Container(
-          decoration: BoxDecoration(
-            color: AppColors.surfaceContainerHighest,
+      return Semantics(
+        button: true,
+        label: 'Log your first blood test',
+        child: Material(
+          color: AppColors.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(24),
+          child: InkWell(
             borderRadius: BorderRadius.circular(24),
-          ),
-          padding: const EdgeInsets.all(24),
-          child: Row(
-            children: [
-              const Icon(Icons.biotech_outlined, color: AppColors.textSecondaryDark, size: 32),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(
-                  'Log your first blood test',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: AppColors.textSecondaryDark,
-                      ),
-                ),
+            onTap: () => context.push('/bloodwork'),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Row(
+                children: [
+                  const Icon(Icons.biotech_outlined, color: AppColors.textSecondaryDark, size: 32),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      'Log your first blood test',
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            color: AppColors.textSecondaryDark,
+                          ),
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right, color: AppColors.textSecondaryDark),
+                ],
               ),
-              const Icon(Icons.chevron_right, color: AppColors.textSecondaryDark),
-            ],
+            ),
           ),
         ),
       );
     }
 
-    return GestureDetector(
-      onTap: () => context.push('/bloodwork'),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surfaceContainerHighest,
+    return Semantics(
+      button: true,
+      label: 'View bloodwork — $flaggedCount results out of range',
+      child: Material(
+        color: AppColors.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(24),
+        child: InkWell(
           borderRadius: BorderRadius.circular(24),
-        ),
-        padding: const EdgeInsets.all(24),
+          onTap: () => context.push('/bloodwork'),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
         child: Row(
           children: [
             Container(
@@ -285,6 +293,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             const Icon(Icons.chevron_right, color: AppColors.textSecondaryDark),
           ],
+        ),
+          ),
         ),
       ),
     );
@@ -440,7 +450,7 @@ class _GoalsSummaryCard extends ConsumerWidget {
             child: Text(
               goal.statusLabel,
               style: TextStyle(
-                fontSize: 9,
+                fontSize: 11,
                 fontWeight: FontWeight.w600,
                 color: statusColor,
               ),

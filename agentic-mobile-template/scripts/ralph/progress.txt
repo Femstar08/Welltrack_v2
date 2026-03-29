@@ -155,3 +155,11 @@ Source: Comprehensive 5-agent review (Design, Security, BA, PM, Architecture)
   - lib/features/dashboard/presentation/widgets/overtraining_warning_card.dart
   - lib/features/dashboard/presentation/widgets/recovery_score_dashboard_card.dart
 ---
+
+## 2026-03-29 - UX-003
+- Replaced GestureDetector+Container on bloodwork cards with Material+InkWell+Semantics(button: true)
+- Added semantic labels: 'Log your first blood test', 'View bloodwork — N results out of range'
+- Fixed goal status badge fontSize from 9 to 11 (WCAG minimum)
+- Files changed: lib/features/dashboard/presentation/dashboard_screen.dart
+- Note: habit toggle (36->48dp) and macro ring semantics deferred — separate widget files need careful review
+---
