@@ -281,7 +281,7 @@
     {
       "id": "ARCH-004",
       "title": "Move weight log Supabase call into repository and replace MD5 with SHA-256",
-      "passes": false,
+      "passes": true,
       "priority": 18,
       "acceptanceCriteria": [
         "Read lib/features/health/presentation/screens/weight_log_screen.dart",

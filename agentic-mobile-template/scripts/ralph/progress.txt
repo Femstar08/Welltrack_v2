@@ -189,3 +189,13 @@ Source: Comprehensive 5-agent review (Design, Security, BA, PM, Architecture)
   - lib/features/dashboard/presentation/widgets/nutrition_summary_carousel.dart
   - lib/features/dashboard/presentation/dashboard_screen.dart
 ---
+
+## 2026-03-29 - ARCH-004
+- Added logWeight() method to HealthRepository using SHA-256 dedupe hash
+- Moved Supabase upsert from weight_log_screen.dart into repository (architecture fix)
+- Screen now calls repo.logWeight() via healthRepositoryProvider
+- Removed direct Supabase and crypto imports from screen
+- Files changed:
+  - lib/features/health/data/health_repository.dart (logWeight method)
+  - lib/features/health/presentation/screens/weight_log_screen.dart (uses repository)
+---
