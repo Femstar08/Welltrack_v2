@@ -98,3 +98,10 @@ Source: Comprehensive 5-agent review (Design, Security, BA, PM, Architecture)
 - Uses addPostFrameCallback to avoid build-during-build
 - Files changed: lib/features/dashboard/presentation/dashboard_screen.dart
 ---
+
+## 2026-03-29 - PROD-001
+- Added RecoveryScoreDashboardCard as first section after header (position 0)
+- Recovery score is the app's core differentiator — now prominent on dashboard
+- Card shows score with color coding, trend arrow, and calibration progress
+- Files changed: lib/features/dashboard/presentation/dashboard_screen.dart
+---

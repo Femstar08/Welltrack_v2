@@ -17,6 +17,7 @@ import 'widgets/exercise_summary_tile.dart';
 import 'widgets/weight_trend_chart_widget.dart';
 import 'widgets/habit_streak_prompt_card.dart';
 import 'widgets/discover_quick_access_grid.dart';
+import 'widgets/recovery_score_dashboard_card.dart';
 import '../../goals/domain/goal_entity.dart';
 import '../../goals/presentation/goals_provider.dart';
 import '../../bloodwork/presentation/bloodwork_provider.dart';
@@ -110,6 +111,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ),
                     ),
                   ),
+
+                  // 0. Recovery Score — app's core differentiator (PROD-001)
+                  SliverToBoxAdapter(
+                    child: RecoveryScoreDashboardCard(profileId: widget.profileId),
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
                   // 1. Nutrition Carousel
                   SliverToBoxAdapter(

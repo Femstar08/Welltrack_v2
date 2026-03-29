@@ -116,7 +116,7 @@
     {
       "id": "PROD-001",
       "title": "Add Recovery Score card to top of dashboard",
-      "passes": false,
+      "passes": true,
       "priority": 8,
       "acceptanceCriteria": [
         "Read lib/features/dashboard/presentation/dashboard_screen.dart",
