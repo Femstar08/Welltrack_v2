@@ -344,7 +344,7 @@
     {
       "id": "P14-005",
       "title": "Create WeightTrendChartWidget",
-      "passes": false,
+      "passes": true,
       "priority": 20,
       "acceptanceCriteria": [
         "Create lib/features/dashboard/presentation/widgets/weight_trend_chart_widget.dart",

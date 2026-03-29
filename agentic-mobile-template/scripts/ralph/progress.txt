@@ -305,3 +305,22 @@ Branch: ralph/phase-11-to-15-autonomous
   - workoutRepositoryProvider exposes getTodayWorkouts(profileId) for same-day workout queries
   - todayStepsProvider already existed in today_nutrition_provider.dart from P14-001
 ---
+
+## 2026-03-29 - P14-005
+- Created WeightTrendChartWidget as ConsumerWidget with 90-day FL Chart line chart
+- Created weightTrendProvider(profileId) FutureProvider that fetches MetricType.weight from healthRepository
+- Chart features: curved line with gradient fill, date labels (first/mid/last), y-axis with weight values
+- Goal target line: reads from goalsProvider for metric_type='weight', renders as dashed horizontal line
+- Empty state: icon + "No weight data yet" + "Log your first weight" TextButton -> /weight/log
+- Single data point handled gracefully (no crash)
+- Touch tooltip shows weight value and date
+- Tappable: entire widget navigates to /goals
+- Files changed:
+  - lib/features/dashboard/presentation/widgets/weight_trend_chart_widget.dart (new)
+- **Learnings for future iterations:**
+  - healthRepository.getMetrics accepts startDate/endDate for date range filtering
+  - GoalEntity.metricType is a String (e.g., 'weight'), not a MetricType enum
+  - FL Chart FlDotCirclePainter used for dot styling, strokeWidth=0 for solid dots
+  - Use .withValues(alpha: X) not .withOpacity(X) per Flutter 3.27+ pattern
+  - goalsProvider is StateNotifierProvider.family keyed by profileId
+---
