@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';
+import '../../../shared/core/logging/app_logger.dart';
 
 class FoodItem {
   const FoodItem({
@@ -104,7 +104,7 @@ class FoodDatabaseService {
       } else if (rawData is String) {
         // Fallback: manually decode if Dio returned raw string
         data = null;
-        debugPrint('[FoodDB] Response was String, not Map — check Dio config');
+        AppLogger().warning('[FoodDB] Response was String, not Map — check Dio config');
       } else {
         data = null;
       }
@@ -115,14 +115,14 @@ class FoodDatabaseService {
           .whereType<FoodItem>()
           .toList();
 
-      debugPrint('[FoodDB] Search "$query" → ${items.length} results');
+      AppLogger().debug('[FoodDB] Search "$query" → ${items.length} results');
       await _toCache(cacheKey, items);
       return items;
     } on DioException catch (e) {
-      debugPrint('[FoodDB] DioException searching "$query": ${e.type} ${e.message}');
+      AppLogger().warning('[FoodDB] DioException searching "$query": ${e.type} ${e.message}');
       return [];
     } catch (e) {
-      debugPrint('[FoodDB] Error searching "$query": $e');
+      AppLogger().error('[FoodDB] Error searching "$query": $e');
       return [];
     }
   }

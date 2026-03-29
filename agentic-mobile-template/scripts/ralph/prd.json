@@ -553,7 +553,7 @@
     {
       "id": "P15-003",
       "title": "Remove all debug print statements and fix sensitive data logging",
-      "passes": false,
+      "passes": true,
       "priority": 32,
       "acceptanceCriteria": [
         "Search entire lib/ for print() and debugPrint() statements",
@@ -568,7 +568,7 @@
     {
       "id": "P15-004",
       "title": "Fix all flutter analyze warnings",
-      "passes": false,
+      "passes": true,
       "priority": 33,
       "acceptanceCriteria": [
         "Run flutter analyze on entire project",
