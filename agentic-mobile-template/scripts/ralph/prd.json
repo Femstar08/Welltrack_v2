@@ -53,7 +53,7 @@
     {
       "id": "SEC-004",
       "title": "Fix Edge Function security: userClient key, webhook fallbacks, process-webhooks auth",
-      "passes": false,
+      "passes": true,
       "priority": 4,
       "acceptanceCriteria": [
         "Read supabase/functions/_shared/supabase-client.ts",

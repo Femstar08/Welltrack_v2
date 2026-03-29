@@ -40,10 +40,16 @@ import { corsHeaders } from '../_shared/cors.ts'
 async function verifyGarminSignature(req: Request, rawBody: string): Promise<boolean> {
   const consumerSecret = Deno.env.get('GARMIN_CONSUMER_SECRET')
 
-  // No secret configured — skip validation (dev / test environment)
+  // SECURITY: Reject all requests if the secret is not configured.
+  // Use ENVIRONMENT=development in Supabase secrets to skip validation in dev.
   if (!consumerSecret) {
-    console.warn('[Garmin Webhook] GARMIN_CONSUMER_SECRET not set — skipping HMAC validation')
-    return true
+    const env = Deno.env.get('ENVIRONMENT') ?? 'production'
+    if (env === 'development') {
+      console.warn('[Garmin Webhook] GARMIN_CONSUMER_SECRET not set — skipping HMAC (dev mode)')
+      return true
+    }
+    console.error('[Garmin Webhook] GARMIN_CONSUMER_SECRET not set — rejecting request')
+    return false
   }
 
   const signature = req.headers.get('X-Garmin-Signature')

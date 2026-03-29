@@ -49,7 +49,11 @@ Deno.serve(async (req: Request) => {
 
     console.log('[OAuth Strava] Webhook verification request:', { mode, token })
 
-    const expectedToken = Deno.env.get('STRAVA_VERIFY_TOKEN') || 'WELLTRACK_STRAVA_2026'
+    const expectedToken = Deno.env.get('STRAVA_VERIFY_TOKEN')
+    if (!expectedToken) {
+      console.error('[OAuth Strava] STRAVA_VERIFY_TOKEN not configured')
+      return new Response('Server misconfigured', { status: 500 })
+    }
 
     if (mode === 'subscribe' && token === expectedToken && challenge) {
       console.log('[OAuth Strava] Webhook verification successful')

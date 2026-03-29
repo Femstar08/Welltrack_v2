@@ -60,3 +60,18 @@ Source: Comprehensive 5-agent review (Design, Security, BA, PM, Architecture)
   - lib/features/settings/presentation/settings_screen.dart
   - lib/features/health/presentation/health_connection_screen.dart
 ---
+
+## 2026-03-29 - SEC-004
+- Fixed userClient in supabase-client.ts to use SUPABASE_ANON_KEY (falls back to service key if not set)
+- Fixed webhook-garmin HMAC: missing secret now rejects in production, only bypasses if ENVIRONMENT=development
+- Removed hardcoded WELLTRACK_STRAVA_2026 fallback from both oauth-strava and webhook-strava
+- Missing STRAVA_VERIFY_TOKEN now returns 500 instead of silently accepting
+- Added auth guard to process-webhooks: checks Bearer token against service role key or CRON_SECRET
+- Capped batchSize to max 50
+- Files changed:
+  - supabase/functions/_shared/supabase-client.ts
+  - supabase/functions/webhook-garmin/index.ts
+  - supabase/functions/oauth-strava/index.ts
+  - supabase/functions/webhook-strava/index.ts
+  - supabase/functions/process-webhooks/index.ts
+---
