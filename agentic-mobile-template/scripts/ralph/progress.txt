@@ -412,3 +412,20 @@ Branch: ralph/phase-11-to-15-autonomous
   - lib/features/meals/presentation/meal_scan_screen.dart (new)
   - lib/features/health/presentation/screens/weight_log_screen.dart (new)
 ---
+
+
+## 2026-03-29 - P14-012
+- Full NutritionDetailScreen with TabBar: Macros, Calories, Heart Healthy, Low Carb
+- Macros tab: protein/carbs/fat with progress bars and remaining/over labels
+- Calories tab: large remaining display, goal/consumed breakdown
+- Heart Healthy + Low Carb tabs: PRO-gated with _GatedTab upgrade prompt
+- Uses actual todayMacroSummaryProvider, todayCalorieSummaryProvider, todayMicronutrientSummaryProvider
+- Tab query param from route opens correct initial tab
+- Files changed:
+  - lib/features/meals/presentation/nutrition_detail_screen.dart (full impl replacing stub)
+- **Learnings for future iterations:**
+  - todayMacroSummaryProvider returns record ({MacroSummary protein, MacroSummary carbs, MacroSummary fat})
+  - CalorieSummary has consumed/adjustedGoal/remaining, no separate foodLogged/exerciseCalories
+  - MicronutrientSummary uses fatG/sodiumMg/cholesterolMg/carbsG/sugarG/fiberG (int?)
+  - activeProfileIdProvider is in app_router.dart, not session_manager.dart
+---

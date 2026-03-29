@@ -465,7 +465,7 @@
     {
       "id": "P14-012",
       "title": "Create NutritionDetailScreen",
-      "passes": false,
+      "passes": true,
       "priority": 27,
       "acceptanceCriteria": [
         "Create lib/features/meals/presentation/nutrition_detail_screen.dart",
