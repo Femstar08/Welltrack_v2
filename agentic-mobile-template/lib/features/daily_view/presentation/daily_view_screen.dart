@@ -5,10 +5,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../shared/core/theme/app_colors.dart';
+import '../../../features/meals/presentation/today_nutrition_provider.dart';
+import '../../../features/insights/presentation/today_recovery_score_provider.dart';
+import '../../../features/habits/presentation/habit_provider.dart';
 import 'daily_view_provider.dart';
 
 class DailyViewScreen extends ConsumerStatefulWidget {
-
   const DailyViewScreen({
     required this.profileId,
     super.key,
@@ -24,660 +27,785 @@ class _DailyViewScreenState extends ConsumerState<DailyViewScreen> {
   void initState() {
     super.initState();
     Future.microtask(() {
-      unawaited(ref.read(dailyViewProvider(widget.profileId).notifier).loadDailyData());
+      unawaited(ref
+          .read(dailyViewProvider(widget.profileId).notifier)
+          .loadDailyData());
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(dailyViewProvider(widget.profileId));
+    final recoveryScore =
+        ref.watch(todayRecoveryScoreProvider(widget.profileId));
+    final macrosAsync =
+        ref.watch(todayMacroSummaryProvider(widget.profileId));
+    final caloriesAsync =
+        ref.watch(todayCalorieSummaryProvider(widget.profileId));
+    final habitsState = ref.watch(habitProvider(widget.profileId));
 
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          tooltip: 'Go back',
-          onPressed: () => context.pop(),
-        ),
-        title: const Text('Daily View'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.today),
-            onPressed: () {
-              ref.read(dailyViewProvider(widget.profileId).notifier).goToToday();
-            },
-            tooltip: 'Go to today',
-          ),
-        ],
-      ),
       body: state.isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: () => ref
                   .read(dailyViewProvider(widget.profileId).notifier)
                   .loadDailyData(),
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: Column(
-                  children: [
-                    _buildDateSelector(context, state),
-                    _buildRecoveryScoreCard(context, state),
-                    _buildProgressRing(context, state),
-                    if (state.mealsSummary != null)
-                      _buildMealsSection(context, state.mealsSummary!),
-                    if (state.supplementsSummary != null)
-                      _buildSupplementsSection(context, state.supplementsSummary!),
-                    if (state.workoutsSummary != null)
-                      _buildWorkoutsSection(context, state.workoutsSummary!),
-                    if (state.healthMetrics != null)
-                      _buildHealthMetricsSection(context, state.healthMetrics!),
-                    if (state.habitsSummary != null)
-                      _buildHabitsSection(context, state.habitsSummary!),
-                    const SizedBox(height: 80), // Bottom padding for FAB
-                  ],
-                ),
-              ),
-            ),
-    );
-  }
-
-  Widget _buildDateSelector(BuildContext context, DailyViewState state) {
-    return Card(
-      margin: const EdgeInsets.all(16),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.chevron_left),
-              tooltip: 'Previous day',
-              onPressed: () {
-                ref.read(dailyViewProvider(widget.profileId).notifier).goToPreviousDay();
-              },
-            ),
-            GestureDetector(
-              onTap: () => _showDatePicker(context, state),
-              child: Column(
-                children: [
-                  Text(
-                    _formatDate(state.selectedDate),
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  Text(
-                    _formatDayOfWeek(state.selectedDate),
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.secondary,
-                        ),
-                  ),
-                ],
-              ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.chevron_right),
-              tooltip: 'Next day',
-              onPressed: () {
-                ref.read(dailyViewProvider(widget.profileId).notifier).goToNextDay();
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRecoveryScoreCard(BuildContext context, DailyViewState state) {
-    final recovery = state.recoveryScore;
-    if (recovery == null) return const SizedBox.shrink();
-
-    Color scoreColor;
-    if (recovery.score == null) {
-      scoreColor = Colors.grey;
-    } else if (recovery.score! >= 80) {
-      scoreColor = Colors.green;
-    } else if (recovery.score! >= 60) {
-      scoreColor = Colors.blue;
-    } else if (recovery.score! >= 40) {
-      scoreColor = Colors.orange;
-    } else {
-      scoreColor = Colors.red;
-    }
-
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: scoreColor.withValues(alpha: 0.1),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Icon(
-              recovery.isCalibrating ? Icons.sync : Icons.favorite,
-              size: 40,
-              color: scoreColor,
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    recovery.isCalibrating ? 'Recovery' : recovery.statusText,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: scoreColor,
-                        ),
-                  ),
-                  Text(
-                    recovery.displayMessage,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProgressRing(BuildContext context, DailyViewState state) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            SizedBox(
-              width: 150,
-              height: 150,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  SizedBox(
-                    width: 150,
-                    height: 150,
-                    child: CircularProgressIndicator(
-                      value: state.overallCompletionPercentage / 100,
-                      strokeWidth: 12,
-                      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    ),
-                  ),
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        '${state.overallCompletionPercentage.toStringAsFixed(0)}%',
-                        style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+              child: CustomScrollView(
+                slivers: [
+                  // Header with date selector
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        left: 20,
+                        right: 20,
+                        top: MediaQuery.paddingOf(context).top + 16,
+                        bottom: 8,
                       ),
-                      Text(
-                        'Complete',
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              '${state.completedTasks} of ${state.totalTasks} tasks',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMealsSection(BuildContext context, MealsSummary summary) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: ExpansionTile(
-        leading: const Icon(Icons.restaurant),
-        title: const Text('Meals'),
-        subtitle: Text(
-          '${summary.loggedCount} of ${summary.plannedCount} logged',
-        ),
-        trailing: _buildCompletionIndicator(
-          context,
-          summary.completionPercentage,
-        ),
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ...summary.plannedMeals.map((meal) => ListTile(
-                      dense: true,
-                      leading: const Icon(Icons.circle_outlined, size: 16),
-                      title: Text(meal),
-                      trailing: const Text('Planned'),
-                    )),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () => _navigateToMeals(context),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Log Meal'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSupplementsSection(BuildContext context, SupplementsSummary summary) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: ExpansionTile(
-        leading: const Icon(Icons.medication),
-        title: const Text('Supplements'),
-        subtitle: Text(
-          '${summary.taken} taken, ${summary.pending} pending',
-        ),
-        trailing: _buildCompletionIndicator(
-          context,
-          summary.completionPercentage,
-        ),
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (summary.pendingSupplements.isNotEmpty) ...[
-                  Text(
-                    'Pending',
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                  const SizedBox(height: 8),
-                  ...summary.pendingSupplements.map((supplement) => ListTile(
-                        dense: true,
-                        leading: const Icon(Icons.radio_button_unchecked, size: 16),
-                        title: Text(supplement),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.check, color: Colors.green),
-                              tooltip: 'Mark as taken',
-                              onPressed: () {
-                                // TODO: Mark as taken
-                              },
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.close, color: Colors.orange),
-                              tooltip: 'Mark as skipped',
-                              onPressed: () {
-                                // TODO: Mark as skipped
-                              },
-                            ),
-                          ],
-                        ),
-                      )),
-                ],
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () => _navigateToSupplements(context),
-                    icon: const Icon(Icons.open_in_new),
-                    label: const Text('View All Supplements'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildWorkoutsSection(BuildContext context, WorkoutsSummary summary) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: ExpansionTile(
-        leading: const Icon(Icons.fitness_center),
-        title: const Text('Workouts'),
-        subtitle: Text(
-          '${summary.completedCount} of ${summary.scheduledCount} completed',
-        ),
-        trailing: _buildCompletionIndicator(
-          context,
-          summary.completionPercentage,
-        ),
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ...summary.scheduledWorkouts.map((workout) => ListTile(
-                      dense: true,
-                      leading: Icon(
-                        workout.completed ? Icons.check_circle : Icons.circle_outlined,
-                        size: 16,
-                        color: workout.completed ? Colors.green : null,
-                      ),
-                      title: Text(workout.name),
-                      subtitle: Text(workout.workoutType),
-                      trailing: workout.completed
-                          ? null
-                          : TextButton(
-                              onPressed: () => _navigateToWorkout(context, workout.id),
-                              child: const Text('Start'),
-                            ),
-                    )),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () => _navigateToWorkouts(context),
-                    icon: const Icon(Icons.open_in_new),
-                    label: const Text('View All Workouts'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHealthMetricsSection(BuildContext context, HealthMetricsSummary metrics) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.health_and_safety),
-                const SizedBox(width: 8),
-                Text(
-                  'Health Metrics',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildMetricTile(
-                    context,
-                    'Sleep',
-                    metrics.sleepDisplay,
-                    Icons.bedtime,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildMetricTile(
-                    context,
-                    'Steps',
-                    metrics.stepsDisplay,
-                    Icons.directions_walk,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildMetricTile(
-                    context,
-                    'Heart Rate',
-                    metrics.heartRate != null
-                        ? '${metrics.heartRate!.toStringAsFixed(0)} bpm'
-                        : 'No data',
-                    Icons.favorite,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildMetricTile(
-                    context,
-                    'Stress',
-                    metrics.stressScore != null
-                        ? '${metrics.stressScore!.toStringAsFixed(0)}/100'
-                        : 'No data',
-                    Icons.psychology,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHabitsSection(BuildContext context, HabitsSummary summary) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: ExpansionTile(
-        leading: const Icon(Icons.track_changes),
-        title: const Text('Habits'),
-        subtitle: Text(
-          '${summary.completedToday} of ${summary.totalHabits} completed today',
-        ),
-        trailing: _buildCompletionIndicator(
-          context,
-          summary.completionPercentage,
-        ),
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ...summary.items.map((item) {
-                  // Kegel quick-link: show timer button when not yet completed.
-                  final bool isKegel = item.habitType == 'kegels';
-                  return ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    leading: GestureDetector(
-                      onTap: () => ref
-                          .read(dailyViewProvider(widget.profileId).notifier)
-                          .toggleHabitToday(item.habitType),
-                      child: Icon(
-                        item.completedToday
-                            ? Icons.check_circle
-                            : Icons.radio_button_unchecked,
-                        size: 20,
-                        color: item.completedToday ? Colors.green : null,
+                      child: _DateHeader(
+                        date: state.selectedDate,
+                        onPrevious: () => ref
+                            .read(dailyViewProvider(widget.profileId).notifier)
+                            .goToPreviousDay(),
+                        onNext: () => ref
+                            .read(dailyViewProvider(widget.profileId).notifier)
+                            .goToNextDay(),
                       ),
                     ),
-                    title: Text(
-                      item.habitLabel,
-                      style: item.completedToday
-                          ? Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                decoration: TextDecoration.lineThrough,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withValues(alpha: 0.5),
-                              )
-                          : null,
-                    ),
-                    subtitle: item.currentStreakDays > 0
-                        ? Text(
-                            '${item.currentStreakDays} day streak',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(color: Colors.orange),
-                          )
-                        : null,
-                    trailing: isKegel && !item.completedToday
-                        ? TextButton.icon(
-                            onPressed: () => _navigateToKegels(context),
-                            icon: const Icon(Icons.timer, size: 16),
-                            label: const Text('Start'),
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 4),
-                            ),
-                          )
-                        : null,
-                    onTap: () => ref
-                        .read(dailyViewProvider(widget.profileId).notifier)
-                        .toggleHabitToday(item.habitType),
-                  );
-                }),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () => _navigateToHabits(context),
-                    icon: const Icon(Icons.open_in_new),
-                    label: const Text('View All Habits'),
                   ),
-                ),
-              ],
+
+                  // Recovery score banner
+                  if (recoveryScore != null)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 8),
+                        child: _RecoveryBanner(score: recoveryScore),
+                      ),
+                    ),
+
+                  // Calorie summary card
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 8),
+                      child: caloriesAsync.when(
+                        loading: () => _buildShimmerCard(160),
+                        error: (_, __) => const SizedBox.shrink(),
+                        data: (cal) => _CalorieSummaryCard(calories: cal),
+                      ),
+                    ),
+                  ),
+
+                  // Macro progress bars
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 8),
+                      child: macrosAsync.when(
+                        loading: () => _buildShimmerCard(120),
+                        error: (_, __) => const SizedBox.shrink(),
+                        data: (macros) => _MacroProgressCard(macros: macros),
+                      ),
+                    ),
+                  ),
+
+                  // Quick actions
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 8),
+                      child: _QuickActionsRow(profileId: widget.profileId),
+                    ),
+                  ),
+
+                  // Meals section
+                  if (state.mealsSummary != null)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 8),
+                        child: _MealsSection(summary: state.mealsSummary!),
+                      ),
+                    ),
+
+                  // Habits section
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 8),
+                      child: _HabitsSection(
+                        habits: habitsState.habits,
+                        todayLogs: habitsState.todayLogs,
+                        onToggle: (habitType) => ref
+                            .read(habitProvider(widget.profileId).notifier)
+                            .toggleHabitToday(habitType),
+                      ),
+                    ),
+                  ),
+
+                  // Health metrics (single instance)
+                  if (state.healthMetrics != null)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 8),
+                        child: _HealthMetricsCard(
+                            metrics: state.healthMetrics!),
+                      ),
+                    ),
+
+                  const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
     );
   }
 
-  Widget _buildMetricTile(
-    BuildContext context,
-    String label,
-    String value,
-    IconData icon,
-  ) {
+  Widget _buildShimmerCard(double height) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      height: height,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
+        color: AppColors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(16),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Date Header
+// ---------------------------------------------------------------------------
+
+class _DateHeader extends StatelessWidget {
+  const _DateHeader({
+    required this.date,
+    required this.onPrevious,
+    required this.onNext,
+  });
+  final DateTime date;
+  final VoidCallback onPrevious;
+  final VoidCallback onNext;
+
+  String _formatDate(DateTime d) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final selected = DateTime(d.year, d.month, d.day);
+    if (selected == today) return 'Today';
+    if (selected == today.subtract(const Duration(days: 1))) return 'Yesterday';
+    if (selected == today.add(const Duration(days: 1))) return 'Tomorrow';
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return '${months[d.month - 1]} ${d.day}';
+  }
+
+  String _dayOfWeek(DateTime d) {
+    const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    return days[d.weekday - 1];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.chevron_left),
+          tooltip: 'Previous day',
+          onPressed: onPrevious,
+        ),
+        Column(
+          children: [
+            Text(
+              _formatDate(date),
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimaryDark,
+              ),
+            ),
+            Text(
+              _dayOfWeek(date),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.primary,
+              ),
+            ),
+          ],
+        ),
+        IconButton(
+          icon: const Icon(Icons.chevron_right),
+          tooltip: 'Next day',
+          onPressed: onNext,
+        ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Recovery Banner
+// ---------------------------------------------------------------------------
+
+class _RecoveryBanner extends StatelessWidget {
+  const _RecoveryBanner({required this.score});
+  final double score;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = AppColors.getRecoveryColor(score);
+    final label = score >= 80
+        ? 'Excellent'
+        : score >= 60
+            ? 'Good'
+            : score >= 40
+                ? 'Moderate'
+                : 'Low';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.favorite_rounded, color: color, size: 24),
+          const SizedBox(width: 12),
+          Text(
+            '$label — Recovery ${score.toInt()}%',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Calorie Summary Card
+// ---------------------------------------------------------------------------
+
+class _CalorieSummaryCard extends StatelessWidget {
+  const _CalorieSummaryCard({required this.calories});
+  final CalorieSummary calories;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final remaining = calories.remaining;
+    final isOver = calories.isOver;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          Text(
+            '${remaining.abs()}',
+            style: theme.textTheme.displaySmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: isOver ? AppColors.warning : AppColors.primary,
+            ),
+          ),
+          Text(
+            isOver ? 'Calories over' : 'Calories remaining',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: AppColors.textSecondaryDark,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _CalorieDetail(label: 'Goal', value: calories.adjustedGoal),
+              _CalorieDetail(label: 'Consumed', value: calories.consumed),
+              _CalorieDetail(
+                  label: 'Remaining', value: remaining, bold: true),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CalorieDetail extends StatelessWidget {
+  const _CalorieDetail({
+    required this.label,
+    required this.value,
+    this.bold = false,
+  });
+  final String label;
+  final int value;
+  final bool bold;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      children: [
+        Text(
+          '$value',
+          style: (bold ? theme.textTheme.titleMedium : theme.textTheme.bodyLarge)
+              ?.copyWith(fontWeight: bold ? FontWeight.bold : null),
+        ),
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: AppColors.textSecondaryDark,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Macro Progress Card
+// ---------------------------------------------------------------------------
+
+class _MacroProgressCard extends StatelessWidget {
+  const _MacroProgressCard({required this.macros});
+  final ({MacroSummary protein, MacroSummary carbs, MacroSummary fat}) macros;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20),
-          const SizedBox(height: 8),
           Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall,
+            'Macros',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
           ),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+          const SizedBox(height: 16),
+          _MacroBar(
+            label: 'Protein',
+            consumed: macros.protein.consumed,
+            goal: macros.protein.goal,
+            color: AppColors.primary,
+          ),
+          const SizedBox(height: 12),
+          _MacroBar(
+            label: 'Carbs',
+            consumed: macros.carbs.consumed,
+            goal: macros.carbs.goal,
+            color: AppColors.secondary,
+          ),
+          const SizedBox(height: 12),
+          _MacroBar(
+            label: 'Fat',
+            consumed: macros.fat.consumed,
+            goal: macros.fat.goal,
+            color: AppColors.warning,
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildCompletionIndicator(BuildContext context, double percentage) {
-    Color color;
-    if (percentage >= 100) {
-      color = Colors.green;
-    } else if (percentage >= 50) {
-      color = Colors.blue;
-    } else if (percentage > 0) {
-      color = Colors.orange;
-    } else {
-      color = Colors.grey;
-    }
+class _MacroBar extends StatelessWidget {
+  const _MacroBar({
+    required this.label,
+    required this.consumed,
+    required this.goal,
+    required this.color,
+  });
+  final String label;
+  final int consumed;
+  final int goal;
+  final Color color;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.2),
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final progress = goal > 0 ? (consumed / goal).clamp(0.0, 1.0) : 0.0;
+    final remaining = goal - consumed;
+
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: theme.textTheme.bodyMedium),
+            Text(
+              remaining >= 0 ? '${remaining}g left' : '${-remaining}g over',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: remaining >= 0
+                    ? AppColors.textSecondaryDark
+                    : AppColors.warning,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: progress,
+            minHeight: 6,
+            backgroundColor: color.withValues(alpha: 0.15),
+            color: remaining >= 0 ? color : AppColors.warning,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Quick Actions
+// ---------------------------------------------------------------------------
+
+class _QuickActionsRow extends StatelessWidget {
+  const _QuickActionsRow({required this.profileId});
+  final String profileId;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _QuickAction(
+            icon: Icons.restaurant_rounded,
+            label: 'Log Meal',
+            onTap: () => context.push('/meals/food-search'),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _QuickAction(
+            icon: Icons.menu_book_rounded,
+            label: 'Meal Plan',
+            onTap: () => context.push('/meals/plan'),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _QuickAction(
+            icon: Icons.water_drop_rounded,
+            label: 'Water',
+            onTap: () => context.push('/water/log'),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _QuickAction extends StatelessWidget {
+  const _QuickAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      color: AppColors.surfaceContainerHigh,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
         borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        '${percentage.toStringAsFixed(0)}%',
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.bold,
-          fontSize: 12,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            children: [
+              Icon(icon, color: theme.colorScheme.primary, size: 24),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+}
 
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final dateOnly = DateTime(date.year, date.month, date.day);
+// ---------------------------------------------------------------------------
+// Meals Section
+// ---------------------------------------------------------------------------
 
-    if (dateOnly == today) {
-      return 'Today';
-    } else if (dateOnly == today.subtract(const Duration(days: 1))) {
-      return 'Yesterday';
-    } else if (dateOnly == today.add(const Duration(days: 1))) {
-      return 'Tomorrow';
-    } else {
-      final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      return '${months[date.month - 1]} ${date.day}, ${date.year}';
-    }
-  }
+class _MealsSection extends StatelessWidget {
+  const _MealsSection({required this.summary});
+  final MealsSummary summary;
 
-  String _formatDayOfWeek(DateTime date) {
-    final days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    return days[date.weekday - 1];
-  }
-
-  void _showDatePicker(BuildContext context, DailyViewState state) async {
-    final date = await showDatePicker(
-      context: context,
-      initialDate: state.selectedDate,
-      firstDate: DateTime.now().subtract(const Duration(days: 365)),
-      lastDate: DateTime.now().add(const Duration(days: 30)),
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Meals',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                '${summary.loggedCount}/${summary.plannedCount} logged',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondaryDark,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...summary.plannedMeals.map((meal) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.circle_outlined,
+                      size: 16,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(meal, style: theme.textTheme.bodyMedium),
+                    ),
+                  ],
+                ),
+              )),
+        ],
+      ),
     );
-
-    if (date != null) {
-      ref.read(dailyViewProvider(widget.profileId).notifier).changeDate(date);
-    }
   }
+}
 
-  void _navigateToMeals(BuildContext context) {
-    context.push('/meals/plan');
+// ---------------------------------------------------------------------------
+// Habits Section
+// ---------------------------------------------------------------------------
+
+class _HabitsSection extends StatelessWidget {
+  const _HabitsSection({
+    required this.habits,
+    required this.todayLogs,
+    required this.onToggle,
+  });
+  final List<dynamic> habits;
+  final Map<String, bool> todayLogs;
+  final void Function(String) onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    if (habits.isEmpty) return const SizedBox.shrink();
+
+    final completedCount =
+        todayLogs.values.where((v) => v).length;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Habits',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                '$completedCount/${habits.length}',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondaryDark,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...habits.map((habit) {
+            final type = habit.habitType as String;
+            final label = (habit.habitLabel as String?) ?? type.replaceAll('_', ' ');
+            final done = todayLogs[type] == true;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: () => onToggle(type),
+                child: Row(
+                  children: [
+                    Icon(
+                      done ? Icons.check_circle_rounded : Icons.circle_outlined,
+                      size: 20,
+                      color: done ? AppColors.primary : theme.colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        label,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          decoration: done ? TextDecoration.lineThrough : null,
+                          color: done
+                              ? theme.colorScheme.onSurface.withValues(alpha: 0.5)
+                              : null,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
   }
+}
 
-  void _navigateToSupplements(BuildContext context) {
-    context.push('/supplements');
+// ---------------------------------------------------------------------------
+// Health Metrics Card (single instance, no duplicates)
+// ---------------------------------------------------------------------------
+
+class _HealthMetricsCard extends StatelessWidget {
+  const _HealthMetricsCard({required this.metrics});
+  final HealthMetricsSummary metrics;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Health Metrics',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _MetricTile(
+                  icon: Icons.bedtime_rounded,
+                  label: 'Sleep',
+                  value: metrics.sleepDisplay,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _MetricTile(
+                  icon: Icons.directions_walk_rounded,
+                  label: 'Steps',
+                  value: metrics.stepsDisplay,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _MetricTile(
+                  icon: Icons.favorite_rounded,
+                  label: 'Heart Rate',
+                  value: metrics.heartRate != null
+                      ? '${metrics.heartRate!.toStringAsFixed(0)} bpm'
+                      : '--',
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _MetricTile(
+                  icon: Icons.psychology_rounded,
+                  label: 'Stress',
+                  value: metrics.stressScore != null
+                      ? '${metrics.stressScore!.toStringAsFixed(0)}/100'
+                      : '--',
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
+}
 
-  void _navigateToWorkouts(BuildContext context) {
-    context.push('/workouts');
-  }
+class _MetricTile extends StatelessWidget {
+  const _MetricTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+  final IconData icon;
+  final String label;
+  final String value;
 
-  void _navigateToWorkout(BuildContext context, String workoutId) {
-    context.push('/workouts/log/$workoutId');
-  }
-
-  void _navigateToHabits(BuildContext context) {
-    context.push('/habits');
-  }
-
-  /// Opens the kegel timer screen if one exists, otherwise falls back to the
-  /// habits screen so the user can start the session from there.
-  void _navigateToKegels(BuildContext context) {
-    context.push('/habits');
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 18, color: theme.colorScheme.primary),
+          const SizedBox(height: 6),
+          Text(label, style: theme.textTheme.bodySmall?.copyWith(
+            color: AppColors.textSecondaryDark,
+          )),
+          Text(
+            value,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
