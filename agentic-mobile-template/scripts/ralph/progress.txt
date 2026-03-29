@@ -1,69 +1,14 @@
-# Ralph Progress Log — Quality Fixes
+# Ralph Progress Log — Architectural Debt
 Started: 2026-03-29
 Branch: ralph/review-fixes
 
 ## Codebase Patterns
 - Use cmd.exe /c to run Flutter commands on WSL2
-- Must pass --dart-define-from-file=.env for Supabase credentials
-- All navigation uses GoRouter
-- All Supabase calls through repository classes
-- Riverpod providers: ref.watch before await, ref.read after
-- AppColors for all color tokens
-- wt_profiles has gender column (String)
-- MacroCalculator accepts gender parameter
-- FoodItem has caloriesPer100g, proteinPer100g, carbsPer100g, fatPer100g
-- BaselineEntity has daysCount for calibration progress
----
-
-## 2026-03-29 - QUAL-001
-- Deleted lib/features/meals/presentation_v2/ (3 files + subdirs)
-- Deleted old_dashboard.dart from project root
-- No imports referenced these files
-- Removed compile warnings from orphaned prototype code
----
-
-## 2026-03-29 - QUAL-002
-- Replaced TODO placeholder in LogMealScreen with proper recipe reference nutrition_info
-- The food search -> addFoodToLog path already computes macros correctly via FoodItem per-100g values
-- RecipeEntity doesn't store per-serving macros — nutrition_info records recipe_id + servings for reference
-- todayMacroSummaryProvider correctly reads protein_g/carbs_g/fat_g from meal nutritionInfo
-- Files changed: lib/features/meals/presentation/log_meal_screen.dart
-- **Note**: RecipeEntity would need totalCalories/totalProteinG fields for full recipe macro computation
----
-
-## 2026-03-29 - QUAL-003
-- Added biologicalSex field to OnboardingData with setter
-- Added SegmentedButton (Male/Female) to QuickProfileScreen after name field
-- Saves to wt_profiles.gender column via updateFields in onboarding_flow_screen
-- Optional but recommended — shows explanation 'Used for accurate calorie calculations'
-- Files changed:
-  - lib/features/profile/presentation/onboarding/onboarding_state.dart
-  - lib/features/profile/presentation/onboarding/screens/quick_profile_screen.dart
-  - lib/features/profile/presentation/onboarding/onboarding_flow_screen.dart
----
-
-## 2026-03-29 - QUAL-004
-- ALREADY DONE: recovery_score_dashboard_card.dart line 188-237 has _buildCalibrating()
-- Shows 'Day X of 14' with LinearProgressIndicator
-- Baseline state checked before recovery score display
-- No code changes needed
----
-
-## 2026-03-29 - QUAL-005
-- Created todayMealsProvider as shared FutureProvider.family for today's meals
-- Replaced 3 independent mealRepo.getMeals() calls with todayMealsProvider watch
-- Macro, calorie, and micronutrient providers now share the same meals data (1 query instead of 3)
-- dashboardHomeProvider already uses single getMetrics call (N+1 was partially fixed in Phase 13)
-- Files changed: lib/features/meals/presentation/today_nutrition_provider.dart
----
-
-## 2026-03-29 - QUAL-006
-- Fixed module count test: 9 -> 11 (bloodwork + habits added in Phase 12)
-- Fixed widget test: added Hive init with temp dir + openBox for settings/rest_timer
-- Fixed app.dart dispose: guarded sync engine stopSync to prevent 'ref after disposed' error
-- All 530 tests pass
-- Files changed:
-  - test/unit/modules/module_metadata_test.dart
-  - test/widget_test.dart
-  - lib/app.dart (dispose guard)
+- All navigation uses GoRouter — routes in app_router.dart
+- All Supabase calls through repository classes — screens use providers only
+- activeProfileIdProvider in app_router.dart
+- profileRepositoryProvider for profile access
+- SyncEngine + OfflineQueue exist in shared/core/sync/
+- ConnectivityService provides online/offline stream
+- Hive for offline queue storage
 ---

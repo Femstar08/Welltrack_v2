@@ -1,99 +1,64 @@
 {
   "project": "WellTrack",
   "branchName": "ralph/review-fixes",
-  "description": "Product quality fixes — macro calculation in meal logging, dashboard query optimization, biological sex in onboarding, calibration progress, orphaned files cleanup, failing tests",
+  "description": "Architectural debt reduction — split app_router, move data layer imports out of screens, wire offline sync to repositories",
   "userStories": [
     {
-      "id": "QUAL-001",
-      "title": "Delete orphaned presentation_v2 files and old_dashboard.dart",
-      "passes": true,
+      "id": "ARCH-005",
+      "title": "Split app_router.dart into per-feature route config files",
+      "passes": false,
       "priority": 1,
       "acceptanceCriteria": [
-        "Delete lib/features/meals/presentation_v2/ directory entirely",
-        "Delete agentic-mobile-template/old_dashboard.dart if it exists",
-        "Verify no imports reference these deleted files",
+        "Read lib/shared/core/router/app_router.dart — it is 900+ lines with 70+ routes",
+        "Create route config files for each major feature group:",
+        "  lib/shared/core/router/routes/auth_routes.dart — login, signup, onboarding, splash, paywall",
+        "  lib/shared/core/router/routes/meal_routes.dart — all meals/* routes",
+        "  lib/shared/core/router/routes/health_routes.dart — all health/* routes",
+        "  lib/shared/core/router/routes/workout_routes.dart — workouts, exercise browser, plans, logging",
+        "  lib/shared/core/router/routes/profile_routes.dart — settings, profile, goals, supplements",
+        "  lib/shared/core/router/routes/feature_routes.dart — pantry, recipes, shopping, bloodwork, habits, reminders, insights, daily coach",
+        "Each file exports a static List<GoRoute> method that returns the routes for that feature",
+        "app_router.dart imports all route files and assembles them into the StatefulShellRoute branches",
+        "All routes must still work after the split — no broken navigation",
         "flutter analyze returns 0 errors"
       ],
-      "technicalNotes": "These are abandoned prototypes causing compile warnings. presentation_v2/ has withOpacity deprecation, CardTheme type error. old_dashboard.dart should not exist in production."
+      "technicalNotes": "Keep AppRouter class, GoRouterAuthRefresh, providers, and route guards in app_router.dart. Only move the GoRoute definitions to separate files. Each feature file needs access to ref for activeProfileIdProvider — pass it as a parameter to the route builder functions."
     },
     {
-      "id": "QUAL-002",
-      "title": "Implement macro calculation in LogMealScreen",
-      "passes": true,
+      "id": "ARCH-006",
+      "title": "Move direct Supabase calls from screens into providers — meal_plan_screen focus",
+      "passes": false,
       "priority": 2,
       "acceptanceCriteria": [
-        "Read lib/features/meals/presentation/log_meal_screen.dart",
-        "Find the TODO comment about calculating nutrition from servings",
-        "When a user logs a meal, calculate nutrition_info from the food item's per-serving values multiplied by servings_consumed",
-        "nutrition_info must include: calories, protein_g, carbs_g, fat_g at minimum",
-        "After logging, the nutrition carousel on the dashboard should reflect the logged macros",
-        "If food item has no nutrition data, save nutrition_info as null (not fake values)",
+        "Read lib/features/meals/presentation/meal_plan_screen.dart — 2000+ lines",
+        "Find all Supabase.instance.client references in the file",
+        "Find all direct repository instantiations (e.g., CustomMacroTargetRepository(...), ProfileRepository(...))",
+        "Replace Supabase.instance.client.auth.currentUser with a provider or ref.read",
+        "Replace direct repo instantiations with ref.read of existing providers",
+        "If a provider doesn't exist for a repository, check if one exists elsewhere or create one",
+        "The screen should only import providers, not repositories directly",
         "flutter analyze returns 0 errors"
       ],
-      "technicalNotes": "FoodItem from food_database_service.dart has caloriesPer100g, proteinPer100g, carbsPer100g, fatPer100g. The meal's nutrition_info is a JSONB column. servings_consumed defaults to 1. Calculate: value = (per100g * servingSize * servingsConsumed) / 100."
+      "technicalNotes": "meal_plan_screen.dart is the worst offender — 5 direct Supabase.instance.client usages, imports MacroCalculator and CustomMacroTargetRepository directly. ProfileRepository is accessed via profileRepositoryProvider. For auth, use Supabase.instance.client.auth.currentUser?.id — this is acceptable as a read-only auth accessor."
     },
     {
-      "id": "QUAL-003",
-      "title": "Add biological sex field to onboarding QuickProfileScreen",
-      "passes": true,
+      "id": "ARCH-007",
+      "title": "Wire offline queue to meal and workout repository writes",
+      "passes": false,
       "priority": 3,
       "acceptanceCriteria": [
-        "Read lib/features/profile/presentation/onboarding/screens/quick_profile_screen.dart",
-        "Read lib/features/profile/presentation/onboarding/onboarding_state.dart",
-        "Add biologicalSex field to OnboardingData: String? with values 'male' or 'female'",
-        "Add a segmented button or toggle in QuickProfileScreen: Male / Female",
-        "Save to wt_profiles.gender column during onboarding _complete()",
-        "This value is used by MacroCalculator for BMR — Harris-Benedict requires sex",
-        "Field is optional but recommended — show a note explaining why it matters",
+        "Read lib/shared/core/sync/sync_engine.dart for the OfflineQueue interface",
+        "Read lib/shared/core/sync/conflict_resolver.dart",
+        "Read lib/features/meals/data/meal_repository.dart logMeal method",
+        "Read lib/features/workouts/data/workout_repository.dart for save/complete methods",
+        "Create a write-behind wrapper: when offline, write to Hive queue instead of failing silently",
+        "When connectivity returns, SyncEngine drains the queue and replays writes to Supabase",
+        "Meal logging must work offline — write to Hive, return optimistically, sync later",
+        "Workout logging must work offline — same pattern",
+        "Conflict resolution: last-write-wins for user-entered data (meals, workouts)",
         "flutter analyze returns 0 errors"
       ],
-      "technicalNotes": "wt_profiles already has a 'gender' column. MacroCalculator in macro_calculator.dart accepts gender parameter. OnboardingData needs biologicalSex field + setter. The updateFields map in onboarding_flow_screen.dart needs to include 'gender': data.biologicalSex."
-    },
-    {
-      "id": "QUAL-004",
-      "title": "Add 14-day calibration progress indicator on dashboard",
-      "passes": true,
-      "priority": 4,
-      "acceptanceCriteria": [
-        "Read lib/features/dashboard/presentation/widgets/recovery_score_dashboard_card.dart",
-        "Read lib/features/health/domain/baseline_entity.dart for calibration status",
-        "When baseline calibration is in progress (not yet 14 days), show a progress indicator",
-        "Display 'Day X of 14 — Calibrating your baseline' with a linear progress bar",
-        "Show this INSTEAD of the recovery score during calibration",
-        "After 14 days, show the normal recovery score card",
-        "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "BaselineEntity has daysCount. BaselineCalibrationService has getCalibrationStatus(). The recovery_score_dashboard_card already handles isCalibrating state — enhance it with a progress bar showing daysCount/14."
-    },
-    {
-      "id": "QUAL-005",
-      "title": "Reduce dashboard N+1 queries with coordinated loading",
-      "passes": true,
-      "priority": 5,
-      "acceptanceCriteria": [
-        "Read lib/features/dashboard/presentation/dashboard_home_provider.dart",
-        "Read lib/features/meals/presentation/today_nutrition_provider.dart",
-        "Identify independent queries that can be parallelized with Future.wait",
-        "In dashboardHomeProvider.initialize(), batch independent Supabase queries using Future.wait instead of sequential awaits",
-        "In todayNutritionDashboardProvider, the 3 sub-providers already compose — verify they don't redundantly query getMeals() multiple times",
-        "If todayMacroSummaryProvider and todayCalorieSummaryProvider both call mealRepo.getMeals() for the same date, extract a shared todayMealsProvider to avoid the duplicate query",
-        "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "Currently ~15-20 independent Supabase queries fire on dashboard load. The macro and calorie providers both call mealRepo.getMeals(profileId, today) — deduplicate with a shared provider. dashboardHomeProvider._loadHealthMetrics calls getMetrics 5 times sequentially — parallelize."
-    },
-    {
-      "id": "QUAL-006",
-      "title": "Fix failing unit tests",
-      "passes": true,
-      "priority": 6,
-      "acceptanceCriteria": [
-        "Run flutter test and identify all failing tests",
-        "Fix each failing test — update expectations to match current code behavior",
-        "Do NOT delete tests — fix them",
-        "All tests must pass: flutter test returns exit code 0",
-        "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "Last recorded test run had 4 failures. Run via cmd.exe /c 'cd agentic-mobile-template && flutter test'. Common causes: changed method signatures, renamed fields, updated enum values."
+      "technicalNotes": "The SyncEngine infrastructure exists but nothing feeds the OfflineQueue. The simplest approach: add a try/catch in repository write methods — on network error, serialize the operation to Hive OfflineQueue. SyncEngine already has the drain logic. ConnectivityService provides the online/offline stream."
     }
   ]
 }
