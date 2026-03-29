@@ -14,3 +14,10 @@ Branch: ralph/review-fixes
 - FoodItem has caloriesPer100g, proteinPer100g, carbsPer100g, fatPer100g
 - BaselineEntity has daysCount for calibration progress
 ---
+
+## 2026-03-29 - QUAL-001
+- Deleted lib/features/meals/presentation_v2/ (3 files + subdirs)
+- Deleted old_dashboard.dart from project root
+- No imports referenced these files
+- Removed compile warnings from orphaned prototype code
+---

@@ -6,7 +6,7 @@
     {
       "id": "QUAL-001",
       "title": "Delete orphaned presentation_v2 files and old_dashboard.dart",
-      "passes": false,
+      "passes": true,
       "priority": 1,
       "acceptanceCriteria": [
         "Delete lib/features/meals/presentation_v2/ directory entirely",
