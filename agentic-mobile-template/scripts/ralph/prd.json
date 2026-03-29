@@ -312,7 +312,7 @@
     {
       "id": "SEC-006",
       "title": "Fix email validation on login and raise password minimum to 8 characters",
-      "passes": false,
+      "passes": true,
       "priority": 20,
       "acceptanceCriteria": [
         "Read lib/features/auth/presentation/login_screen.dart email validator",
