@@ -357,3 +357,19 @@ Branch: ralph/phase-11-to-15-autonomous
   - currentPlanTierProvider is FutureProvider.autoDispose — use .valueOrNull for sync check
   - DiscoverQuickAccessGrid is static (no provider needed) — tiles are const
 ---
+
+## 2026-03-29 - P14-008
+- Replaced inline _buildWeightTrendChart (hardcoded FlSpots) with real WeightTrendChartWidget
+- Replaced inline _buildHabitStreak with HabitStreakPromptCard (dismissable, recovery-aware)
+- Replaced inline _buildDiscoverGrid + _buildDiscoverTile with DiscoverQuickAccessGrid (PRO-gated)
+- Removed SecondaryModulesList from dashboard (replaced by DiscoverQuickAccessGrid)
+- Removed ~200 lines of inline dashboard methods
+- Removed unused imports: fl_chart, habit_provider, secondary_modules_list
+- Added imports: weight_trend_chart_widget, habit_streak_prompt_card, discover_quick_access_grid
+- Files changed:
+  - lib/features/dashboard/presentation/dashboard_screen.dart
+- **Learnings for future iterations:**
+  - Dashboard already had sections numbered 1-6 in comments — maintain this ordering
+  - Bloodwork summary card (_buildBloodworkSummary) is still inline — could be extracted later
+  - _GoalsSummaryCard is already a separate class at bottom of file — good pattern
+---

@@ -391,7 +391,7 @@
     {
       "id": "P14-008",
       "title": "Insert all new widgets into DashboardScreen",
-      "passes": false,
+      "passes": true,
       "priority": 23,
       "acceptanceCriteria": [
         "Read lib/features/dashboard/presentation/dashboard_screen.dart",

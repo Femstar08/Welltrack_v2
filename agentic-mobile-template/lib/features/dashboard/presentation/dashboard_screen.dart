@@ -3,12 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:fl_chart/fl_chart.dart';
 import '../../../shared/core/theme/app_colors.dart';
 import 'dashboard_home_provider.dart';
 import 'dashboard_provider.dart';
 import 'widgets/shimmer_loading.dart';
-import 'widgets/secondary_modules_list.dart';
 import 'widgets/pantry_recipe_card.dart';
 import 'widgets/workouts_card.dart';
 import 'widgets/daily_coach_card.dart';
@@ -16,9 +14,11 @@ import 'widgets/dashboard_scenario_nudges.dart';
 import 'widgets/nutrition_summary_carousel.dart';
 import 'widgets/steps_summary_tile.dart';
 import 'widgets/exercise_summary_tile.dart';
+import 'widgets/weight_trend_chart_widget.dart';
+import 'widgets/habit_streak_prompt_card.dart';
+import 'widgets/discover_quick_access_grid.dart';
 import '../../goals/domain/goal_entity.dart';
 import '../../goals/presentation/goals_provider.dart';
-import '../../habits/presentation/habit_provider.dart';
 import '../../bloodwork/presentation/bloodwork_provider.dart';
 
 /// Main dashboard screen showing goal-adaptive metrics and module tiles
@@ -117,10 +117,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
                   // 3. Weight Trend Chart
                   SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: _buildWeightTrendChart(context),
-                    ),
+                    child: WeightTrendChartWidget(profileId: widget.profileId),
                   ),
                   const SliverToBoxAdapter(child: SizedBox(height: 32)),
 
@@ -133,21 +130,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ),
                   const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
-                  // 4b. Habit Streak
+                  // 4b. Habit Streak Prompt
                   SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: _buildHabitStreak(context),
-                    ),
+                    child: HabitStreakPromptCard(profileId: widget.profileId),
                   ),
                   const SliverToBoxAdapter(child: SizedBox(height: 32)),
 
                   // 5. Discover Grid
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: _buildDiscoverGrid(context),
-                    ),
+                  const SliverToBoxAdapter(
+                    child: DiscoverQuickAccessGrid(),
                   ),
 
                   // 6. Restored Core Features
@@ -166,8 +157,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           WorkoutsCard(profileId: widget.profileId),
                           const SizedBox(height: 24),
                           PantryRecipeCard(profileId: widget.profileId),
-                          const SizedBox(height: 24),
-                          SecondaryModulesList(tiles: ref.watch(dashboardProvider).tiles),
                         ],
                       ),
                     ),
@@ -176,172 +165,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   const SliverToBoxAdapter(child: SizedBox(height: 100)),
                 ],
               ),
-      ),
-    );
-  }
-
-  Widget _buildWeightTrendChart(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Weight Trend',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Text(
-                  '90 Days',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: AppColors.textSecondaryDark,
-                      ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            height: 160,
-            child: LineChart(
-              LineChartData(
-                gridData: const FlGridData(show: false),
-                titlesData: const FlTitlesData(show: false),
-                borderData: FlBorderData(show: false),
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: const [
-                      FlSpot(0, 85),
-                      FlSpot(1, 84.5),
-                      FlSpot(2, 83.8),
-                      FlSpot(3, 83.0),
-                      FlSpot(4, 82.5),
-                      FlSpot(5, 81.2),
-                    ],
-                    isCurved: true,
-                    color: AppColors.secondary,
-                    barWidth: 3,
-                    isStrokeCapRound: true,
-                    dotData: const FlDotData(show: false),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      color: AppColors.secondary.withValues(alpha: 0.1),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHabitStreak(BuildContext context) {
-    final habitsState = ref.watch(habitProvider(widget.profileId));
-    final activeHabits = habitsState.habits;
-
-    // Empty state: no active habits
-    if (activeHabits.isEmpty) {
-      return GestureDetector(
-        onTap: () => context.push('/habits'),
-        child: Container(
-          decoration: BoxDecoration(
-            color: AppColors.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(24),
-          ),
-          padding: const EdgeInsets.all(24),
-          child: Row(
-            children: [
-              const Icon(Icons.add_circle_outline, color: AppColors.textSecondaryDark, size: 32),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(
-                  'Start tracking habits',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: AppColors.textSecondaryDark,
-                      ),
-                ),
-              ),
-              const Icon(Icons.chevron_right, color: AppColors.textSecondaryDark),
-            ],
-          ),
-        ),
-      );
-    }
-
-    // Find habit with best active streak
-    final bestHabit = activeHabits.reduce(
-      (a, b) => a.currentStreakDays >= b.currentStreakDays ? a : b,
-    );
-    final streakDays = bestHabit.currentStreakDays;
-
-    return GestureDetector(
-      onTap: () => context.push('/habits'),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.08),
-              blurRadius: 40,
-              spreadRadius: 0,
-            )
-          ],
-        ),
-        padding: const EdgeInsets.all(24),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.15),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.star, color: AppColors.primary, size: 32),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    streakDays > 0
-                        ? '$streakDays-Day Streak!'
-                        : '${activeHabits.length} Active Habits',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    streakDays > 0
-                        ? 'Keep going with ${bestHabit.habitLabel ?? bestHabit.habitType}'
-                        : 'Tap to check in today',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.textSecondaryDark,
-                        ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right, color: AppColors.textSecondaryDark),
-          ],
-        ),
       ),
     );
   }
@@ -434,66 +257,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildDiscoverGrid(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Discover',
-          style: Theme.of(context).textTheme.headlineMedium,
-        ),
-        const SizedBox(height: 16),
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          childAspectRatio: 1.2,
-          children: [
-            _buildDiscoverTile(context, 'Sleep', Icons.bedtime, AppColors.sleepTile, '/health/sleep'),
-            _buildDiscoverTile(context, 'Recipes', Icons.restaurant_menu, AppColors.mealsTile, '/recipes'),
-            _buildDiscoverTile(context, 'Workouts', Icons.fitness_center, AppColors.workoutsTile, '/workouts'),
-            _buildDiscoverTile(context, 'Recovery', Icons.spa, AppColors.secondary, '/recovery-detail'),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDiscoverTile(BuildContext context, String title, IconData icon, Color color, String route) {
-    return InkWell(
-      onTap: () => context.push(route),
-      borderRadius: BorderRadius.circular(24),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(24),
-        ),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: color, size: 24),
-            ),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _GoalsSummaryCard extends ConsumerWidget {
