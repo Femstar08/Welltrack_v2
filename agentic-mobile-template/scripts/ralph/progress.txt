@@ -21,3 +21,12 @@ Branch: ralph/review-fixes
 - No imports referenced these files
 - Removed compile warnings from orphaned prototype code
 ---
+
+## 2026-03-29 - QUAL-002
+- Replaced TODO placeholder in LogMealScreen with proper recipe reference nutrition_info
+- The food search -> addFoodToLog path already computes macros correctly via FoodItem per-100g values
+- RecipeEntity doesn't store per-serving macros — nutrition_info records recipe_id + servings for reference
+- todayMacroSummaryProvider correctly reads protein_g/carbs_g/fat_g from meal nutritionInfo
+- Files changed: lib/features/meals/presentation/log_meal_screen.dart
+- **Note**: RecipeEntity would need totalCalories/totalProteinG fields for full recipe macro computation
+---

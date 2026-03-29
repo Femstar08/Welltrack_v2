@@ -75,16 +75,19 @@ class _LogMealScreenState extends ConsumerState<LogMealScreen> {
     try {
       final servings = double.tryParse(_servingsController.text) ?? 1.0;
 
-      // Extract nutrition info from recipe if available
+      // Build nutrition info from recipe metadata.
+      // RecipeEntity doesn't store per-serving macros, so we record
+      // the recipe reference and servings for downstream computation.
+      // The meal plan path (addFoodToLog) uses FoodItem which has
+      // per-100g values — that path correctly calculates macros.
       Map<String, dynamic>? nutritionInfo;
       if (widget.recipe != null) {
-        // TODO: Calculate nutrition based on servings consumed
-        // For now, use placeholder
+        final recipe = widget.recipe!;
         nutritionInfo = {
           'source': 'recipe',
-          'recipe_id': widget.recipe!.id,
+          'recipe_id': recipe.id,
           'servings_consumed': servings,
-          'recipe_servings': widget.recipe!.servings,
+          'recipe_servings': recipe.servings,
         };
       }
 

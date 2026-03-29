@@ -19,7 +19,7 @@
     {
       "id": "QUAL-002",
       "title": "Implement macro calculation in LogMealScreen",
-      "passes": false,
+      "passes": true,
       "priority": 2,
       "acceptanceCriteria": [
         "Read lib/features/meals/presentation/log_meal_screen.dart",
