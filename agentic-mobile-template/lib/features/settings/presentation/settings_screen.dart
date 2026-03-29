@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hive/hive.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -9,6 +10,8 @@ import '../../../shared/core/router/app_router.dart' show activeProfileIdProvide
 import 'rest_timer_settings.dart';
 import '../../../features/workouts/presentation/rest_timer_provider.dart';
 import '../../../features/profile/data/profile_repository.dart';
+import '../../../features/freemium/data/freemium_repository.dart';
+import '../../../features/freemium/domain/plan_tier.dart';
 import '../../../features/health/presentation/health_connections_provider.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -23,12 +26,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _aiConsentVitality = false;
   bool _aiConsentBloodwork = false;
   bool _loadingConsent = true;
+  bool _autoGenerateMeals = false;
+  Box? _settingsBox;
 
   @override
   void initState() {
     super.initState();
     _loadPackageInfo();
     _loadConsentSettings();
+    _loadMealSettings();
+  }
+
+  Future<void> _loadMealSettings() async {
+    _settingsBox = await Hive.openBox('settings');
+    if (mounted) {
+      setState(() {
+        _autoGenerateMeals =
+            _settingsBox?.get('auto_generate_meals', defaultValue: false)
+                as bool? ??
+                false;
+      });
+    }
   }
 
   Future<void> _loadPackageInfo() async {
@@ -141,6 +159,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final theme = Theme.of(context);
     final currentUser = Supabase.instance.client.auth.currentUser;
     final profileId = ref.watch(activeProfileIdProvider) ?? '';
+    final tierAsync = ref.watch(currentPlanTierProvider);
+    final isPro = tierAsync.valueOrNull == PlanTier.pro;
 
     // Listen for successful connects so we can show a SnackBar when the deep
     // link callback completes and the state flips from connecting → connected.
@@ -304,6 +324,35 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => context.push('/meals/nutrition-profiles'),
+                ),
+              ],
+            ),
+          ),
+
+          // Meals Section
+          _buildSectionHeader('Meals'),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Column(
+              children: [
+                SwitchListTile(
+                  secondary: const Icon(Icons.auto_awesome),
+                  title: const Text('Auto-generate daily meal plan'),
+                  subtitle: Text(
+                    isPro
+                        ? 'Generate a meal plan each morning based on your recovery'
+                        : 'PRO feature',
+                    style: TextStyle(
+                      color: isPro ? null : theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  value: isPro && _autoGenerateMeals,
+                  onChanged: isPro
+                      ? (value) {
+                          setState(() => _autoGenerateMeals = value);
+                          _settingsBox?.put('auto_generate_meals', value);
+                        }
+                      : (_) => context.push('/paywall'),
                 ),
               ],
             ),

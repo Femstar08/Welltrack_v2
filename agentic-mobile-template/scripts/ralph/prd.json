@@ -23,7 +23,7 @@
     {
       "id": "MEAL-002",
       "title": "Auto-generate daily meal plan toggle (PRO feature)",
-      "passes": false,
+      "passes": true,
       "priority": 2,
       "acceptanceCriteria": [
         "Read lib/features/meals/presentation/meal_plan_screen.dart",

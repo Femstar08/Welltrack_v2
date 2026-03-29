@@ -26,3 +26,14 @@ Branch: ralph/review-fixes
 - Removed unused RecipeDetailScreen import
 - Files changed: lib/features/recipes/presentation/recipe_suggestions_screen.dart
 ---
+
+## 2026-03-29 - MEAL-002
+- Added 'Auto-generate daily meal plan' toggle to settings under Meals section
+- Toggle is PRO-gated — free users see it locked, tapping goes to /paywall
+- Preference stored in Hive settings box (auto_generate_meals key)
+- meal_plan_screen auto-generates if toggle on + today + no existing plan
+- Shows SnackBar during auto-generation, non-blocking
+- Files changed:
+  - lib/features/settings/presentation/settings_screen.dart (toggle + Hive)
+  - lib/features/meals/presentation/meal_plan_screen.dart (auto-gen check)
+---

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hive/hive.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../domain/meal_plan_entity.dart';
 import '../data/food_database_service.dart';
@@ -41,6 +42,41 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
     final profileRepo = ref.read(profileRepositoryProvider);
     _profile = await profileRepo.getActiveProfile();
     await ref.read(mealPlanProvider(widget.profileId).notifier).loadPlan(_selectedDate);
+
+    // Auto-generate if toggle is on and no meals exist for today (MEAL-002)
+    await _autoGenerateIfEnabled();
+  }
+
+  Future<void> _autoGenerateIfEnabled() async {
+    try {
+      final settingsBox = await Hive.openBox('settings');
+      final autoGenerate =
+          settingsBox.get('auto_generate_meals', defaultValue: false) as bool;
+      if (!autoGenerate) return;
+
+      final today = DateTime.now();
+      final isToday = _selectedDate.year == today.year &&
+          _selectedDate.month == today.month &&
+          _selectedDate.day == today.day;
+      if (!isToday) return;
+
+      // Check if plan already has meals
+      final planState = ref.read(mealPlanProvider(widget.profileId));
+      if (planState.plan != null) return;
+
+      // Auto-generate with standard day type
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Auto-generating today\'s meal plan...'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+      await _generatePlan('strength'); // default day type
+    } catch (_) {
+      // Non-fatal: auto-generation is a convenience feature
+    }
   }
 
   void _changeDate(int delta) {
