@@ -37,3 +37,16 @@ Branch: ralph/review-fixes
   - lib/features/settings/presentation/settings_screen.dart (toggle + Hive)
   - lib/features/meals/presentation/meal_plan_screen.dart (auto-gen check)
 ---
+
+## 2026-03-29 - MEAL-003 + MEAL-004
+- Created ingredient_selection_sheet.dart with DraggableScrollableSheet
+- Two input modes: free-text comma-separated + pantry checkbox selection
+- PRO-gated: free users see upgrade prompt
+- Added 'Generate from ingredients' to meal_plan_screen popup menu
+- Added ingredients parameter to generatePlan() in meal_plan_provider
+- Ingredients included in both AI prompt text and contextOverride
+- Files changed:
+  - lib/features/meals/presentation/ingredient_selection_sheet.dart (new)
+  - lib/features/meals/presentation/meal_plan_screen.dart
+  - lib/features/meals/presentation/meal_plan_provider.dart
+---

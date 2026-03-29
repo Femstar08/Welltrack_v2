@@ -147,6 +147,7 @@ class MealPlanNotifier extends StateNotifier<MealPlanState> {
     String? fitnessGoal,
     String? gender,
     int? age,
+    List<String>? ingredients,
   }) async {
     // Guard: prevent duplicate concurrent generation calls.
     if (state.isGenerating) return;
@@ -224,6 +225,9 @@ class MealPlanNotifier extends StateNotifier<MealPlanState> {
       final preferredClause = preferredIngredients.isNotEmpty
           ? ' Prefer these ingredients when possible: ${preferredIngredients.join(', ')}.'
           : '';
+      final ingredientsClause = ingredients != null && ingredients.isNotEmpty
+          ? ' Generate meals using these available ingredients: ${ingredients.join(', ')}. Fill gaps with common items.'
+          : '';
 
       // Call AI orchestrator
       final response = await _aiService.orchestrate(
@@ -233,7 +237,7 @@ class MealPlanNotifier extends StateNotifier<MealPlanState> {
         message: 'Generate a $dayType day meal plan targeting '
             '${targets.calories} calories, ${targets.proteinG}g protein, '
             '${targets.carbsG}g carbs, ${targets.fatG}g fat.'
-            '$excludedClause$preferredClause',
+            '$excludedClause$preferredClause$ingredientsClause',
         contextOverride: {
           'day_type': dayType,
           'macro_targets': targets.toJson(),
@@ -244,6 +248,8 @@ class MealPlanNotifier extends StateNotifier<MealPlanState> {
             'excluded_ingredients': excludedIngredients,
           if (preferredIngredients.isNotEmpty)
             'preferred_ingredients': preferredIngredients,
+          if (ingredients != null && ingredients.isNotEmpty)
+            'available_ingredients': ingredients,
         },
       );
 

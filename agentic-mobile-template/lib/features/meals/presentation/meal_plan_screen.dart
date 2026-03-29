@@ -12,6 +12,7 @@ import '../data/custom_macro_target_repository.dart';
 import '../data/macro_calculator.dart';
 import '../../profile/data/profile_repository.dart';
 import '../../profile/domain/profile_entity.dart';
+import 'ingredient_selection_sheet.dart';
 import 'meal_plan_provider.dart';
 import 'nutrition_targets_provider.dart';
 
@@ -101,6 +102,26 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];
     return '${months[date.month - 1]} ${date.day}';
+  }
+
+  Future<void> _generateFromIngredients() async {
+    final ingredients = await showIngredientSelectionSheet(context);
+    if (ingredients == null || ingredients.isEmpty || !mounted) return;
+
+    // Pass ingredients to generation — they'll be included in the AI context
+    final userId = Supabase.instance.client.auth.currentUser?.id ?? '';
+    unawaited(HapticFeedback.mediumImpact());
+
+    await ref.read(mealPlanProvider(widget.profileId).notifier).generatePlan(
+          userId: userId,
+          dayType: 'strength',
+          weightKg: _profile?.weightKg,
+          activityLevel: _profile?.activityLevel,
+          fitnessGoal: _profile?.fitnessGoals,
+          gender: _profile?.gender,
+          age: _profile?.age,
+          ingredients: ingredients,
+        );
   }
 
   Future<void> _generatePlan(String dayType) async {
@@ -622,8 +643,19 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
               if (value == 'weekly_summary') {
                 context.push('/meals/weekly-summary');
               }
+              if (value == 'from_ingredients') _generateFromIngredients();
             },
             itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: 'from_ingredients',
+                child: Row(
+                  children: [
+                    Icon(Icons.kitchen, size: 18),
+                    SizedBox(width: 8),
+                    Text('Generate from ingredients'),
+                  ],
+                ),
+              ),
               PopupMenuItem(
                 value: 'weekly_summary',
                 child: Row(

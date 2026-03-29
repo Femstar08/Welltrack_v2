@@ -42,7 +42,7 @@
     {
       "id": "MEAL-003",
       "title": "Ingredient selection sheet for meal generation",
-      "passes": false,
+      "passes": true,
       "priority": 3,
       "acceptanceCriteria": [
         "Read lib/features/pantry/presentation/pantry_screen.dart for existing 'Cook with these' pattern",
@@ -62,7 +62,7 @@
     {
       "id": "MEAL-004",
       "title": "Wire ingredient-based generation to AI orchestrator",
-      "passes": false,
+      "passes": true,
       "priority": 4,
       "acceptanceCriteria": [
         "Read lib/features/meals/presentation/meal_plan_screen.dart generation logic",
