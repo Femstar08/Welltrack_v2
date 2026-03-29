@@ -104,13 +104,8 @@ class FreemiumRepository {
     };
   }
 
-  /// Updates user's plan tier (for testing or admin purposes)
-  Future<void> updatePlanTier(String userId, PlanTier tier) async {
-    await _supabase.from('wt_users').update({
-      'plan_tier': tier.toDbString(),
-      'updated_at': DateTime.now().toIso8601String(),
-    }).eq('id', userId);
-  }
+  // Plan tier updates removed from client — must go through server-side
+  // Edge Function with payment receipt validation (SEC-002).
 
   /// Gets the subscription expiry date (if applicable)
   Future<DateTime?> getSubscriptionExpiry(String userId) async {

@@ -166,10 +166,9 @@ class ProfileRepository {
 
   Future<void> markOnboardingComplete(String userId) async {
     try {
-      await _client
-          .from('wt_users')
-          .update({'onboarding_completed': true})
-          .eq('id', userId);
+      // Uses SECURITY DEFINER RPC to bypass column-level REVOKE (SEC-002).
+      // The RPC validates that a wt_profiles record exists before setting the flag.
+      await _client.rpc('mark_onboarding_complete');
     } catch (e) {
       throw Exception('Failed to mark onboarding complete: $e');
     }

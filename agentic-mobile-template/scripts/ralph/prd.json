@@ -21,7 +21,7 @@
     {
       "id": "SEC-002",
       "title": "Add column-level REVOKE on plan_tier and onboarding_completed",
-      "passes": false,
+      "passes": true,
       "priority": 2,
       "acceptanceCriteria": [
         "Create supabase/migrations/20260329000001_revoke_sensitive_columns.sql",

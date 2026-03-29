@@ -32,3 +32,16 @@ Source: Comprehensive 5-agent review (Design, Security, BA, PM, Architecture)
 - Verified no other hardcoded Supabase URLs in lib/ directory
 - Files changed: lib/shared/core/constants/api_constants.dart
 ---
+
+## 2026-03-29 - SEC-002
+- Created migration 20260329000001_revoke_sensitive_columns.sql
+- REVOKE UPDATE on plan_tier and onboarding_completed for authenticated role
+- Created mark_onboarding_complete() RPC with SECURITY DEFINER — validates profile exists before setting flag
+- Updated profile_repository.dart to use _client.rpc('mark_onboarding_complete') instead of direct UPDATE
+- Removed updatePlanTier() from freemium_repository.dart — tier changes must be server-side only
+- Files changed:
+  - supabase/migrations/20260329000001_revoke_sensitive_columns.sql (new)
+  - lib/features/freemium/data/freemium_repository.dart
+  - lib/features/profile/data/profile_repository.dart
+- **Learnings:** Supabase column-level REVOKE works with PostgREST. Use SECURITY DEFINER RPC functions to allow specific operations that bypass the REVOKE.
+---
