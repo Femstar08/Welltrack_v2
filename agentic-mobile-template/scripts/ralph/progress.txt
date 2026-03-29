@@ -131,3 +131,16 @@ Source: Comprehensive 5-agent review (Design, Security, BA, PM, Architecture)
 - Notification scheduling includes error handling with SnackBar fallback
 - No code changes needed — verification only
 ---
+
+## 2026-03-29 - UX-001
+- Replaced hardcoded top:60 with MediaQuery.paddingOf(context).top + 16 for safe area
+- Standardized all dashboard horizontal padding to 20dp (was mixed 16/24)
+- Fixed: dashboard_screen.dart header, steps/exercise row, bloodwork card
+- Fixed: weight_trend_chart_widget.dart, habit_streak_prompt_card.dart, discover_quick_access_grid.dart
+- Dashboard now has consistent left edge alignment on scroll
+- Files changed:
+  - lib/features/dashboard/presentation/dashboard_screen.dart
+  - lib/features/dashboard/presentation/widgets/weight_trend_chart_widget.dart
+  - lib/features/dashboard/presentation/widgets/habit_streak_prompt_card.dart
+  - lib/features/dashboard/presentation/widgets/discover_quick_access_grid.dart
+---

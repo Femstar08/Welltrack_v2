@@ -178,7 +178,7 @@
     {
       "id": "UX-001",
       "title": "Replace hardcoded top:60 with SafeArea and fix horizontal padding consistency",
-      "passes": false,
+      "passes": true,
       "priority": 12,
       "acceptanceCriteria": [
         "Read lib/features/dashboard/presentation/dashboard_screen.dart",

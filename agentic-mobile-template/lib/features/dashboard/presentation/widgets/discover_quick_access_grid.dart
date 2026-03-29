@@ -46,7 +46,7 @@ class DiscoverQuickAccessGrid extends ConsumerWidget {
     final isPro = tierAsync.valueOrNull == PlanTier.pro;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

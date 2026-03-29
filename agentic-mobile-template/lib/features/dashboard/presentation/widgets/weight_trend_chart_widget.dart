@@ -37,7 +37,7 @@ class WeightTrendChartWidget extends ConsumerWidget {
     final goalsAsync = ref.watch(goalsProvider(profileId));
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: GestureDetector(
         onTap: () => context.push('/goals'),
         child: Container(

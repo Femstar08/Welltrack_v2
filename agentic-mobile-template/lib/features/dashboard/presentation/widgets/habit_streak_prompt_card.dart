@@ -17,7 +17,7 @@ class HabitStreakPromptCard extends ConsumerWidget {
     final theme = Theme.of(context);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Dismissible(
         key: ValueKey('habit_prompt_${prompt.message.hashCode}'),
         direction: DismissDirection.horizontal,

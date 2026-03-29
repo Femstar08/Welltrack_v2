@@ -90,7 +90,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   // App Bar / Header Intro
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.only(left: 24, right: 24, top: 60, bottom: 24),
+                      padding: EdgeInsets.only(
+                        left: 20,
+                        right: 20,
+                        top: MediaQuery.paddingOf(context).top + 16,
+                        bottom: 24,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -127,7 +132,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   // 2. Steps + Exercise Row
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Row(
                         children: [
                           Expanded(
@@ -152,7 +157,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   // 4a. Bloodwork Summary Card
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: _buildBloodworkSummary(context),
                     ),
                   ),
