@@ -47,6 +47,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     });
   }
 
+  String _greeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good morning,';
+    if (hour < 17) return 'Good afternoon,';
+    return 'Good evening,';
+  }
+
   Future<void> _handleRefresh() async {
     unawaited(HapticFeedback.mediumImpact());
     await Future.wait([
@@ -100,7 +107,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Good morning,',
+                            _greeting(),
                             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                                   color: AppColors.textSecondaryDark,
                                 ),

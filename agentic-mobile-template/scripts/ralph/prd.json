@@ -266,7 +266,7 @@
     {
       "id": "UX-006",
       "title": "Fix carousel height consistency and add greeting time awareness",
-      "passes": false,
+      "passes": true,
       "priority": 17,
       "acceptanceCriteria": [
         "Read lib/features/dashboard/presentation/widgets/nutrition_summary_carousel.dart",

@@ -181,3 +181,11 @@ Source: Comprehensive 5-agent review (Design, Security, BA, PM, Architecture)
   - lib/features/dashboard/presentation/widgets/steps_summary_tile.dart
   - lib/features/dashboard/presentation/widgets/exercise_summary_tile.dart
 ---
+
+## 2026-03-29 - UX-006
+- Unified carousel loading/zero/data heights to 180dp (was 160/160/180)
+- Added time-aware greeting: morning/afternoon/evening based on hour
+- Files changed:
+  - lib/features/dashboard/presentation/widgets/nutrition_summary_carousel.dart
+  - lib/features/dashboard/presentation/dashboard_screen.dart
+---

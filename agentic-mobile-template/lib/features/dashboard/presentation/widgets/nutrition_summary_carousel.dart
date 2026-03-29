@@ -42,12 +42,12 @@ class _NutritionSummaryCarouselState
     return dashboardAsync.when(
       loading: () => const Padding(
         padding: EdgeInsets.symmetric(horizontal: 24),
-        child: ShimmerBox(width: double.infinity, height: 160, borderRadius: 24),
+        child: ShimmerBox(width: double.infinity, height: 180, borderRadius: 24),
       ),
       error: (_, __) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Container(
-          height: 160,
+          height: 180,
           decoration: BoxDecoration(
             color: AppColors.surfaceContainerHigh,
             borderRadius: BorderRadius.circular(24),
@@ -81,7 +81,7 @@ class _NutritionSummaryCarouselState
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Container(
-        height: 160,
+        height: 180,
         decoration: BoxDecoration(
           color: AppColors.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(24),
