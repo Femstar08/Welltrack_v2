@@ -16,6 +16,7 @@ class QuickProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _QuickProfileScreenState extends ConsumerState<QuickProfileScreen> {
+  final _nameController = TextEditingController();
   final _ageController = TextEditingController();
   final _heightController = TextEditingController();
   final _weightController = TextEditingController();
@@ -31,6 +32,7 @@ class _QuickProfileScreenState extends ConsumerState<QuickProfileScreen> {
   void initState() {
     super.initState();
     final data = ref.read(onboardingDataProvider);
+    if (data.displayName != null) _nameController.text = data.displayName!;
     if (data.age != null) _ageController.text = data.age.toString();
     if (data.heightCm != null) {
       _heightController.text = data.heightCm!.toStringAsFixed(0);
@@ -42,6 +44,7 @@ class _QuickProfileScreenState extends ConsumerState<QuickProfileScreen> {
 
   @override
   void dispose() {
+    _nameController.dispose();
     _ageController.dispose();
     _heightController.dispose();
     _weightController.dispose();
@@ -50,6 +53,8 @@ class _QuickProfileScreenState extends ConsumerState<QuickProfileScreen> {
 
   void _syncToState() {
     final notifier = ref.read(onboardingDataProvider.notifier);
+    final name = _nameController.text.trim();
+    if (name.isNotEmpty) notifier.setDisplayName(name);
     final age = int.tryParse(_ageController.text);
     if (age != null) notifier.setAge(age);
     final height = double.tryParse(_heightController.text);
@@ -90,6 +95,17 @@ class _QuickProfileScreenState extends ConsumerState<QuickProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  TextField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Your name',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.person_outlined),
+                    ),
+                    textCapitalization: TextCapitalization.words,
+                    onChanged: (_) => _syncToState(),
+                  ),
+                  const SizedBox(height: 16),
                   TextField(
                     controller: _ageController,
                     decoration: const InputDecoration(

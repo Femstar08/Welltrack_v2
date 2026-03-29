@@ -148,7 +148,7 @@
     {
       "id": "PROD-003",
       "title": "Add display name field to onboarding QuickProfileScreen",
-      "passes": false,
+      "passes": true,
       "priority": 10,
       "acceptanceCriteria": [
         "Read lib/features/profile/presentation/onboarding/ for QuickProfileScreen or the biometrics step",

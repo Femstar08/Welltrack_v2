@@ -113,3 +113,15 @@ Source: Comprehensive 5-agent review (Design, Security, BA, PM, Architecture)
 - Age field kept as digitsOnly (correct)
 - Files changed: lib/features/profile/presentation/onboarding/screens/quick_profile_screen.dart
 ---
+
+## 2026-03-29 - PROD-003
+- Added displayName field to OnboardingData model with setter in OnboardingNotifier
+- Added 'Your name' TextField as first field in QuickProfileScreen (before Age)
+- Onboarding _complete() now uses data.displayName if provided, falls back to email prefix
+- Display name saved to both wt_users (via ensureUserExists) and wt_profiles (via updateFields)
+- Dashboard greeting now shows the user's actual name instead of email prefix
+- Files changed:
+  - lib/features/profile/presentation/onboarding/onboarding_state.dart
+  - lib/features/profile/presentation/onboarding/screens/quick_profile_screen.dart
+  - lib/features/profile/presentation/onboarding/onboarding_flow_screen.dart
+---

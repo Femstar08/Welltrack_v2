@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 class OnboardingData {
 
   const OnboardingData({
+    this.displayName,
     this.primaryGoal,
     this.goalIntensity,
     this.age,
@@ -11,6 +12,7 @@ class OnboardingData {
     this.activityLevel,
     this.skippedDevices = false,
   });
+  final String? displayName;
   final String? primaryGoal;
   final String? goalIntensity;
   final int? age;
@@ -20,6 +22,7 @@ class OnboardingData {
   final bool skippedDevices;
 
   OnboardingData copyWith({
+    String? displayName,
     String? primaryGoal,
     String? goalIntensity,
     int? age,
@@ -29,6 +32,7 @@ class OnboardingData {
     bool? skippedDevices,
   }) {
     return OnboardingData(
+      displayName: displayName ?? this.displayName,
       primaryGoal: primaryGoal ?? this.primaryGoal,
       goalIntensity: goalIntensity ?? this.goalIntensity,
       age: age ?? this.age,
@@ -48,6 +52,10 @@ class OnboardingData {
 
 class OnboardingNotifier extends StateNotifier<OnboardingData> {
   OnboardingNotifier() : super(const OnboardingData());
+
+  void setDisplayName(String name) {
+    state = state.copyWith(displayName: name);
+  }
 
   void setPrimaryGoal(String goal) {
     state = state.copyWith(primaryGoal: goal);
