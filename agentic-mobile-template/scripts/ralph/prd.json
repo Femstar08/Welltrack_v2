@@ -249,7 +249,7 @@
     {
       "id": "UX-005",
       "title": "Fix BackdropFilter performance and shimmer loading skeleton",
-      "passes": false,
+      "passes": true,
       "priority": 16,
       "acceptanceCriteria": [
         "Read lib/features/dashboard/presentation/widgets/steps_summary_tile.dart",

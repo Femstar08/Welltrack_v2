@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -17,22 +16,16 @@ class ExerciseSummaryTile extends ConsumerWidget {
 
     return GestureDetector(
       onTap: () => context.push('/workouts'),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceContainerLow.withValues(alpha: 0.6),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: exerciseAsync.when(
-              loading: () => _buildContent(context, null, isLoading: true),
-              error: (_, __) => _buildContent(context, null),
-              data: (exercise) => _buildContent(context, exercise),
-            ),
-          ),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: exerciseAsync.when(
+          loading: () => _buildContent(context, null, isLoading: true),
+          error: (_, __) => _buildContent(context, null),
+          data: (exercise) => _buildContent(context, exercise),
         ),
       ),
     );
