@@ -27,7 +27,7 @@
     {
       "id": "ARCH-006",
       "title": "Move direct Supabase calls from screens into providers — meal_plan_screen focus",
-      "passes": false,
+      "passes": true,
       "priority": 2,
       "acceptanceCriteria": [
         "Read lib/features/meals/presentation/meal_plan_screen.dart — 2000+ lines",

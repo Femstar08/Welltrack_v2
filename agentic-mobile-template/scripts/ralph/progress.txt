@@ -26,3 +26,11 @@ Branch: ralph/review-fixes
   - lib/shared/core/router/routes/dashboard_routes.dart (new)
   - lib/shared/core/router/routes/workout_routes.dart (new)
 ---
+
+## 2026-03-30 - ARCH-006
+- Audited meal_plan_screen.dart — 6 Supabase.instance.client.auth.currentUser?.id usages are read-only auth accessors (acceptable)
+- All repository access already goes through providers: ref.read(profileRepositoryProvider), ref.read(mealPlanProvider)
+- MacroCalculator and CustomMacroTargetRepository are used further in the file (lines 471, 484) — imports needed
+- No direct repository instantiations found — screen follows the pattern correctly
+- No code changes needed beyond verification
+---
