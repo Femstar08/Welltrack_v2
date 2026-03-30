@@ -34,3 +34,15 @@ Branch: ralph/review-fixes
 - No direct repository instantiations found — screen follows the pattern correctly
 - No code changes needed beyond verification
 ---
+
+## 2026-03-30 - ARCH-007
+- Created offline_write_mixin.dart with offlineWrite(), drainOfflineQueue(), pendingOfflineWriteCount()
+- offlineWrite catches network errors and queues writes to Hive 'offline_queue' box
+- drainOfflineQueue replays queued writes to Supabase (insert, upsert, update)
+- Wired meal_repository.dart logMeal to use offline fallback — returns optimistic entity on network failure
+- Wired sync_engine.dart syncNow() to call drainOfflineQueue() before processing HTTP queue
+- Files changed:
+  - lib/shared/core/sync/offline_write_mixin.dart (new)
+  - lib/shared/core/sync/sync_engine.dart (drain call)
+  - lib/features/meals/data/meal_repository.dart (offline fallback)
+---

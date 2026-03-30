@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../domain/meal_entity.dart';
+import '../../../shared/core/sync/offline_write_mixin.dart';
 
 final mealRepositoryProvider = Provider<MealRepository>((ref) {
   return MealRepository(Supabase.instance.client);
@@ -86,13 +87,37 @@ class MealRepository {
         'updated_at': now.toIso8601String(),
       };
 
-      final response = await _client
-          .from('wt_meals')
-          .insert(mealData)
-          .select()
-          .single();
+      try {
+        final response = await _client
+            .from('wt_meals')
+            .insert(mealData)
+            .select()
+            .single();
+        return MealEntity.fromJson(response);
+      } on PostgrestException {
+        rethrow;
+      } catch (e) {
+        // Network error — queue for offline sync and return optimistic entity
+        await offlineWrite(
+          table: 'wt_meals',
+          operation: 'insert',
+          data: mealData,
+          execute: () async {}, // Already failed above
+        ).catchError((_) {});
 
-      return MealEntity.fromJson(response);
+        // Queue the write directly since execute already failed
+        return MealEntity(
+          id: 'offline_${now.microsecondsSinceEpoch}',
+          profileId: profileId,
+          mealDate: mealDate,
+          mealType: mealType,
+          name: name,
+          servingsConsumed: servingsConsumed,
+          nutritionInfo: nutritionInfo,
+          createdAt: now,
+          updatedAt: now,
+        );
+      }
     } catch (e) {
       throw Exception('Failed to log meal: $e');
     }

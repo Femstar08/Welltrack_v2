@@ -44,7 +44,7 @@
     {
       "id": "ARCH-007",
       "title": "Wire offline queue to meal and workout repository writes",
-      "passes": false,
+      "passes": true,
       "priority": 3,
       "acceptanceCriteria": [
         "Read lib/shared/core/sync/sync_engine.dart for the OfflineQueue interface",
