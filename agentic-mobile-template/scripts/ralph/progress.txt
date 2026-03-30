@@ -12,3 +12,17 @@ Branch: ralph/review-fixes
 - ConnectivityService provides online/offline stream
 - Hive for offline queue storage
 ---
+
+## 2026-03-30 - ARCH-005
+- Split app_router.dart from 900+ lines to ~260 lines
+- Created routes/dashboard_routes.dart with dashboardChildRoutes(ref) — ~50 routes
+- Created routes/workout_routes.dart with workoutChildRoutes(ref) — 6 routes
+- app_router.dart now contains: providers, auth refresh, redirect logic, branch structure
+- Route definitions fully extracted to route files
+- Re-added goRouterProvider that was lost during rewrite
+- All 530 tests pass, flutter analyze clean
+- Files changed:
+  - lib/shared/core/router/app_router.dart (rewritten)
+  - lib/shared/core/router/routes/dashboard_routes.dart (new)
+  - lib/shared/core/router/routes/workout_routes.dart (new)
+---

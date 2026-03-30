@@ -6,7 +6,7 @@
     {
       "id": "ARCH-005",
       "title": "Split app_router.dart into per-feature route config files",
-      "passes": false,
+      "passes": true,
       "priority": 1,
       "acceptanceCriteria": [
         "Read lib/shared/core/router/app_router.dart — it is 900+ lines with 70+ routes",
