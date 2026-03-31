@@ -1,84 +1,84 @@
 {
   "project": "WellTrack",
-  "branchName": "ralph/nav-reorganise",
-  "description": "Reorganise bottom navigation: Home, Plan, Progress, Profile. Replace Log tab with Plan (daily actionable view). Replace Workouts tab with Progress (insights/trends). Keep FAB for quick logging.",
+  "branchName": "ralph/production-readiness",
+  "description": "Fix all code-fixable Play Store blockers: targetSdk, compile errors, account deletion, medical disclaimer, BootReceiver, health permissions XML, test failures, AI calls display",
   "userStories": [
     {
-      "id": "NAV-001",
-      "title": "Create ProgressScreen for the new Progress tab",
-      "passes": true,
+      "id": "PROD-001",
+      "title": "Pin targetSdk=35, fix BootReceiver export, complete health_permissions.xml",
+      "passes": false,
       "priority": 1,
       "acceptanceCriteria": [
-        "Create lib/features/insights/presentation/progress_tab_screen.dart",
-        "Screen is a ConsumerStatefulWidget that takes profileId",
-        "Shows in order: Recovery Trend card (7-day sparkline), VO2 Max card (value + chart + forecast), Training Load card (4-week bars), Sleep Quality card (7/14 day averages), AI Narrative card",
-        "Uses existing providers: insightsProvider, todayRecoveryScoreProvider",
-        "Recovery trend shows score 0-100 with color coding and sparkline",
-        "VO2 max shows current value, fitness classification, chart area",
-        "Training load shows weekly AU with trend percentage",
-        "Sleep quality shows 7-day and 14-day averages with trend direction",
-        "AI narrative card shows cached insight with sparkle icon",
-        "All cards use AppColors and dark theme styling (surfaceContainerHigh, 16dp radius)",
-        "Loading state shows shimmer, error state shows inline message",
+        "In android/app/build.gradle.kts: change targetSdk from flutter.targetSdkVersion to 35",
+        "In AndroidManifest.xml: change BootReceiver android:exported from false to true",
+        "In android/app/src/main/res/values/health_permissions.xml: add missing 6 permissions to match all 13 in manifest (HeartRateVariability, RestingHeartRate, OxygenSaturation, Vo2Max, ExerciseSession, TotalCaloriesBurned)",
         "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "This screen consolidates what was on the insights_dashboard_screen. Use the same providers but in a simpler layout focused on trends. Header: 'Progress' title + 'Your health trends over time' subtitle."
+      ]
     },
     {
-      "id": "NAV-002",
-      "title": "Redesign DailyViewScreen as Plan tab with meals, workout, supplements, habits",
-      "passes": true,
+      "id": "PROD-002",
+      "title": "Fix compile errors from orphaned files and invalid constants",
+      "passes": false,
       "priority": 2,
       "acceptanceCriteria": [
-        "Read lib/features/daily_view/presentation/daily_view_screen.dart",
-        "Redesign to show: date selector at top, morning check-in card, meal plan slots (breakfast/lunch/dinner/snack from mealPlanProvider), workout plan card (today's scheduled workout with Start button), supplement schedule (from supplementsProvider), habits checklist (from habitProvider with toggles)",
-        "Morning check-in card shows status: 'Tap to start' if not done, 'Completed' if done today",
-        "Tapping check-in navigates to /daily-coach/checkin",
-        "Meal plan shows meal type, name, and calories per slot",
-        "If no meal plan, show 'Generate plan' button",
-        "Workout card shows workout name, duration, exercise count, and Start button -> /workouts/log/:id",
-        "If no workout scheduled, show 'Plan a workout' link -> /workouts",
-        "Supplements show checkbox list with time-of-day labels",
-        "Habits show toggle checkboxes with streak counts",
-        "All cards use AppColors, 20dp horizontal padding, 16dp border radius",
-        "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "The current DailyViewScreen already has some of this. Keep the date selector and dailyViewProvider. Add mealPlanProvider, workoutProvider/todayWorkoutsProvider, supplementsProvider imports. Workout data comes from existing providers."
+        "Check if lib/features/meals/presentation_v2/ still exists — if so delete it",
+        "Check lib/features/dashboard/presentation/dashboard_screen.dart for surfaceContainerLowest usage — fix or remove",
+        "Check lib/shared/core/theme/app_theme.dart for invalid constant — fix",
+        "Run flutter analyze — must return 0 errors",
+        "Run flutter test — check for failures"
+      ]
     },
     {
-      "id": "NAV-003",
-      "title": "Update bottom navigation tabs and router branches",
-      "passes": true,
+      "id": "PROD-003",
+      "title": "Add account deletion flow to Settings",
+      "passes": false,
       "priority": 3,
       "acceptanceCriteria": [
-        "Read lib/shared/core/router/scaffold_with_bottom_nav.dart",
-        "Read lib/shared/core/router/app_router.dart",
-        "Change 4 tabs to: Home (house icon), Plan (calendar_today icon), Progress (trending_up icon), Profile (person icon)",
-        "Update StatefulShellRoute branches: Branch 0 = Dashboard (/), Branch 1 = Plan (/plan), Branch 2 = Progress (/progress), Branch 3 = Profile (/profile)",
-        "Branch 1 renders the redesigned DailyViewScreen (now Plan)",
-        "Branch 2 renders the new ProgressScreen",
-        "Move workout child routes from Branch 2 into Branch 0 (dashboard) so workouts are accessible via push from Plan tab and module grid",
-        "Update all navigation references: /daily-view -> /plan",
-        "FAB remains at endFloat position on all tabs",
-        "All existing deep links and routes must still work",
+        "Add Delete Account option to settings_screen.dart under Account section",
+        "Tapping shows confirmation dialog: Are you sure? This will permanently delete your account and all data.",
+        "Confirmation calls a delete function that: deletes all wt_* table rows for the user via Supabase RPC, signs out the user, navigates to /login",
+        "Create supabase/migrations/ RPC function delete_user_data(user_id) that cascades deletes across wt_profiles, wt_health_metrics, wt_meals, wt_workouts, etc.",
+        "Add a note: Data deletion may take up to 30 days to propagate",
         "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "The key change is swapping branch 1 (daily-view) and branch 2 (workouts). Workout routes become children of dashboard (push routes). Plan and Progress become the tab screens. Update bottomNavigationBar items labels and icons."
+      ]
     },
     {
-      "id": "NAV-004",
-      "title": "Remove workouts from module grid and update references",
-      "passes": true,
+      "id": "PROD-004",
+      "title": "Add medical disclaimer to health recommendation screens",
+      "passes": false,
       "priority": 4,
       "acceptanceCriteria": [
-        "Read lib/shared/core/modules/module_metadata.dart",
-        "Set workouts module defaultEnabled to false since it now has prominence in Plan tab",
-        "Update discover_quick_access_grid.dart: replace Workouts tile with Insights tile pointing to /progress",
-        "Update any hardcoded references to /daily-view to use /plan instead",
-        "Verify module grid shows: Meals, Supplements, Health, Reminders, Goals, Bloodwork, Habits (7 tiles)",
+        "Add a persistent disclaimer banner or footer to: recovery_score_dashboard_card.dart, progress_tab_screen.dart, daily_view_screen.dart (Plan tab)",
+        "Disclaimer text: This app provides wellness suggestions only and is not a substitute for professional medical advice. Consult your doctor before making health decisions.",
+        "Disclaimer is subtle (small text, muted color) but always visible — not dismissable",
+        "Add disclaimer to the Insights dashboard screen as well",
         "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "Workouts are accessible from Plan tab workout card and from pushing /workouts from anywhere. They don't need a module grid tile anymore. The Discover grid should point to /progress for the insights/progress tile."
+      ]
+    },
+    {
+      "id": "PROD-005",
+      "title": "Fix test failures in recovery score and prescription engine",
+      "passes": false,
+      "priority": 5,
+      "acceptanceCriteria": [
+        "Run flutter test and identify all failing tests",
+        "Fix each test — update expectations to match current implementation",
+        "All tests must pass: flutter test returns 0 failures",
+        "flutter analyze returns 0 errors"
+      ]
+    },
+    {
+      "id": "PROD-006",
+      "title": "Wire AI calls remaining display and fix settings stubs",
+      "passes": false,
+      "priority": 6,
+      "acceptanceCriteria": [
+        "In settings_screen.dart: replace hardcoded 10/10 AI calls with live remainingAICallsProvider data",
+        "Replace Privacy Policy coming soon SnackBar with url_launcher opening https://welltrack.fit/privacy (placeholder URL for now)",
+        "Replace Terms of Service coming soon with url_launcher opening https://welltrack.fit/terms",
+        "Replace Password change coming soon with a working password change dialog using Supabase auth.updateUser",
+        "flutter analyze returns 0 errors"
+      ]
     }
   ]
 }

@@ -1,54 +1,13 @@
-# Ralph Progress Log — Navigation Reorganise
+# Ralph Progress Log — Production Readiness
 Started: 2026-03-31
-Branch: ralph/nav-reorganise
+Branch: ralph/production-readiness
 
 ## Codebase Patterns
-- Bottom nav in scaffold_with_bottom_nav.dart, branches in app_router.dart
-- StatefulShellRoute.indexedStack with 4 StatefulShellBranch entries
-- Dashboard child routes in routes/dashboard_routes.dart
-- Workout child routes in routes/workout_routes.dart
-- insightsProvider has recovery scores, training loads, trends, forecasts, AI narrative
-- mealPlanProvider(profileId) for meal plans
-- habitProvider(profileId) for habits
-- dailyViewProvider(profileId) for daily view state
-- AppColors: primary=#4DA8FF (blue), surfaceContainerHigh for cards
----
-
-## 2026-03-31 - NAV-001
-- Created ProgressTabScreen with 5 cards: Recovery Trend, VO2 Max, Training Load, Sleep Quality, AI Narrative
-- Uses insightsProvider for all data — no new providers needed
-- Recovery sparkline shows 7 bars color-coded by score
-- VO2 chart shows data points as bars with slope indicator
-- Training load shows 4-week bars, highlights current week, overtraining warning
-- Sleep shows 7/14 day averages with trend direction
-- AI narrative card with gradient border and sparkle icon
-- Files changed: lib/features/insights/presentation/progress_tab_screen.dart (new)
----
-
-## 2026-03-31 - NAV-002
-- Redesigned DailyViewScreen as Plan tab
-- Added: Morning Check-in card, Meal Plan card (from mealPlanProvider), Workout card (from dailyViewProvider), Supplements card (from supplementProvider), Habits card (from habitProvider)
-- Date selector with prev/next day navigation
-- Meal plan shows 4 slots (breakfast/lunch/dinner/snack) with calories
-- Workout card shows scheduled workout with Start button
-- Supplements show checkbox list
-- Habits show toggleable checklist with streak counts
-- Files changed: lib/features/daily_view/presentation/daily_view_screen.dart
----
-
-## 2026-03-31 - NAV-003
-- Updated bottom nav: Home, Plan (calendar icon), Progress (trending_up icon), Profile
-- Branch 1: /plan (was /daily-view) -> DailyViewScreen (Plan tab)
-- Branch 2: /progress (was /workouts) -> ProgressTabScreen
-- Workout routes moved to dashboard_routes.dart as children of /
-- Updated all /daily-view references to /plan in main.dart, notification_service, app_router, module_tile_widget
-- Removed unused workouts_screen and workout_routes imports from app_router.dart
-- Files changed: scaffold_with_bottom_nav.dart, app_router.dart, dashboard_routes.dart, main.dart, notification_service.dart, module_tile_widget.dart
----
-
-## 2026-03-31 - NAV-004
-- Set workouts module defaultEnabled=false (accessible from Plan tab)
-- Discover grid: replaced Workouts tile with Progress tile -> /progress
-- Module grid now shows: Meals, Supplements, Health, Insights, Reminders, Goals, Bloodwork, Habits (8 tiles)
-- Files changed: module_metadata.dart, discover_quick_access_grid.dart
+- build.gradle.kts at android/app/build.gradle.kts
+- AndroidManifest at android/app/src/main/AndroidManifest.xml
+- health_permissions at android/app/src/main/res/values/health_permissions.xml
+- Settings screen at lib/features/settings/presentation/settings_screen.dart
+- Tests run via cmd.exe /c flutter test
+- Privacy/Terms URLs will be at welltrack.fit/privacy and welltrack.fit/terms
+- Supabase auth: Supabase.instance.client.auth
 ---
