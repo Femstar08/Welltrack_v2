@@ -1,6 +1,11 @@
 # Logcat dumps
 logcat_*.txt
 
+# Signing credentials — NEVER commit
+SIGNING-CREDENTIALS.md
+*.jks
+*.keystore
+
 # OS files
 .DS_Store
 Thumbs.db
