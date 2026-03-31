@@ -111,13 +111,15 @@ class _RecoveryScoreDashboardCardState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildHeader(context),
+                _buildHeader(context,
+                    isCalibrating: !baselineState.isLoading &&
+                        baselineState.isInBaselinePeriod),
                 const SizedBox(height: 12),
                 scoreAsync.when(
                   loading: () => _buildLoading(),
                   error: (_, __) => _buildEmpty(context),
                   data: (pair) {
-                    // Baseline takes precedence — show calibrating if active
+                    // Baseline takes precedence — show calibrating only
                     if (!baselineState.isLoading &&
                         baselineState.isInBaselinePeriod) {
                       return _buildCalibrating(
@@ -144,15 +146,17 @@ class _RecoveryScoreDashboardCardState
 
   // ---------- Header ----------
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, {bool isCalibrating = false}) {
     final theme = Theme.of(context);
     return Row(
       children: [
-        Icon(Icons.favorite_outline,
-            color: theme.colorScheme.primary, size: 18),
+        Icon(
+            isCalibrating ? Icons.sync : Icons.favorite_outline,
+            color: theme.colorScheme.primary,
+            size: 18),
         const SizedBox(width: 8),
         Text(
-          'Recovery',
+          isCalibrating ? 'Calibrating...' : 'Recovery',
           style: theme.textTheme.labelMedium?.copyWith(
             color: theme.colorScheme.primary,
             fontWeight: FontWeight.w600,

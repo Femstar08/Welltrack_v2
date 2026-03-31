@@ -50,7 +50,7 @@
         "Verify on Android device"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": ""
     }
   ]
