@@ -10,3 +10,12 @@ Branch: ralph/phase-10-fixes
 - Supabase RPC calls use _client.rpc('function_name', params: {...})
 - Migrations go in supabase/migrations/ with timestamp prefix
 ---
+
+## 2026-03-31 - US-001
+- Created RPC get_baseline_day_count(p_profile_id) with 60-day window
+- Updated baseline_repository.dart to call RPC first, falls back to bounded client-side query
+- Fallback also bounded to 60 days now (was unbounded)
+- Files changed:
+  - supabase/migrations/20260331000001_baseline_day_count_rpc.sql (new)
+  - lib/features/insights/data/baseline_repository.dart
+---

@@ -97,23 +97,33 @@ class BaselineRepository {
   /// baseline_complete if the count reaches 14.
   /// Returns the distinct-day count.
   Future<int> updateBaselineDaysCount(String profileId) async {
-    // COUNT DISTINCT DATE(start_time) for this profile
-    final response = await _supabase
-        .from('wt_health_metrics')
-        .select('start_time')
-        .eq('profile_id', profileId);
-
-    final rows = response as List;
-    final distinctDates = rows
-        .map((r) {
-          final raw = r['start_time'] as String?;
-          if (raw == null) return null;
-          return DateTime.parse(raw).toLocal().toIso8601String().substring(0, 10);
-        })
-        .whereType<String>()
-        .toSet();
-
-    final count = distinctDates.length;
+    // Server-side RPC: COUNT(DISTINCT DATE(start_time)) for last 60 days.
+    // Replaces the old unbounded client-side SELECT for performance.
+    int count;
+    try {
+      final rpcResult = await _supabase.rpc(
+        'get_baseline_day_count',
+        params: {'p_profile_id': profileId},
+      );
+      count = (rpcResult as int?) ?? 0;
+    } catch (_) {
+      // Fallback to client-side count if RPC not deployed yet
+      final response = await _supabase
+          .from('wt_health_metrics')
+          .select('start_time')
+          .eq('profile_id', profileId)
+          .gte('start_time', DateTime.now().subtract(const Duration(days: 60)).toIso8601String());
+      final rows = response as List;
+      final distinctDates = rows
+          .map((r) {
+            final raw = r['start_time'] as String?;
+            if (raw == null) return null;
+            return DateTime.parse(raw).toLocal().toIso8601String().substring(0, 10);
+          })
+          .whereType<String>()
+          .toSet();
+      count = distinctDates.length;
+    }
 
     // Build the update payload
     final Map<String, dynamic> profileUpdate = {
