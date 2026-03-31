@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
-  // Primary — neon emerald (Bioluminescent Pulse)
-  static const Color primary = Color(0xFF3FFF8B);
-  static const Color primaryContainer = Color(0xFF13EA79);
-  static const Color primaryLight = Color(0xFF3FFF8B);
-  static const Color primaryDark = Color(0xFF006832);
+  // Primary — electric blue
+  static const Color primary = Color(0xFF4DA8FF);
+  static const Color primaryContainer = Color(0xFF2196F3);
+  static const Color primaryLight = Color(0xFF64B5F6);
+  static const Color primaryDark = Color(0xFF1565C0);
 
   // Secondary — neon cyan
   static const Color secondary = Color(0xFF00E3FD);
@@ -20,7 +20,7 @@ class AppColors {
   static const Color tertiaryContainer = Color(0xFFD1FC00);
 
   // Recovery Score Colors (Re-mapped to neon palette where appropriate)
-  static const Color recoveryExcellent = Color(0xFF3FFF8B);  // Primary emerald
+  static const Color recoveryExcellent = Color(0xFF4CAF50);  // Green (distinct from blue primary)
   static const Color recoveryGood = Color(0xFFF4FFC6);       // Tertiary lime
   static const Color recoveryModerate = Color(0xFFFFCA28);   // Amber
   static const Color recoveryLow = Color(0xFFFF716C);        // Error dim

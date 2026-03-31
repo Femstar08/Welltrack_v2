@@ -10,6 +10,7 @@ enum WellTrackModule {
   insights('Insights', Icons.insights, true),
   reminders('Reminders', Icons.notifications, true),
   dailyView('Daily View', Icons.today, false), // Has own bottom nav tab
+  goals('Goals', Icons.flag, true),
   bloodwork('Bloodwork', Icons.biotech, true),
   habits('Habits', Icons.local_fire_department, true),
   moduleToggles('Module Settings', Icons.tune, false); // Meta-setting, lives in Settings
@@ -41,6 +42,8 @@ enum WellTrackModule {
         return const Color(0xFF2196F3); // info color
       case WellTrackModule.dailyView:
         return const Color(0xFF00BFA5); // secondary (teal)
+      case WellTrackModule.goals:
+        return const Color(0xFFFFCA28); // amber — goals
       case WellTrackModule.bloodwork:
         return const Color(0xFFEF5350); // red — lab results
       case WellTrackModule.habits:

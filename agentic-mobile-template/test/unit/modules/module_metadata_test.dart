@@ -5,7 +5,7 @@ import 'package:welltrack/shared/core/modules/module_metadata.dart';
 void main() {
   group('WellTrackModule', () {
     test('should have correct number of modules', () {
-      expect(WellTrackModule.values.length, 11);
+      expect(WellTrackModule.values.length, 12);
     });
 
     test('should convert to database value', () {

@@ -1,0 +1,281 @@
+{
+  "project": "WellTrack",
+  "branchName": "ralph/phase-14-meals-v5",
+  "description": "Phase 14: Meals v5 — Dashboard nutrition carousel, steps/exercise widgets, weight chart, habit prompt card, discover grid, enhanced FAB bottom sheet, water logging, and new route screens. Source PRDs: meals-v4-dashboard-widgets.md, meals-v4-enhanced-fab.md, meals-v4-navigation-architecture.md, meals-v5-implementation-plan.md",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Create todayNutritionProvider and todayRecoveryScoreProvider",
+      "passes": false,
+      "priority": 1,
+      "acceptanceCriteria": [
+        "Read PRPs/meals-v5-implementation-plan.md section 3.1 first",
+        "Read lib/features/meals/presentation/ for existing providers",
+        "Create lib/features/meals/presentation/today_nutrition_provider.dart",
+        "todayMacroSummaryProvider(profileId) returns consumed and goal for protein, carbs, fat",
+        "todayCalorieSummaryProvider(profileId) composes base from nutritionTargetsProvider, applies PlanType->dayType mapping (push->strength, normal->cardio, easy/rest->rest), applies calorieAdjustmentPercent and calorieModifier for PRO users",
+        "todayMicronutrientSummaryProvider(profileId) returns fat, sodium, cholesterol, carbs, sugar, fiber (with null for untracked)",
+        "todayNutritionDashboardProvider(profileId) combines all three into single async state",
+        "Create lib/features/insights/presentation/today_recovery_score_provider.dart",
+        "todayRecoveryScoreProvider(profileId) reads from insightsProvider latestRecoveryScore",
+        "flutter analyze returns 0 errors"
+      ],
+      "technicalNotes": "PrescriptionEngine is static class. Daily prescription via DailyPrescriptionRepository.getTodayPrescription(profileId). currentPlanTierProvider for freemium check. Free users get static MacroCalculator target. PRO users get recovery-adjusted target."
+    },
+    {
+      "id": "US-002",
+      "title": "Create NutritionSummaryCarousel with 4 pages",
+      "passes": false,
+      "priority": 1,
+      "acceptanceCriteria": [
+        "Read PRPs/meals-v5-implementation-plan.md section 5.1-5.4",
+        "Create lib/features/dashboard/presentation/widgets/nutrition_summary_carousel.dart",
+        "Create separate files for each page: macro_rings_carousel_page.dart, calories_budget_carousel_page.dart, heart_healthy_carousel_page.dart, low_carb_carousel_page.dart",
+        "Create lib/features/dashboard/presentation/widgets/nutrient_progress_bar.dart (shared component)",
+        "Page 1 (Macros): Three 80x80dp CustomPainter rings for protein, carbs, fat with 'Xg left' or 'Xg over' centre text",
+        "Page 2 (Calories): Large 120x120dp ring, Base Goal / Food Logged / Exercise Calories breakdown, recovery score badge for PRO users",
+        "Page 3 (Heart Healthy): Fat / Sodium / Cholesterol progress bars, '--' for untracked nutrients, FreemiumGate wrapped",
+        "Page 4 (Low Carb): Carbs / Sugar / Fiber progress bars, '--' for untracked, FreemiumGate wrapped",
+        "Dot indicator (smooth_page_indicator or custom) below pages",
+        "ShimmerLoading while AsyncLoading, inline error card on failure, zero-state 'Log your first meal' when no food logged",
+        "Each page tappable: navigates to /nutrition?tab=macros|calories|heart|lowcarb",
+        "Over-goal state: ring color changes to amber when consumed > goal",
+        "flutter analyze returns 0 errors"
+      ],
+      "technicalNotes": "Use PageController with StateProvider<int> for active page index. Watch todayNutritionDashboardProvider(profileId) and currentPlanTierProvider. For dot indicator, check pubspec.yaml for smooth_page_indicator first; if absent, use custom AnimatedContainer dot row."
+    },
+    {
+      "id": "US-003",
+      "title": "Create Steps and Exercise summary tiles",
+      "passes": false,
+      "priority": 2,
+      "acceptanceCriteria": [
+        "Read PRPs/meals-v5-implementation-plan.md section 5.5",
+        "Create lib/features/dashboard/presentation/widgets/steps_summary_tile.dart",
+        "Create lib/features/dashboard/presentation/widgets/exercise_summary_tile.dart",
+        "Steps tile: reads MetricType.steps via todayStepsProvider(profileId), shows step count vs daily target with progress ring",
+        "If no Health Connect connected, show '-- steps' with 'Connect' TextButton -> /health/connections",
+        "Exercise tile: reads today's completed workouts and shows total exercise calories + duration",
+        "Training load indicator for PRO users (from performance engine)",
+        "Both tiles side-by-side in a Row with Expanded children",
+        "flutter analyze returns 0 errors"
+      ],
+      "technicalNotes": "Add todayStepsProvider to today_nutrition_provider.dart. Use health_repository_impl.dart getMetrics for steps data. Exercise data from workouts feature."
+    },
+    {
+      "id": "US-004",
+      "title": "Create WeightTrendChartWidget",
+      "passes": false,
+      "priority": 2,
+      "acceptanceCriteria": [
+        "Read PRPs/meals-v5-implementation-plan.md section 5.6 (or PRD-MEALS-V4-001 section 4)",
+        "Create lib/features/dashboard/presentation/widgets/weight_trend_chart_widget.dart",
+        "90-day line chart using FL Chart, x=date, y=weight in kg/lbs",
+        "Goal target line shown as horizontal dashed line (from goalsProvider body_composition goal)",
+        "Empty state: 'Log your first weight' with button -> /weight/log",
+        "Chart handles single data point without crashing",
+        "Tappable: navigates to weight detail or goals screen",
+        "flutter analyze returns 0 errors"
+      ],
+      "technicalNotes": "Use goalsProvider(profileId) to find body_composition goal for the target line. Weight data from wt_health_metrics where metric_type='weight'."
+    },
+    {
+      "id": "US-005",
+      "title": "Create HabitStreakPromptCard",
+      "passes": false,
+      "priority": 2,
+      "acceptanceCriteria": [
+        "Read PRPs/meals-v5-implementation-plan.md section 5.7 (or PRD-MEALS-V4-001 section 5)",
+        "Create lib/features/meals/presentation/habit_prompt_provider.dart",
+        "Create lib/features/dashboard/presentation/widgets/habit_streak_prompt_card.dart",
+        "habitPromptProvider returns contextual nudge based on: logging streak, recovery state, time of day",
+        "Examples: 'You have logged meals 5 days in a row!', 'Recovery is low — prioritize rest today'",
+        "Card is dismissable — dismissal stored, does not reappear same day",
+        "Empty state: no card shown when no relevant prompt",
+        "flutter analyze returns 0 errors"
+      ],
+      "technicalNotes": "Prompt rules engine in habit_prompt_provider.dart. Reads from habitProvider streak data and todayRecoveryScoreProvider. Dismissal state can be a simple StateProvider<bool> or stored in Hive."
+    },
+    {
+      "id": "US-006",
+      "title": "Create DiscoverQuickAccessGrid",
+      "passes": false,
+      "priority": 2,
+      "acceptanceCriteria": [
+        "Read PRPs/meals-v5-implementation-plan.md section 5.8 (or PRD-MEALS-V4-001 section 6)",
+        "Create lib/features/dashboard/presentation/widgets/discover_quick_access_grid.dart",
+        "2x2 grid of feature tiles: Sleep, Recipes, Workouts, Recovery (configurable)",
+        "Each tile: icon, label, tap handler -> appropriate route",
+        "Replaces existing SecondaryModulesList if present (remove old widget)",
+        "Grid adapts to available modules (if a module is disabled, tile not shown)",
+        "PRO-only tiles show lock icon for free users, navigate to /paywall on tap",
+        "flutter analyze returns 0 errors"
+      ],
+      "technicalNotes": "Check if SecondaryModulesList exists in dashboard_screen.dart and remove it. Use enabledModulesProvider for dynamic tile list. Navigation uses context.push()."
+    },
+    {
+      "id": "US-007",
+      "title": "Insert all new widgets into DashboardScreen",
+      "passes": false,
+      "priority": 1,
+      "acceptanceCriteria": [
+        "Read lib/features/dashboard/presentation/dashboard_screen.dart",
+        "Insert NutritionSummaryCarousel as SliverToBoxAdapter after existing header section",
+        "Insert Steps/Exercise Row as SliverToBoxAdapter",
+        "Insert WeightTrendChartWidget as SliverToBoxAdapter",
+        "Insert HabitStreakPromptCard as SliverToBoxAdapter (conditional — only when prompt available)",
+        "Insert DiscoverQuickAccessGrid as SliverToBoxAdapter (replace SecondaryModulesList if exists)",
+        "Order: existing header -> nutrition carousel -> steps/exercise -> weight chart -> habit prompt -> discover grid -> existing content",
+        "All new sections have consistent horizontal padding matching existing dashboard style",
+        "Dashboard scrolls smoothly with all new content",
+        "flutter analyze returns 0 errors",
+        "Verify on Android device"
+      ],
+      "technicalNotes": "DashboardScreen uses CustomScrollView with SliverToBoxAdapter children. Add imports and insert widgets. Do not restructure existing layout."
+    },
+    {
+      "id": "US-008",
+      "title": "Create EnhancedLogBottomSheet with 2x2 grid and action list",
+      "passes": false,
+      "priority": 1,
+      "acceptanceCriteria": [
+        "Read PRPs/meals-v4-enhanced-fab.md",
+        "Read PRPs/meals-v5-implementation-plan.md section 5.9",
+        "Create lib/features/meals/presentation/enhanced_log_bottom_sheet.dart",
+        "2x2 grid at top: Log Food (green), Barcode Scan (blue), Voice Log (purple, PRO), Meal Scan (orange, PRO)",
+        "List below grid: Water, Weight, Exercise, AI Suggestions (Coming Soon), Recipes, Quick Add",
+        "Log Food navigates to /meals/food-search",
+        "Barcode Scan navigates to /meals/barcode",
+        "Voice Log: if PRO, navigate to /meals/voice-log; if free, navigate to /paywall",
+        "Meal Scan: if PRO, navigate to /meals/meal-scan; if free, navigate to /paywall",
+        "Water opens inline WaterStepperSubSheet (glass count +/- buttons, save to wt_health_metrics)",
+        "Weight opens inline weight input -> saves to wt_health_metrics",
+        "Exercise navigates to /workouts/new",
+        "Recipes navigates to /recipes",
+        "Quick Add opens simple calorie/macro input form",
+        "Sheet uses DraggableScrollableSheet with rounded top corners",
+        "flutter analyze returns 0 errors"
+      ],
+      "technicalNotes": "Use DraggableScrollableSheet with initialChildSize ~0.5. Create FabActionTile widget for the 2x2 grid items. Create fab_colors.dart constants. Voice Log and Meal Scan always visible but PRO-locked for free users."
+    },
+    {
+      "id": "US-009",
+      "title": "Add FAB to ScaffoldWithBottomNav and wire to EnhancedLogBottomSheet",
+      "passes": false,
+      "priority": 1,
+      "acceptanceCriteria": [
+        "Read lib/shared/core/router/scaffold_with_bottom_nav.dart",
+        "Add FloatingActionButton to outer Scaffold",
+        "floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat",
+        "FAB icon: Icons.add with primary color",
+        "Tap opens EnhancedLogBottomSheet via showModalBottomSheet",
+        "FAB visible on all main tabs (dashboard, meals, workouts, profile)",
+        "FAB does not overlap bottom nav items",
+        "flutter analyze returns 0 errors",
+        "Verify on Android device"
+      ],
+      "technicalNotes": "No BottomAppBar migration needed. Use centerFloat location with existing BottomNavigationBar. The FAB is on the outer Scaffold, not inside any tab."
+    },
+    {
+      "id": "US-010",
+      "title": "Register new routes in app_router.dart",
+      "passes": false,
+      "priority": 1,
+      "acceptanceCriteria": [
+        "Read lib/shared/core/router/app_router.dart",
+        "Read PRPs/meals-v4-navigation-architecture.md",
+        "Add route: /nutrition -> NutritionDetailScreen (with tab query param)",
+        "Add route: /meals/voice-log -> VoiceLogScreen",
+        "Add route: /meals/meal-scan -> MealScanScreen",
+        "Add route: /water/log -> WaterLogScreen",
+        "Add route: /weight/log -> WeightLogScreen",
+        "Update /recipes route to pass selectMode parameter when navigating from meal swap",
+        "All new routes gated by needsProfile guard",
+        "Deep links work for all new routes",
+        "flutter analyze returns 0 errors"
+      ],
+      "technicalNotes": "Add routes inside Branch 0 (authenticated routes). Use GoRoute with builder pattern. Import screen files with aliases if needed to avoid name conflicts."
+    },
+    {
+      "id": "US-011",
+      "title": "Create NutritionDetailScreen",
+      "passes": false,
+      "priority": 2,
+      "acceptanceCriteria": [
+        "Create lib/features/meals/presentation/nutrition_detail_screen.dart",
+        "Tab-based screen with tabs matching carousel pages: Macros, Calories, Heart Healthy, Low Carb",
+        "Accepts tab query parameter to open on the correct tab",
+        "Macros tab: detailed breakdown of protein, carbs, fat with daily history chart",
+        "Calories tab: detailed calorie budget breakdown with food diary entries",
+        "Heart Healthy / Low Carb tabs: PRO-gated with FreemiumGate",
+        "Back button navigates to dashboard",
+        "flutter analyze returns 0 errors"
+      ],
+      "technicalNotes": "Use TabController with initialIndex from query param. Read today's nutrition data from todayNutritionDashboardProvider."
+    },
+    {
+      "id": "US-012",
+      "title": "Create water logging infrastructure",
+      "passes": false,
+      "priority": 2,
+      "acceptanceCriteria": [
+        "Read PRPs/meals-v5-implementation-plan.md section 2.8",
+        "Create lib/features/health/presentation/water_log_provider.dart",
+        "Water logged as wt_health_metrics with metric_type='water' (no new table needed)",
+        "waterLogProvider(profileId) reads today's water entries and returns total glasses/ml",
+        "addWaterLog(profileId, ml) inserts new metric entry",
+        "WaterStepperSubSheet in EnhancedLogBottomSheet shows glass count with +/- buttons",
+        "Each glass = 250ml, increment/decrement by 1 glass",
+        "Save button upserts to wt_health_metrics",
+        "flutter analyze returns 0 errors"
+      ],
+      "technicalNotes": "Using wt_health_metrics avoids new table migration per implementation plan section 2.8. Use metric_type enum value 'water' if it exists, otherwise use a custom string."
+    },
+    {
+      "id": "US-013",
+      "title": "Create VoiceLogScreen and MealScanScreen stubs",
+      "passes": false,
+      "priority": 3,
+      "acceptanceCriteria": [
+        "Create lib/features/meals/presentation/voice_log_screen.dart",
+        "Create lib/features/meals/presentation/meal_scan_screen.dart",
+        "VoiceLogScreen: PRO-only, shows microphone button with 'Describe your meal' prompt",
+        "If speech recognition not available, show message and manual text input fallback",
+        "MealScanScreen: PRO-only, shows camera viewfinder with 'Take a photo of your meal' prompt",
+        "Both screens functional enough to demonstrate the flow, can be enhanced later",
+        "Back button on both screens",
+        "flutter analyze returns 0 errors"
+      ],
+      "technicalNotes": "These are MVP implementations. Voice log can use speech_to_text package if available, otherwise text input. Meal scan can use image_picker to capture photo. AI interpretation of voice/photo can be 'Coming Soon' initially."
+    },
+    {
+      "id": "US-014",
+      "title": "Create WeightLogScreen",
+      "passes": false,
+      "priority": 3,
+      "acceptanceCriteria": [
+        "Create lib/features/health/presentation/screens/weight_log_screen.dart",
+        "Simple form: weight input (kg or lbs based on user preference), date (defaults today)",
+        "Save writes to wt_health_metrics with metric_type='weight'",
+        "Success: SnackBar confirmation and pop back",
+        "Validates input: weight must be positive number between 20-500 kg",
+        "flutter analyze returns 0 errors"
+      ],
+      "technicalNotes": "Use health_repository_impl.dart saveHealthMetrics for the write. Include dedupe_hash to prevent duplicate entries for same date."
+    },
+    {
+      "id": "US-015",
+      "title": "Add smooth_page_indicator package (if not present) and fab_colors constants",
+      "passes": false,
+      "priority": 3,
+      "acceptanceCriteria": [
+        "Check pubspec.yaml for smooth_page_indicator",
+        "If not present, add smooth_page_indicator: ^1.1.0 to dependencies",
+        "Create lib/shared/core/constants/fab_colors.dart with kFabColorLogFood (green), kFabColorBarcode (blue), kFabColorVoice (purple), kFabColorMealScan (orange)",
+        "Run flutter pub get successfully",
+        "flutter analyze returns 0 errors"
+      ],
+      "technicalNotes": "If adding smooth_page_indicator causes version conflicts, use custom dot indicator instead. fab_colors.dart should use const Color values matching the design spec in the playground prototype."
+    }
+  ]
+}
