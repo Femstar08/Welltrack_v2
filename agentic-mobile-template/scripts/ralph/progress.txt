@@ -24,3 +24,14 @@ Branch: ralph/nav-reorganise
 - AI narrative card with gradient border and sparkle icon
 - Files changed: lib/features/insights/presentation/progress_tab_screen.dart (new)
 ---
+
+## 2026-03-31 - NAV-002
+- Redesigned DailyViewScreen as Plan tab
+- Added: Morning Check-in card, Meal Plan card (from mealPlanProvider), Workout card (from dailyViewProvider), Supplements card (from supplementProvider), Habits card (from habitProvider)
+- Date selector with prev/next day navigation
+- Meal plan shows 4 slots (breakfast/lunch/dinner/snack) with calories
+- Workout card shows scheduled workout with Start button
+- Supplements show checkbox list
+- Habits show toggleable checklist with streak counts
+- Files changed: lib/features/daily_view/presentation/daily_view_screen.dart
+---

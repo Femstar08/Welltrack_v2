@@ -27,7 +27,7 @@
     {
       "id": "NAV-002",
       "title": "Redesign DailyViewScreen as Plan tab with meals, workout, supplements, habits",
-      "passes": false,
+      "passes": true,
       "priority": 2,
       "acceptanceCriteria": [
         "Read lib/features/daily_view/presentation/daily_view_screen.dart",
