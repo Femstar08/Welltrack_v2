@@ -3,16 +3,16 @@ import 'package:flutter/material.dart';
 /// Enum representing all available modules in WellTrack
 enum WellTrackModule {
   meals('Meals & Recipes', Icons.restaurant, true),
-  nutrients('Nutrient Tracking', Icons.pie_chart, true),
+  nutrients('Nutrient Tracking', Icons.pie_chart, false), // Config screen, lives in Settings
   supplements('Supplements', Icons.medication, true),
   workouts('Workouts', Icons.fitness_center, true),
   health('Activity & Sleep', Icons.monitor_heart, true),
   insights('Insights', Icons.insights, true),
   reminders('Reminders', Icons.notifications, true),
-  dailyView('Daily View', Icons.today, true),
+  dailyView('Daily View', Icons.today, false), // Has own bottom nav tab
   bloodwork('Bloodwork', Icons.biotech, true),
   habits('Habits', Icons.local_fire_department, true),
-  moduleToggles('Module Settings', Icons.tune, true);
+  moduleToggles('Module Settings', Icons.tune, false); // Meta-setting, lives in Settings
 
   const WellTrackModule(this.displayName, this.icon, this.defaultEnabled);
 

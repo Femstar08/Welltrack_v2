@@ -17,7 +17,7 @@
         "Verify on Android device"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -33,7 +33,7 @@
         "Verify on Android device"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -50,8 +50,8 @@
         "Verify on Android device"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Nutrition Targets already in Settings screen at line 305. Just hiding the dashboard tile."
     }
   ]
 }
