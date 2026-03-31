@@ -8,7 +8,7 @@ import 'dashboard_home_provider.dart';
 import 'dashboard_provider.dart';
 import 'widgets/shimmer_loading.dart';
 import 'widgets/pantry_recipe_card.dart';
-import 'widgets/workouts_card.dart';
+// WorkoutsCard removed — workouts now in Plan tab
 import 'widgets/daily_coach_card.dart';
 import 'widgets/dashboard_scenario_nudges.dart';
 import 'widgets/nutrition_summary_carousel.dart';
@@ -18,8 +18,9 @@ import 'widgets/weight_trend_chart_widget.dart';
 import 'widgets/habit_streak_prompt_card.dart';
 import 'widgets/discover_quick_access_grid.dart';
 import 'widgets/recovery_score_dashboard_card.dart';
-import 'widgets/secondary_modules_list.dart';
 import '../../../shared/core/widgets/medical_disclaimer.dart';
+import '../../../shared/core/modules/module_metadata.dart';
+import '../../../shared/core/modules/module_registry.dart';
 import '../../goals/domain/goal_entity.dart';
 import '../../goals/presentation/goals_provider.dart';
 import '../../bloodwork/presentation/bloodwork_provider.dart';
@@ -47,6 +48,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       unawaited(ref.read(dashboardProvider.notifier).initialize(widget.profileId));
       unawaited(ref.read(dashboardHomeProvider.notifier).initialize(widget.profileId));
     });
+  }
+
+  bool _isModuleEnabled(WidgetRef ref, WellTrackModule module) {
+    final configs = ref.watch(enabledModulesProvider);
+    // If no configs loaded yet, show everything (default enabled)
+    if (configs.isEmpty) return module.defaultEnabled;
+    return configs.any((c) => c.module == module);
   }
 
   String _greeting() {
@@ -126,72 +134,75 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ),
                   ),
 
-                  // 0. Recovery Score — app's core differentiator (PROD-001)
+                  // 0. Recovery Score — always visible (core differentiator)
                   SliverToBoxAdapter(
                     child: RecoveryScoreDashboardCard(profileId: widget.profileId),
                   ),
                   const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
-                  // 1. Nutrition Carousel
-                  SliverToBoxAdapter(
-                    child: NutritionSummaryCarousel(profileId: widget.profileId),
-                  ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 32)),
+                  // 1. Nutrition Carousel (meals module)
+                  if (_isModuleEnabled(ref, WellTrackModule.meals))
+                    SliverToBoxAdapter(
+                      child: NutritionSummaryCarousel(profileId: widget.profileId),
+                    ),
+                  if (_isModuleEnabled(ref, WellTrackModule.meals))
+                    const SliverToBoxAdapter(child: SizedBox(height: 32)),
 
-                  // 2. Steps + Exercise Row
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: StepsSummaryTile(profileId: widget.profileId),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: ExerciseSummaryTile(profileId: widget.profileId),
-                          ),
-                        ],
+                  // 2. Steps + Exercise Row (health module)
+                  if (_isModuleEnabled(ref, WellTrackModule.health))
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: StepsSummaryTile(profileId: widget.profileId),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: ExerciseSummaryTile(profileId: widget.profileId),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 32)),
+                  if (_isModuleEnabled(ref, WellTrackModule.health))
+                    const SliverToBoxAdapter(child: SizedBox(height: 32)),
 
-                  // 3. Weight Trend Chart
-                  SliverToBoxAdapter(
-                    child: WeightTrendChartWidget(profileId: widget.profileId),
-                  ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 32)),
+                  // 3. Weight Trend Chart (health module)
+                  if (_isModuleEnabled(ref, WellTrackModule.health))
+                    SliverToBoxAdapter(
+                      child: WeightTrendChartWidget(profileId: widget.profileId),
+                    ),
+                  if (_isModuleEnabled(ref, WellTrackModule.health))
+                    const SliverToBoxAdapter(child: SizedBox(height: 32)),
 
                   // 4a. Bloodwork Summary Card
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: _buildBloodworkSummary(context),
+                  if (_isModuleEnabled(ref, WellTrackModule.bloodwork))
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: _buildBloodworkSummary(context),
+                      ),
                     ),
-                  ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                  if (_isModuleEnabled(ref, WellTrackModule.bloodwork))
+                    const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
                   // 4b. Habit Streak Prompt
-                  SliverToBoxAdapter(
-                    child: HabitStreakPromptCard(profileId: widget.profileId),
-                  ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 32)),
+                  if (_isModuleEnabled(ref, WellTrackModule.habits))
+                    SliverToBoxAdapter(
+                      child: HabitStreakPromptCard(profileId: widget.profileId),
+                    ),
+                  if (_isModuleEnabled(ref, WellTrackModule.habits))
+                    const SliverToBoxAdapter(child: SizedBox(height: 32)),
 
-                  // 5. Discover Grid
+                  // 5. Discover Grid — always visible
                   const SliverToBoxAdapter(
                     child: DiscoverQuickAccessGrid(),
                   ),
                   const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
-                  // 5b. Module Tiles (dynamic, from user's enabled modules)
-                  SliverToBoxAdapter(
-                    child: SecondaryModulesList(
-                        tiles: ref.watch(dashboardProvider).tiles),
-                  ),
-
-                  // 6. Restored Core Features
-                  const SliverToBoxAdapter(child: SizedBox(height: 32)),
+                  // 6. Core Features
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 0),
@@ -200,12 +211,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           DailyCoachCard(profileId: widget.profileId),
                           const SizedBox(height: 8),
                           DashboardScenarioNudges(profileId: widget.profileId),
-                          const SizedBox(height: 8),
-                          _GoalsSummaryCard(profileId: widget.profileId),
-                          const SizedBox(height: 24),
-                          WorkoutsCard(profileId: widget.profileId),
-                          const SizedBox(height: 24),
-                          PantryRecipeCard(profileId: widget.profileId),
+                          if (_isModuleEnabled(ref, WellTrackModule.goals)) ...[
+                            const SizedBox(height: 8),
+                            _GoalsSummaryCard(profileId: widget.profileId),
+                          ],
+                          if (_isModuleEnabled(ref, WellTrackModule.meals)) ...[
+                            const SizedBox(height: 24),
+                            PantryRecipeCard(profileId: widget.profileId),
+                          ],
                         ],
                       ),
                     ),

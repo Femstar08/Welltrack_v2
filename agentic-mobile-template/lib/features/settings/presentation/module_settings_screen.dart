@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../shared/core/modules/module_metadata.dart';
 import '../../../shared/core/modules/module_registry.dart';
+import '../../../shared/core/router/app_router.dart' show activeProfileIdProvider;
 import '../../../shared/core/theme/app_colors.dart';
 
 /// Screen for toggling modules on/off and reordering dashboard tiles.
@@ -13,6 +14,15 @@ class ModuleSettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final configsAsync = ref.watch(moduleConfigsProvider);
+
+    // Ensure configs are loaded for current profile
+    if (configsAsync is AsyncData && (configsAsync as AsyncData).value.isEmpty) {
+      final profileId = ref.read(activeProfileIdProvider) ?? '';
+      if (profileId.isNotEmpty) {
+        Future.microtask(() =>
+            ref.read(moduleConfigsProvider.notifier).loadForProfile(profileId));
+      }
+    }
 
     return Scaffold(
       appBar: AppBar(
