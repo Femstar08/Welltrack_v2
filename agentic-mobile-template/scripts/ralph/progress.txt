@@ -1,12 +1,12 @@
-# Ralph Progress Log — Dashboard Cleanup
+# Ralph Progress Log — Phase 10 Fixes
 Started: 2026-03-31
-Branch: ralph/dashboard-cleanup
+Branch: ralph/phase-10-fixes
 
 ## Codebase Patterns
-- Module tiles come from enabledModulesProvider which reads moduleConfigsProvider
-- moduleConfigsProvider loads from wt_profile_modules table, falls back to WellTrackModule.values defaults
-- WellTrackModule enum in module_metadata.dart controls which modules exist
-- defaultEnabled flag on each enum value controls initial visibility
-- Dashboard renders tiles via SecondaryModulesList reading dashboardProvider.tiles
-- Settings screen is at lib/features/settings/presentation/settings_screen.dart
+- baseline_repository.dart has updateBaselineDaysCount() at ~line 99
+- insights_provider.dart loadData() is the main data loading method
+- recovery_score_dashboard_card.dart has _buildCalibrating() and _buildScore() methods
+- PerformanceEngine.calculateVo2Slope computes daily slope from data points
+- Supabase RPC calls use _client.rpc('function_name', params: {...})
+- Migrations go in supabase/migrations/ with timestamp prefix
 ---

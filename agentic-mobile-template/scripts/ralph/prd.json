@@ -1,57 +1,57 @@
 {
   "project": "WellTrack",
-  "branchName": "ralph/dashboard-cleanup",
-  "description": "Remove incorrect dashboard tiles and move Module Settings to the correct location in Settings screen. All screens are built — this is UI placement cleanup only.",
+  "branchName": "ralph/phase-10-fixes",
+  "description": "Fix 3 partial stories from Phase 10 verification. Small targeted fixes only — do not touch passing stories.",
   "userStories": [
     {
       "id": "US-001",
-      "title": "Remove Module Settings tile from dashboard",
-      "description": "As a user, I should not see a Module Settings tile on the dashboard — it is a meta-setting and already accessible from the Profile/Settings tab.",
+      "title": "Fix baseline day count query — replace unbounded SELECT with RPC",
+      "description": "As a developer, the distinct-day count query fetches ALL rows with no date bound, which becomes a performance risk as data grows. Replace with a server-side RPC that counts efficiently.",
       "acceptanceCriteria": [
-        "Read lib/features/dashboard/ to find where moduleToggles tile is registered before making changes",
-        "moduleToggles tile removed from dashboard tile list",
-        "Module Settings remains accessible via Settings screen — do not delete the screen itself",
-        "Dashboard re-renders correctly without the tile",
-        "No other tiles shift position unexpectedly",
-        "flutter analyze returns 0 errors",
-        "Verify on Android device"
+        "Read baseline_calibration.dart and baseline_repository.dart before making changes",
+        "Create a Supabase RPC function get_baseline_day_count(user_id uuid) that returns COUNT(DISTINCT DATE(start_time)) for the last 60 days only",
+        "baseline_repository.dart updated to call the RPC instead of fetching all rows client-side",
+        "Result is identical — returns integer count of distinct days with health data",
+        "flutter analyze returns 0 errors"
       ],
       "priority": 1,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-002",
-      "title": "Remove Daily View tile from dashboard",
-      "description": "As a user, I should not see a Daily View tile on the dashboard because Daily View already has its own dedicated bottom navigation tab.",
+      "title": "Auto-compute VO2 max forecast when 7+ data points exist",
+      "description": "As a user, the VO2 max forecast should appear automatically when enough data exists — I should not have to manually trigger it.",
       "acceptanceCriteria": [
-        "Read lib/features/dashboard/ to find where dailyView tile is registered before making changes",
-        "dailyView tile removed from dashboard tile list",
-        "Daily View screen and bottom nav tab remain fully intact — do not touch those",
-        "Dashboard re-renders correctly without the tile",
+        "Read the VO2 max chart file in lib/features/insights/ before making changes",
+        "loadData() checks count of VO2 max data points after fetching",
+        "If 7 or more data points exist, forecast line is computed and rendered automatically",
+        "If fewer than 7 data points exist, chart shows Keep training — more data needed message",
+        "Manual trigger button removed if it exists",
+        "Chart period corrected to show last 30 days not 21 days",
         "flutter analyze returns 0 errors",
         "Verify on Android device"
       ],
       "priority": 2,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-003",
-      "title": "Move Nutrient Tracking off dashboard into Settings",
-      "description": "As a user, Nutrient Tracking targets is a configuration screen not a daily feature, so it should live in Settings rather than appearing as a dashboard tile.",
+      "title": "Tighten baseline gate — hide raw score during calibration",
+      "description": "As a user, I should not see a raw recovery score number during the 14-day calibration period as it is based on incomplete data and could be misleading.",
       "acceptanceCriteria": [
-        "Read lib/features/settings/ to find the correct place to add Nutrient Tracking link",
-        "nutrients tile removed from dashboard tile list",
-        "Nutrient Tracking option added to Settings screen under a relevant section such as Nutrition or Targets",
-        "Tapping it in Settings navigates to /settings/nutrition-targets as before",
-        "nutrition_targets_screen.dart itself is not modified",
+        "Read recovery_score_dashboard_card.dart and baseline_calibration.dart before making changes",
+        "During calibration (baseline_days_count less than 14): dashboard card shows only the Day X of 14 progress bar — no numeric score shown",
+        "During calibration: card title shows Calibrating... instead of Recovery Score",
+        "After calibration completes: full score with sparkline shown as normal",
+        "Calibration progress bar remains visible and accurate throughout",
         "flutter analyze returns 0 errors",
         "Verify on Android device"
       ],
       "priority": 3,
-      "passes": true,
-      "notes": "Nutrition Targets already in Settings screen at line 305. Just hiding the dashboard tile."
+      "passes": false,
+      "notes": ""
     }
   ]
 }
