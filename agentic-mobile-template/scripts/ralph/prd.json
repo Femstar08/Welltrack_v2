@@ -6,7 +6,7 @@
     {
       "id": "NAV-001",
       "title": "Create ProgressScreen for the new Progress tab",
-      "passes": false,
+      "passes": true,
       "priority": 1,
       "acceptanceCriteria": [
         "Create lib/features/insights/presentation/progress_tab_screen.dart",

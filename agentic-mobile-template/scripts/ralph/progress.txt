@@ -13,3 +13,14 @@ Branch: ralph/nav-reorganise
 - dailyViewProvider(profileId) for daily view state
 - AppColors: primary=#4DA8FF (blue), surfaceContainerHigh for cards
 ---
+
+## 2026-03-31 - NAV-001
+- Created ProgressTabScreen with 5 cards: Recovery Trend, VO2 Max, Training Load, Sleep Quality, AI Narrative
+- Uses insightsProvider for all data — no new providers needed
+- Recovery sparkline shows 7 bars color-coded by score
+- VO2 chart shows data points as bars with slope indicator
+- Training load shows 4-week bars, highlights current week, overtraining warning
+- Sleep shows 7/14 day averages with trend direction
+- AI narrative card with gradient border and sparkle icon
+- Files changed: lib/features/insights/presentation/progress_tab_screen.dart (new)
+---
