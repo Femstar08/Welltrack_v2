@@ -32,3 +32,10 @@ Branch: ralph/production-readiness
 - Success: signs out user, shows data propagation notice, navigates to /login
 - Files changed: supabase/migrations/20260331000002_delete_user_data_rpc.sql (new), settings_screen.dart
 ---
+
+## 2026-03-31 - PROD-004
+- Created shared MedicalDisclaimer widget at shared/core/widgets/medical_disclaimer.dart
+- Added to bottom of: dashboard_screen.dart, daily_view_screen.dart (Plan), progress_tab_screen.dart (Progress)
+- Text: 'wellness suggestions only, not substitute for medical advice, consult your doctor'
+- Subtle styling: 10sp, muted color, info icon, always visible
+---

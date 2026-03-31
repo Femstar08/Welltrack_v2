@@ -8,6 +8,7 @@ import '../domain/recovery_score_entity.dart';
 import '../domain/training_load_entity.dart';
 import '../domain/forecast_entity.dart';
 import '../data/performance_engine.dart';
+import '../../../shared/core/widgets/medical_disclaimer.dart';
 
 /// Progress tab — recovery trends, VO2 max, training load, sleep, AI insights.
 class ProgressTabScreen extends ConsumerStatefulWidget {
@@ -136,6 +137,7 @@ class _ProgressTabScreenState extends ConsumerState<ProgressTabScreen> {
                       ),
                     ),
 
+                  const SliverToBoxAdapter(child: MedicalDisclaimer()),
                   const SliverToBoxAdapter(child: SizedBox(height: 100)),
                 ],
               ),

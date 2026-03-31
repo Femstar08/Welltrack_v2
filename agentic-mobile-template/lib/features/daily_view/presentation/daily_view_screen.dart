@@ -6,6 +6,7 @@ import '../../../shared/core/theme/app_colors.dart';
 import '../../habits/presentation/habit_provider.dart';
 import '../../meals/presentation/meal_plan_provider.dart';
 import '../../supplements/presentation/supplement_provider.dart';
+import '../../../shared/core/widgets/medical_disclaimer.dart';
 import 'daily_view_provider.dart';
 
 /// Plan tab — today's actionable daily plan: check-in, meals, workout,
@@ -116,6 +117,7 @@ class _DailyViewScreenState extends ConsumerState<DailyViewScreen> {
                     ),
                   ),
 
+                  const SliverToBoxAdapter(child: MedicalDisclaimer()),
                   const SliverToBoxAdapter(child: SizedBox(height: 100)),
                 ],
               ),

@@ -19,6 +19,7 @@ import 'widgets/habit_streak_prompt_card.dart';
 import 'widgets/discover_quick_access_grid.dart';
 import 'widgets/recovery_score_dashboard_card.dart';
 import 'widgets/secondary_modules_list.dart';
+import '../../../shared/core/widgets/medical_disclaimer.dart';
 import '../../goals/domain/goal_entity.dart';
 import '../../goals/presentation/goals_provider.dart';
 import '../../bloodwork/presentation/bloodwork_provider.dart';
@@ -210,6 +211,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ),
                   ),
 
+                  const SliverToBoxAdapter(child: MedicalDisclaimer()),
                   const SliverToBoxAdapter(child: SizedBox(height: 100)),
                 ],
               ),
