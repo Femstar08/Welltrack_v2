@@ -416,6 +416,38 @@ class InsightsNotifier extends StateNotifier<InsightsState> {
       stressTrend: stressTrendDir,
       loadTrendPercent: loadTrendPercent,
     ).catchError((_) {}));
+
+    // Auto-compute VO2 max forecast when 7+ data points exist (US-002)
+    if (vo2Points30.length >= 7 && vo2Slope != null) {
+      unawaited(_autoComputeVo2Forecast(vo2Points30).catchError((_) {}));
+    }
+  }
+
+  /// Automatically compute and persist VO2 max forecast if not already cached.
+  Future<void> _autoComputeVo2Forecast(List<dynamic> vo2Points) async {
+    try {
+      // Check if a recent forecast already exists
+      final existing = state.forecasts
+          .where((f) => f.metricType == 'vo2max')
+          .toList();
+      if (existing.isNotEmpty) return; // Already have a forecast
+
+      // Use current VO2 max + 5% as a default forecast target
+      final currentVo2 = state.metricTrends['vo2max']?.lastOrNull?.value ?? 40.0;
+      final targetVo2 = currentVo2 * 1.05;
+
+      await _repository.calculateAndSaveForecast(
+        profileId: _profileId,
+        metricType: 'vo2max',
+        targetValue: targetVo2,
+      );
+
+      // Refresh forecasts in state
+      final forecasts = await _repository.getForecasts(profileId: _profileId);
+      state = state.copyWith(forecasts: forecasts);
+    } catch (_) {
+      // Non-fatal — forecast is a nice-to-have
+    }
   }
 
   /// Change selected period

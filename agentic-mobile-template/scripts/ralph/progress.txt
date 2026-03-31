@@ -19,3 +19,11 @@ Branch: ralph/phase-10-fixes
   - supabase/migrations/20260331000001_baseline_day_count_rpc.sql (new)
   - lib/features/insights/data/baseline_repository.dart
 ---
+
+## 2026-03-31 - US-002
+- Added _autoComputeVo2Forecast() called from loadData() when 7+ VO2 data points exist
+- Forecast computed eagerly with 5% improvement target if no existing forecast
+- Existing forecasts are respected — no duplicate computation
+- VO2 data already fetched for 30-day window (line 370-374), chart displays all available points
+- Files changed: lib/features/insights/presentation/insights_provider.dart
+---
