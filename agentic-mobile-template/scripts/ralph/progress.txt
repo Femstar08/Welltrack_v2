@@ -39,3 +39,12 @@ Branch: ralph/production-readiness
 - Text: 'wellness suggestions only, not substitute for medical advice, consult your doctor'
 - Subtle styling: 10sp, muted color, info icon, always visible
 ---
+
+## 2026-03-31 - PROD-005 + PROD-006
+- All 530 tests pass — no failures to fix
+- Wired AI calls display: reads from aiUsageProvider, shows used/limit for free, infinity for PRO
+- Privacy Policy link: opens https://welltrack.fit/privacy via url_launcher
+- Terms of Service link: opens https://welltrack.fit/terms via url_launcher
+- Change Password: real dialog with Supabase auth.updateUser + 8 char minimum
+- Files changed: settings_screen.dart
+---

@@ -58,7 +58,7 @@
     {
       "id": "PROD-005",
       "title": "Fix test failures in recovery score and prescription engine",
-      "passes": false,
+      "passes": true,
       "priority": 5,
       "acceptanceCriteria": [
         "Run flutter test and identify all failing tests",
@@ -70,7 +70,7 @@
     {
       "id": "PROD-006",
       "title": "Wire AI calls remaining display and fix settings stubs",
-      "passes": false,
+      "passes": true,
       "priority": 6,
       "acceptanceCriteria": [
         "In settings_screen.dart: replace hardcoded 10/10 AI calls with live remainingAICallsProvider data",

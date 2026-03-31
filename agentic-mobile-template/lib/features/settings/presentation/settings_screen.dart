@@ -12,6 +12,7 @@ import '../../../features/workouts/presentation/rest_timer_provider.dart';
 import '../../../features/profile/data/profile_repository.dart';
 import '../../../features/freemium/data/freemium_repository.dart';
 import '../../../features/freemium/domain/plan_tier.dart';
+import '../../../shared/core/ai/ai_providers.dart';
 import '../../../features/health/presentation/health_connections_provider.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -154,6 +155,54 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  Future<void> _changePassword() async {
+    final controller = TextEditingController();
+    final newPassword = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Change Password'),
+        content: TextField(
+          controller: controller,
+          obscureText: true,
+          decoration: const InputDecoration(
+            labelText: 'New password',
+            border: OutlineInputBorder(),
+            hintText: 'Minimum 8 characters',
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () {
+              if (controller.text.length >= 8) Navigator.pop(ctx, controller.text);
+            },
+            child: const Text('Update'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+
+    if (newPassword == null || !mounted) return;
+
+    try {
+      await Supabase.instance.client.auth.updateUser(
+        UserAttributes(password: newPassword),
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Password updated successfully')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update password: $e')),
+        );
+      }
+    }
+  }
+
   Future<void> _deleteAccount() async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -268,13 +317,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   leading: const Icon(Icons.lock_outline),
                   title: const Text('Change Password'),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Password change coming soon'),
-                      ),
-                    );
-                  },
+                  onTap: () => _changePassword(),
                 ),
               ],
             ),
@@ -463,19 +506,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           // AI Usage Section
           _buildSectionHeader('AI Usage'),
-          const Card(
-            margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: ListTile(
-              leading: Icon(Icons.auto_awesome_outlined),
-              title: Text('AI Calls Remaining'),
-              subtitle: Text('Freemium plan'),
-              trailing: Text(
-                '10 / 10',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              leading: const Icon(Icons.auto_awesome_outlined),
+              title: const Text('AI Calls Remaining'),
+              subtitle: Text(isPro ? 'Pro plan — unlimited' : 'Free plan'),
+              trailing: Builder(builder: (_) {
+                final usage = ref.watch(aiUsageProvider);
+                final used = usage?.callsUsed ?? 0;
+                final limit = usage?.callsLimit ?? 3;
+                return Text(
+                  isPro ? '∞' : '$used / $limit',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                );
+              }),
             ),
           ),
 
@@ -541,26 +586,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   leading: const Icon(Icons.description_outlined),
                   title: const Text('Terms of Service'),
                   trailing: const Icon(Icons.open_in_new),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Terms of Service coming soon'),
-                      ),
-                    );
-                  },
+                  onTap: () => launchUrl(Uri.parse('https://welltrack.fit/terms')),
                 ),
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.privacy_tip_outlined),
                   title: const Text('Privacy Policy'),
                   trailing: const Icon(Icons.open_in_new),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Privacy Policy coming soon'),
-                      ),
-                    );
-                  },
+                  onTap: () => launchUrl(Uri.parse('https://welltrack.fit/privacy')),
                 ),
               ],
             ),
