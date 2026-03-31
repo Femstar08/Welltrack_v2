@@ -11,3 +11,9 @@ Branch: ralph/production-readiness
 - Privacy/Terms URLs will be at welltrack.fit/privacy and welltrack.fit/terms
 - Supabase auth: Supabase.instance.client.auth
 ---
+
+## 2026-03-31 - PROD-001
+- Pinned targetSdk=35 in build.gradle.kts (was flutter.targetSdkVersion)
+- Fixed BootReceiver android:exported=true (was false — broke reboot rescheduling on Android 12+)
+- Completed health_permissions.xml: added 6 missing types (TotalCaloriesBurned, ExerciseSession, RestingHeartRate, HeartRateVariability, OxygenSaturation, Vo2Max) — now 13 matching manifest
+---

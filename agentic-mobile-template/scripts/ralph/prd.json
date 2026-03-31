@@ -6,7 +6,7 @@
     {
       "id": "PROD-001",
       "title": "Pin targetSdk=35, fix BootReceiver export, complete health_permissions.xml",
-      "passes": false,
+      "passes": true,
       "priority": 1,
       "acceptanceCriteria": [
         "In android/app/build.gradle.kts: change targetSdk from flutter.targetSdkVersion to 35",
