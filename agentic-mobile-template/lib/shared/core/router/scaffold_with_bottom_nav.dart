@@ -49,14 +49,14 @@ class ScaffoldWithBottomNav extends StatelessWidget {
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.edit_note_outlined),
-            activeIcon: Icon(Icons.edit_note),
-            label: 'Log',
+            icon: Icon(Icons.calendar_today_outlined),
+            activeIcon: Icon(Icons.calendar_today),
+            label: 'Plan',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.fitness_center_outlined),
-            activeIcon: Icon(Icons.fitness_center),
-            label: 'Workouts',
+            icon: Icon(Icons.trending_up_outlined),
+            activeIcon: Icon(Icons.trending_up),
+            label: 'Progress',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outlined),

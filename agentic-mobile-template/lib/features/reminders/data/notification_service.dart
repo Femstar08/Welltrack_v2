@@ -335,7 +335,7 @@ class NotificationService {
       case 'workouts':
         return '/workouts';
       case 'custom':
-        return '/daily-view';
+        return '/plan';
       default:
         return '/';
     }

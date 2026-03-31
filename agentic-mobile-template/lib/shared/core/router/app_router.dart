@@ -22,9 +22,9 @@ import '../../../features/dashboard/presentation/dashboard_screen.dart'
 import '../../../features/daily_view/presentation/daily_view_screen.dart'
     as daily_view;
 
-// Workouts (branch root)
-import '../../../features/workouts/presentation/workouts_screen.dart'
-    as workouts_screen;
+// Progress tab
+import '../../../features/insights/presentation/progress_tab_screen.dart'
+    as progress_tab;
 
 // Freemium
 import '../../../features/freemium/data/freemium_repository.dart';
@@ -39,7 +39,6 @@ import '../../../features/auth/presentation/auth_provider.dart'
 
 // Extracted route definitions
 import 'routes/dashboard_routes.dart';
-import 'routes/workout_routes.dart';
 
 /// Splash screen shown during app initialization
 class _SplashScreen extends StatelessWidget {
@@ -151,7 +150,7 @@ class AppRouter {
             requestedPath.startsWith('/goals') ||
             requestedPath.startsWith('/supplements') ||
             requestedPath.startsWith('/workouts') ||
-            requestedPath.startsWith('/daily-view') ||
+            requestedPath.startsWith('/plan') ||
             requestedPath.startsWith('/daily-coach/') ||
             requestedPath == '/bloodwork' ||
             requestedPath.startsWith('/bloodwork/') ||
@@ -222,12 +221,12 @@ class AppRouter {
               ],
             ),
 
-            // ── Branch 1: Log (Daily View) ────────────────────────
+            // ── Branch 1: Plan (Daily Plan) ──────────────────────
             StatefulShellBranch(
               routes: [
                 GoRoute(
-                  path: '/daily-view',
-                  name: 'dailyView',
+                  path: '/plan',
+                  name: 'plan',
                   builder: (context, state) {
                     final profileId =
                         ref.read(activeProfileIdProvider) ?? '';
@@ -238,20 +237,19 @@ class AppRouter {
               ],
             ),
 
-            // ── Branch 2: Workouts ────────────────────────────────
+            // ── Branch 2: Progress ────────────────────────────────
             StatefulShellBranch(
               routes: [
                 GoRoute(
-                  path: '/workouts',
-                  name: 'workouts',
+                  path: '/progress',
+                  name: 'progress',
                   builder: (context, state) {
                     final profileId =
                         ref.read(activeProfileIdProvider) ?? '';
-                    return workouts_screen.WorkoutsScreen(
+                    return progress_tab.ProgressTabScreen(
                       profileId: profileId,
                     );
                   },
-                  routes: workoutChildRoutes(ref),
                 ),
               ],
             ),

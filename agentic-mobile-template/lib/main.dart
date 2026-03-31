@@ -68,7 +68,7 @@ void main() async {
               'supplements' => '/supplements',
               'meals'       => '/meals/log',
               'workouts'    => '/workouts',
-              'custom'      => '/daily-view',
+              'custom'      => '/plan',
               _             => '/',
             };
           }

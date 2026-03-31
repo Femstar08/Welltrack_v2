@@ -113,6 +113,9 @@ import '../../../../features/settings/presentation/ingredient_preferences_screen
 import '../../../../features/settings/presentation/module_settings_screen.dart'
     as module_settings;
 
+import '../../../../features/workouts/presentation/workouts_screen.dart'
+    as workouts_screen;
+import 'workout_routes.dart' as workout_routes;
 import '../app_router.dart' show activeProfileIdProvider;
 
 /// All nested routes under the Dashboard (Branch 0, path '/').
@@ -513,6 +516,17 @@ List<GoRoute> dashboardChildRoutes(Ref ref) {
       name: 'moduleSettings',
       builder: (context, state) =>
           const module_settings.ModuleSettingsScreen(),
+    ),
+
+    // ── Workouts (moved from dedicated tab to push routes) ────
+    GoRoute(
+      path: 'workouts',
+      name: 'workoutsList',
+      builder: (context, state) {
+        final profileId = ref.read(activeProfileIdProvider) ?? '';
+        return workouts_screen.WorkoutsScreen(profileId: profileId);
+      },
+      routes: workout_routes.workoutChildRoutes(ref),
     ),
   ];
 }

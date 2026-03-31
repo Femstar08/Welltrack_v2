@@ -162,7 +162,7 @@ class ModuleTileWidget extends StatelessWidget {
       case WellTrackModule.reminders:
         return '/reminders';
       case WellTrackModule.dailyView:
-        return '/daily-view';
+        return '/plan';
       case WellTrackModule.goals:
         return '/goals';
       case WellTrackModule.bloodwork:
