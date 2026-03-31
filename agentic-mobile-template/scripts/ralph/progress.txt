@@ -17,3 +17,10 @@ Branch: ralph/production-readiness
 - Fixed BootReceiver android:exported=true (was false — broke reboot rescheduling on Android 12+)
 - Completed health_permissions.xml: added 6 missing types (TotalCaloriesBurned, ExerciseSession, RestingHeartRate, HeartRateVariability, OxygenSaturation, Vo2Max) — now 13 matching manifest
 ---
+
+## 2026-03-31 - PROD-002
+- Fixed SupplementsCard type mismatch: todayLogs was List<SupplementLogEntity>, expected Map<String,bool>
+- Changed to use todayLogsByProtocol (Map<String, SupplementLogEntity?>) from SupplementState
+- presentation_v2 already deleted, surfaceContainerLowest already removed in prior sessions
+- flutter analyze: 0 errors
+---

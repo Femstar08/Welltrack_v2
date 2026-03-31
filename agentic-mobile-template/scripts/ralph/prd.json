@@ -18,7 +18,7 @@
     {
       "id": "PROD-002",
       "title": "Fix compile errors from orphaned files and invalid constants",
-      "passes": false,
+      "passes": true,
       "priority": 2,
       "acceptanceCriteria": [
         "Check if lib/features/meals/presentation_v2/ still exists — if so delete it",

@@ -101,7 +101,7 @@ class _DailyViewScreenState extends ConsumerState<DailyViewScreen> {
                   SliverToBoxAdapter(
                     child: _SupplementsCard(
                       supplements: suppState.supplements,
-                      todayLogs: suppState.todayLogs,
+                      todayLogsByProtocol: suppState.todayLogsByProtocol,
                     ),
                   ),
 
@@ -309,9 +309,9 @@ class _WorkoutCard extends StatelessWidget {
 // ── Supplements Card ────────────────────────────────────────────
 
 class _SupplementsCard extends StatelessWidget {
-  const _SupplementsCard({required this.supplements, required this.todayLogs});
+  const _SupplementsCard({required this.supplements, required this.todayLogsByProtocol});
   final List<dynamic> supplements;
-  final Map<String, bool> todayLogs;
+  final Map<String, dynamic> todayLogsByProtocol;
 
   @override
   Widget build(BuildContext context) {
@@ -332,7 +332,8 @@ class _SupplementsCard extends StatelessWidget {
           const SizedBox(height: 12),
           ...supplements.take(5).map((s) {
             final name = (s.name as String?) ?? '';
-            final taken = todayLogs[s.id as String? ?? ''] == true;
+            final log = todayLogsByProtocol[s.id as String? ?? ''];
+            final taken = log != null && (log.isTaken as bool? ?? false);
             return Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Row(children: [
