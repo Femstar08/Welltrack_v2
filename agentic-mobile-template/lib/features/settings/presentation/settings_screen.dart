@@ -154,6 +154,57 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  Future<void> _deleteAccount() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Account'),
+        content: const Text(
+          'Are you sure? This will permanently delete your account '
+          'and all your data including health metrics, meal plans, '
+          'workouts, and bloodwork results.\n\n'
+          'This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            child: const Text('Delete Everything'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true || !mounted) return;
+
+    try {
+      // Delete all user data via server-side RPC
+      await Supabase.instance.client.rpc('delete_user_data');
+
+      // Sign out
+      await Supabase.instance.client.auth.signOut();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Account deleted. Data deletion may take up to 30 days to fully propagate.')),
+        );
+        context.go('/login');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete account: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -527,6 +578,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 side: BorderSide(color: theme.colorScheme.error),
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
+            ),
+          ),
+
+          // Delete Account Button
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: TextButton.icon(
+              onPressed: _deleteAccount,
+              icon: const Icon(Icons.delete_forever, size: 18),
+              label: const Text('Delete Account'),
+              style: TextButton.styleFrom(
+                foregroundColor: theme.colorScheme.error.withValues(alpha: 0.7),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Text(
+              'This will permanently delete your account and all associated data.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
             ),
           ),
 

@@ -24,3 +24,11 @@ Branch: ralph/production-readiness
 - presentation_v2 already deleted, surfaceContainerLowest already removed in prior sessions
 - flutter analyze: 0 errors
 ---
+
+## 2026-03-31 - PROD-003
+- Created delete_user_data() RPC that cascades deletes across all wt_* tables
+- Added Delete Account button + confirmation dialog to settings_screen.dart
+- Confirmation warns about permanent data loss, shows red Delete Everything button
+- Success: signs out user, shows data propagation notice, navigates to /login
+- Files changed: supabase/migrations/20260331000002_delete_user_data_rpc.sql (new), settings_screen.dart
+---
