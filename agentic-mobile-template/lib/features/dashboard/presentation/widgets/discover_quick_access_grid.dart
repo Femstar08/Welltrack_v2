@@ -24,9 +24,9 @@ class DiscoverQuickAccessGrid extends ConsumerWidget {
       requiresPro: false,
     ),
     _DiscoverTileData(
-      label: 'Workouts',
-      icon: Icons.fitness_center_rounded,
-      route: '/workouts',
+      label: 'Progress',
+      icon: Icons.trending_up_rounded,
+      route: '/progress',
       color: Color(0xFF26A69A),
       requiresPro: false,
     ),

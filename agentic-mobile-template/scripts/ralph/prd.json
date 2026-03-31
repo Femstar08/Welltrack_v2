@@ -68,7 +68,7 @@
     {
       "id": "NAV-004",
       "title": "Remove workouts from module grid and update references",
-      "passes": false,
+      "passes": true,
       "priority": 4,
       "acceptanceCriteria": [
         "Read lib/shared/core/modules/module_metadata.dart",

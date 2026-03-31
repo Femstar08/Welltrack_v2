@@ -5,7 +5,7 @@ enum WellTrackModule {
   meals('Meals & Recipes', Icons.restaurant, true),
   nutrients('Nutrient Tracking', Icons.pie_chart, false), // Config screen, lives in Settings
   supplements('Supplements', Icons.medication, true),
-  workouts('Workouts', Icons.fitness_center, true),
+  workouts('Workouts', Icons.fitness_center, false), // Accessible from Plan tab
   health('Activity & Sleep', Icons.monitor_heart, true),
   insights('Insights', Icons.insights, true),
   reminders('Reminders', Icons.notifications, true),

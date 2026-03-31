@@ -45,3 +45,10 @@ Branch: ralph/nav-reorganise
 - Removed unused workouts_screen and workout_routes imports from app_router.dart
 - Files changed: scaffold_with_bottom_nav.dart, app_router.dart, dashboard_routes.dart, main.dart, notification_service.dart, module_tile_widget.dart
 ---
+
+## 2026-03-31 - NAV-004
+- Set workouts module defaultEnabled=false (accessible from Plan tab)
+- Discover grid: replaced Workouts tile with Progress tile -> /progress
+- Module grid now shows: Meals, Supplements, Health, Insights, Reminders, Goals, Bloodwork, Habits (8 tiles)
+- Files changed: module_metadata.dart, discover_quick_access_grid.dart
+---
