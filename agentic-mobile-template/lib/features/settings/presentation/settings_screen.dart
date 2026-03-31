@@ -466,11 +466,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               title: const Text('Module Configuration'),
               subtitle: const Text('Enable or disable features'),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Module configuration coming soon')),
-                );
-              },
+              onTap: () => context.push('/settings/modules'),
             ),
           ),
 

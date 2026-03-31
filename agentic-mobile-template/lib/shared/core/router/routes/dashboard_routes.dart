@@ -110,6 +110,8 @@ import '../../../../features/settings/presentation/health_settings_screen.dart'
     as health_settings;
 import '../../../../features/settings/presentation/ingredient_preferences_screen.dart'
     as ingredient_prefs;
+import '../../../../features/settings/presentation/module_settings_screen.dart'
+    as module_settings;
 
 import '../app_router.dart' show activeProfileIdProvider;
 
@@ -505,6 +507,12 @@ List<GoRoute> dashboardChildRoutes(Ref ref) {
       name: 'ingredientPreferences',
       builder: (context, state) =>
           const ingredient_prefs.IngredientPreferencesScreen(),
+    ),
+    GoRoute(
+      path: 'settings/modules',
+      name: 'moduleSettings',
+      builder: (context, state) =>
+          const module_settings.ModuleSettingsScreen(),
     ),
   ];
 }

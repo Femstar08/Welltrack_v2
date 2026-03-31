@@ -170,7 +170,7 @@ class ModuleTileWidget extends StatelessWidget {
       case WellTrackModule.habits:
         return '/habits';
       case WellTrackModule.moduleToggles:
-        return '/settings';
+        return '/settings/modules';
     }
   }
 }
