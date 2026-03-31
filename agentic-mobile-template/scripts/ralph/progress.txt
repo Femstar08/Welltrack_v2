@@ -1,37 +1,15 @@
-# Ralph Progress Log — Phase 10 Fixes
+# Ralph Progress Log — Navigation Reorganise
 Started: 2026-03-31
-Branch: ralph/phase-10-fixes
+Branch: ralph/nav-reorganise
 
 ## Codebase Patterns
-- baseline_repository.dart has updateBaselineDaysCount() at ~line 99
-- insights_provider.dart loadData() is the main data loading method
-- recovery_score_dashboard_card.dart has _buildCalibrating() and _buildScore() methods
-- PerformanceEngine.calculateVo2Slope computes daily slope from data points
-- Supabase RPC calls use _client.rpc('function_name', params: {...})
-- Migrations go in supabase/migrations/ with timestamp prefix
----
-
-## 2026-03-31 - US-001
-- Created RPC get_baseline_day_count(p_profile_id) with 60-day window
-- Updated baseline_repository.dart to call RPC first, falls back to bounded client-side query
-- Fallback also bounded to 60 days now (was unbounded)
-- Files changed:
-  - supabase/migrations/20260331000001_baseline_day_count_rpc.sql (new)
-  - lib/features/insights/data/baseline_repository.dart
----
-
-## 2026-03-31 - US-002
-- Added _autoComputeVo2Forecast() called from loadData() when 7+ VO2 data points exist
-- Forecast computed eagerly with 5% improvement target if no existing forecast
-- Existing forecasts are respected — no duplicate computation
-- VO2 data already fetched for 30-day window (line 370-374), chart displays all available points
-- Files changed: lib/features/insights/presentation/insights_provider.dart
----
-
-## 2026-03-31 - US-003
-- Header shows 'Calibrating...' with sync icon during baseline period
-- Header shows 'Recovery' with heart icon after calibration complete
-- _buildCalibrating already hides numeric score — only progress bar + day count shown
-- isCalibrating flag passed from baselineState.isInBaselinePeriod
-- Files changed: lib/features/dashboard/presentation/widgets/recovery_score_dashboard_card.dart
+- Bottom nav in scaffold_with_bottom_nav.dart, branches in app_router.dart
+- StatefulShellRoute.indexedStack with 4 StatefulShellBranch entries
+- Dashboard child routes in routes/dashboard_routes.dart
+- Workout child routes in routes/workout_routes.dart
+- insightsProvider has recovery scores, training loads, trends, forecasts, AI narrative
+- mealPlanProvider(profileId) for meal plans
+- habitProvider(profileId) for habits
+- dailyViewProvider(profileId) for daily view state
+- AppColors: primary=#4DA8FF (blue), surfaceContainerHigh for cards
 ---

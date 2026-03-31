@@ -1,57 +1,84 @@
 {
   "project": "WellTrack",
-  "branchName": "ralph/phase-10-fixes",
-  "description": "Fix 3 partial stories from Phase 10 verification. Small targeted fixes only — do not touch passing stories.",
+  "branchName": "ralph/nav-reorganise",
+  "description": "Reorganise bottom navigation: Home, Plan, Progress, Profile. Replace Log tab with Plan (daily actionable view). Replace Workouts tab with Progress (insights/trends). Keep FAB for quick logging.",
   "userStories": [
     {
-      "id": "US-001",
-      "title": "Fix baseline day count query — replace unbounded SELECT with RPC",
-      "description": "As a developer, the distinct-day count query fetches ALL rows with no date bound, which becomes a performance risk as data grows. Replace with a server-side RPC that counts efficiently.",
+      "id": "NAV-001",
+      "title": "Create ProgressScreen for the new Progress tab",
+      "passes": false,
+      "priority": 1,
       "acceptanceCriteria": [
-        "Read baseline_calibration.dart and baseline_repository.dart before making changes",
-        "Create a Supabase RPC function get_baseline_day_count(user_id uuid) that returns COUNT(DISTINCT DATE(start_time)) for the last 60 days only",
-        "baseline_repository.dart updated to call the RPC instead of fetching all rows client-side",
-        "Result is identical — returns integer count of distinct days with health data",
+        "Create lib/features/insights/presentation/progress_tab_screen.dart",
+        "Screen is a ConsumerStatefulWidget that takes profileId",
+        "Shows in order: Recovery Trend card (7-day sparkline), VO2 Max card (value + chart + forecast), Training Load card (4-week bars), Sleep Quality card (7/14 day averages), AI Narrative card",
+        "Uses existing providers: insightsProvider, todayRecoveryScoreProvider",
+        "Recovery trend shows score 0-100 with color coding and sparkline",
+        "VO2 max shows current value, fitness classification, chart area",
+        "Training load shows weekly AU with trend percentage",
+        "Sleep quality shows 7-day and 14-day averages with trend direction",
+        "AI narrative card shows cached insight with sparkle icon",
+        "All cards use AppColors and dark theme styling (surfaceContainerHigh, 16dp radius)",
+        "Loading state shows shimmer, error state shows inline message",
         "flutter analyze returns 0 errors"
       ],
-      "priority": 1,
-      "passes": true,
-      "notes": ""
+      "technicalNotes": "This screen consolidates what was on the insights_dashboard_screen. Use the same providers but in a simpler layout focused on trends. Header: 'Progress' title + 'Your health trends over time' subtitle."
     },
     {
-      "id": "US-002",
-      "title": "Auto-compute VO2 max forecast when 7+ data points exist",
-      "description": "As a user, the VO2 max forecast should appear automatically when enough data exists — I should not have to manually trigger it.",
-      "acceptanceCriteria": [
-        "Read the VO2 max chart file in lib/features/insights/ before making changes",
-        "loadData() checks count of VO2 max data points after fetching",
-        "If 7 or more data points exist, forecast line is computed and rendered automatically",
-        "If fewer than 7 data points exist, chart shows Keep training — more data needed message",
-        "Manual trigger button removed if it exists",
-        "Chart period corrected to show last 30 days not 21 days",
-        "flutter analyze returns 0 errors",
-        "Verify on Android device"
-      ],
+      "id": "NAV-002",
+      "title": "Redesign DailyViewScreen as Plan tab with meals, workout, supplements, habits",
+      "passes": false,
       "priority": 2,
-      "passes": true,
-      "notes": ""
+      "acceptanceCriteria": [
+        "Read lib/features/daily_view/presentation/daily_view_screen.dart",
+        "Redesign to show: date selector at top, morning check-in card, meal plan slots (breakfast/lunch/dinner/snack from mealPlanProvider), workout plan card (today's scheduled workout with Start button), supplement schedule (from supplementsProvider), habits checklist (from habitProvider with toggles)",
+        "Morning check-in card shows status: 'Tap to start' if not done, 'Completed' if done today",
+        "Tapping check-in navigates to /daily-coach/checkin",
+        "Meal plan shows meal type, name, and calories per slot",
+        "If no meal plan, show 'Generate plan' button",
+        "Workout card shows workout name, duration, exercise count, and Start button -> /workouts/log/:id",
+        "If no workout scheduled, show 'Plan a workout' link -> /workouts",
+        "Supplements show checkbox list with time-of-day labels",
+        "Habits show toggle checkboxes with streak counts",
+        "All cards use AppColors, 20dp horizontal padding, 16dp border radius",
+        "flutter analyze returns 0 errors"
+      ],
+      "technicalNotes": "The current DailyViewScreen already has some of this. Keep the date selector and dailyViewProvider. Add mealPlanProvider, workoutProvider/todayWorkoutsProvider, supplementsProvider imports. Workout data comes from existing providers."
     },
     {
-      "id": "US-003",
-      "title": "Tighten baseline gate — hide raw score during calibration",
-      "description": "As a user, I should not see a raw recovery score number during the 14-day calibration period as it is based on incomplete data and could be misleading.",
-      "acceptanceCriteria": [
-        "Read recovery_score_dashboard_card.dart and baseline_calibration.dart before making changes",
-        "During calibration (baseline_days_count less than 14): dashboard card shows only the Day X of 14 progress bar — no numeric score shown",
-        "During calibration: card title shows Calibrating... instead of Recovery Score",
-        "After calibration completes: full score with sparkline shown as normal",
-        "Calibration progress bar remains visible and accurate throughout",
-        "flutter analyze returns 0 errors",
-        "Verify on Android device"
-      ],
+      "id": "NAV-003",
+      "title": "Update bottom navigation tabs and router branches",
+      "passes": false,
       "priority": 3,
-      "passes": true,
-      "notes": ""
+      "acceptanceCriteria": [
+        "Read lib/shared/core/router/scaffold_with_bottom_nav.dart",
+        "Read lib/shared/core/router/app_router.dart",
+        "Change 4 tabs to: Home (house icon), Plan (calendar_today icon), Progress (trending_up icon), Profile (person icon)",
+        "Update StatefulShellRoute branches: Branch 0 = Dashboard (/), Branch 1 = Plan (/plan), Branch 2 = Progress (/progress), Branch 3 = Profile (/profile)",
+        "Branch 1 renders the redesigned DailyViewScreen (now Plan)",
+        "Branch 2 renders the new ProgressScreen",
+        "Move workout child routes from Branch 2 into Branch 0 (dashboard) so workouts are accessible via push from Plan tab and module grid",
+        "Update all navigation references: /daily-view -> /plan",
+        "FAB remains at endFloat position on all tabs",
+        "All existing deep links and routes must still work",
+        "flutter analyze returns 0 errors"
+      ],
+      "technicalNotes": "The key change is swapping branch 1 (daily-view) and branch 2 (workouts). Workout routes become children of dashboard (push routes). Plan and Progress become the tab screens. Update bottomNavigationBar items labels and icons."
+    },
+    {
+      "id": "NAV-004",
+      "title": "Remove workouts from module grid and update references",
+      "passes": false,
+      "priority": 4,
+      "acceptanceCriteria": [
+        "Read lib/shared/core/modules/module_metadata.dart",
+        "Set workouts module defaultEnabled to false since it now has prominence in Plan tab",
+        "Update discover_quick_access_grid.dart: replace Workouts tile with Insights tile pointing to /progress",
+        "Update any hardcoded references to /daily-view to use /plan instead",
+        "Verify module grid shows: Meals, Supplements, Health, Reminders, Goals, Bloodwork, Habits (7 tiles)",
+        "flutter analyze returns 0 errors"
+      ],
+      "technicalNotes": "Workouts are accessible from Plan tab workout card and from pushing /workouts from anywhere. They don't need a module grid tile anymore. The Discover grid should point to /progress for the insights/progress tile."
     }
   ]
 }
