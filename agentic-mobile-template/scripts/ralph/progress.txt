@@ -1,48 +1,12 @@
-# Ralph Progress Log — Architectural Debt
-Started: 2026-03-29
-Branch: ralph/review-fixes
+# Ralph Progress Log — Dashboard Cleanup
+Started: 2026-03-31
+Branch: ralph/dashboard-cleanup
 
 ## Codebase Patterns
-- Use cmd.exe /c to run Flutter commands on WSL2
-- All navigation uses GoRouter — routes in app_router.dart
-- All Supabase calls through repository classes — screens use providers only
-- activeProfileIdProvider in app_router.dart
-- profileRepositoryProvider for profile access
-- SyncEngine + OfflineQueue exist in shared/core/sync/
-- ConnectivityService provides online/offline stream
-- Hive for offline queue storage
----
-
-## 2026-03-30 - ARCH-005
-- Split app_router.dart from 900+ lines to ~260 lines
-- Created routes/dashboard_routes.dart with dashboardChildRoutes(ref) — ~50 routes
-- Created routes/workout_routes.dart with workoutChildRoutes(ref) — 6 routes
-- app_router.dart now contains: providers, auth refresh, redirect logic, branch structure
-- Route definitions fully extracted to route files
-- Re-added goRouterProvider that was lost during rewrite
-- All 530 tests pass, flutter analyze clean
-- Files changed:
-  - lib/shared/core/router/app_router.dart (rewritten)
-  - lib/shared/core/router/routes/dashboard_routes.dart (new)
-  - lib/shared/core/router/routes/workout_routes.dart (new)
----
-
-## 2026-03-30 - ARCH-006
-- Audited meal_plan_screen.dart — 6 Supabase.instance.client.auth.currentUser?.id usages are read-only auth accessors (acceptable)
-- All repository access already goes through providers: ref.read(profileRepositoryProvider), ref.read(mealPlanProvider)
-- MacroCalculator and CustomMacroTargetRepository are used further in the file (lines 471, 484) — imports needed
-- No direct repository instantiations found — screen follows the pattern correctly
-- No code changes needed beyond verification
----
-
-## 2026-03-30 - ARCH-007
-- Created offline_write_mixin.dart with offlineWrite(), drainOfflineQueue(), pendingOfflineWriteCount()
-- offlineWrite catches network errors and queues writes to Hive 'offline_queue' box
-- drainOfflineQueue replays queued writes to Supabase (insert, upsert, update)
-- Wired meal_repository.dart logMeal to use offline fallback — returns optimistic entity on network failure
-- Wired sync_engine.dart syncNow() to call drainOfflineQueue() before processing HTTP queue
-- Files changed:
-  - lib/shared/core/sync/offline_write_mixin.dart (new)
-  - lib/shared/core/sync/sync_engine.dart (drain call)
-  - lib/features/meals/data/meal_repository.dart (offline fallback)
+- Module tiles come from enabledModulesProvider which reads moduleConfigsProvider
+- moduleConfigsProvider loads from wt_profile_modules table, falls back to WellTrackModule.values defaults
+- WellTrackModule enum in module_metadata.dart controls which modules exist
+- defaultEnabled flag on each enum value controls initial visibility
+- Dashboard renders tiles via SecondaryModulesList reading dashboardProvider.tiles
+- Settings screen is at lib/features/settings/presentation/settings_screen.dart
 ---

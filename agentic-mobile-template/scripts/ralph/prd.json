@@ -1,64 +1,57 @@
 {
   "project": "WellTrack",
-  "branchName": "ralph/review-fixes",
-  "description": "Architectural debt reduction — split app_router, move data layer imports out of screens, wire offline sync to repositories",
+  "branchName": "ralph/dashboard-cleanup",
+  "description": "Remove incorrect dashboard tiles and move Module Settings to the correct location in Settings screen. All screens are built — this is UI placement cleanup only.",
   "userStories": [
     {
-      "id": "ARCH-005",
-      "title": "Split app_router.dart into per-feature route config files",
-      "passes": true,
+      "id": "US-001",
+      "title": "Remove Module Settings tile from dashboard",
+      "description": "As a user, I should not see a Module Settings tile on the dashboard — it is a meta-setting and already accessible from the Profile/Settings tab.",
+      "acceptanceCriteria": [
+        "Read lib/features/dashboard/ to find where moduleToggles tile is registered before making changes",
+        "moduleToggles tile removed from dashboard tile list",
+        "Module Settings remains accessible via Settings screen — do not delete the screen itself",
+        "Dashboard re-renders correctly without the tile",
+        "No other tiles shift position unexpectedly",
+        "flutter analyze returns 0 errors",
+        "Verify on Android device"
+      ],
       "priority": 1,
-      "acceptanceCriteria": [
-        "Read lib/shared/core/router/app_router.dart — it is 900+ lines with 70+ routes",
-        "Create route config files for each major feature group:",
-        "  lib/shared/core/router/routes/auth_routes.dart — login, signup, onboarding, splash, paywall",
-        "  lib/shared/core/router/routes/meal_routes.dart — all meals/* routes",
-        "  lib/shared/core/router/routes/health_routes.dart — all health/* routes",
-        "  lib/shared/core/router/routes/workout_routes.dart — workouts, exercise browser, plans, logging",
-        "  lib/shared/core/router/routes/profile_routes.dart — settings, profile, goals, supplements",
-        "  lib/shared/core/router/routes/feature_routes.dart — pantry, recipes, shopping, bloodwork, habits, reminders, insights, daily coach",
-        "Each file exports a static List<GoRoute> method that returns the routes for that feature",
-        "app_router.dart imports all route files and assembles them into the StatefulShellRoute branches",
-        "All routes must still work after the split — no broken navigation",
-        "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "Keep AppRouter class, GoRouterAuthRefresh, providers, and route guards in app_router.dart. Only move the GoRoute definitions to separate files. Each feature file needs access to ref for activeProfileIdProvider — pass it as a parameter to the route builder functions."
+      "passes": false,
+      "notes": ""
     },
     {
-      "id": "ARCH-006",
-      "title": "Move direct Supabase calls from screens into providers — meal_plan_screen focus",
-      "passes": true,
+      "id": "US-002",
+      "title": "Remove Daily View tile from dashboard",
+      "description": "As a user, I should not see a Daily View tile on the dashboard because Daily View already has its own dedicated bottom navigation tab.",
+      "acceptanceCriteria": [
+        "Read lib/features/dashboard/ to find where dailyView tile is registered before making changes",
+        "dailyView tile removed from dashboard tile list",
+        "Daily View screen and bottom nav tab remain fully intact — do not touch those",
+        "Dashboard re-renders correctly without the tile",
+        "flutter analyze returns 0 errors",
+        "Verify on Android device"
+      ],
       "priority": 2,
-      "acceptanceCriteria": [
-        "Read lib/features/meals/presentation/meal_plan_screen.dart — 2000+ lines",
-        "Find all Supabase.instance.client references in the file",
-        "Find all direct repository instantiations (e.g., CustomMacroTargetRepository(...), ProfileRepository(...))",
-        "Replace Supabase.instance.client.auth.currentUser with a provider or ref.read",
-        "Replace direct repo instantiations with ref.read of existing providers",
-        "If a provider doesn't exist for a repository, check if one exists elsewhere or create one",
-        "The screen should only import providers, not repositories directly",
-        "flutter analyze returns 0 errors"
-      ],
-      "technicalNotes": "meal_plan_screen.dart is the worst offender — 5 direct Supabase.instance.client usages, imports MacroCalculator and CustomMacroTargetRepository directly. ProfileRepository is accessed via profileRepositoryProvider. For auth, use Supabase.instance.client.auth.currentUser?.id — this is acceptable as a read-only auth accessor."
+      "passes": false,
+      "notes": ""
     },
     {
-      "id": "ARCH-007",
-      "title": "Wire offline queue to meal and workout repository writes",
-      "passes": true,
-      "priority": 3,
+      "id": "US-003",
+      "title": "Move Nutrient Tracking off dashboard into Settings",
+      "description": "As a user, Nutrient Tracking targets is a configuration screen not a daily feature, so it should live in Settings rather than appearing as a dashboard tile.",
       "acceptanceCriteria": [
-        "Read lib/shared/core/sync/sync_engine.dart for the OfflineQueue interface",
-        "Read lib/shared/core/sync/conflict_resolver.dart",
-        "Read lib/features/meals/data/meal_repository.dart logMeal method",
-        "Read lib/features/workouts/data/workout_repository.dart for save/complete methods",
-        "Create a write-behind wrapper: when offline, write to Hive queue instead of failing silently",
-        "When connectivity returns, SyncEngine drains the queue and replays writes to Supabase",
-        "Meal logging must work offline — write to Hive, return optimistically, sync later",
-        "Workout logging must work offline — same pattern",
-        "Conflict resolution: last-write-wins for user-entered data (meals, workouts)",
-        "flutter analyze returns 0 errors"
+        "Read lib/features/settings/ to find the correct place to add Nutrient Tracking link",
+        "nutrients tile removed from dashboard tile list",
+        "Nutrient Tracking option added to Settings screen under a relevant section such as Nutrition or Targets",
+        "Tapping it in Settings navigates to /settings/nutrition-targets as before",
+        "nutrition_targets_screen.dart itself is not modified",
+        "flutter analyze returns 0 errors",
+        "Verify on Android device"
       ],
-      "technicalNotes": "The SyncEngine infrastructure exists but nothing feeds the OfflineQueue. The simplest approach: add a try/catch in repository write methods — on network error, serialize the operation to Hive OfflineQueue. SyncEngine already has the drain logic. ConnectivityService provides the online/offline stream."
+      "priority": 3,
+      "passes": false,
+      "notes": ""
     }
   ]
 }
