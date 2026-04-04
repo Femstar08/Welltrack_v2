@@ -87,37 +87,37 @@ class MealRepository {
         'updated_at': now.toIso8601String(),
       };
 
-      try {
-        final response = await _client
-            .from('wt_meals')
-            .insert(mealData)
-            .select()
-            .single();
-        return MealEntity.fromJson(response);
-      } on PostgrestException {
-        rethrow;
-      } catch (e) {
-        // Network error — queue for offline sync and return optimistic entity
-        await offlineWrite(
-          table: 'wt_meals',
-          operation: 'insert',
-          data: mealData,
-          execute: () async {}, // Already failed above
-        ).catchError((_) {});
+      // Wrap in offlineWrite: succeeds online → returns response,
+      // network error → queues to Hive and returns optimistic entity.
+      MealEntity? onlineResult;
+      await offlineWrite(
+        table: 'wt_meals',
+        operation: 'insert',
+        data: mealData,
+        execute: () async {
+          final response = await _client
+              .from('wt_meals')
+              .insert(mealData)
+              .select()
+              .single();
+          onlineResult = MealEntity.fromJson(response);
+        },
+      );
 
-        // Queue the write directly since execute already failed
-        return MealEntity(
-          id: 'offline_${now.microsecondsSinceEpoch}',
-          profileId: profileId,
-          mealDate: mealDate,
-          mealType: mealType,
-          name: name,
-          servingsConsumed: servingsConsumed,
-          nutritionInfo: nutritionInfo,
-          createdAt: now,
-          updatedAt: now,
-        );
-      }
+      if (onlineResult != null) return onlineResult!;
+
+      // offlineWrite queued it — return optimistic entity
+      return MealEntity(
+        id: 'offline_${now.microsecondsSinceEpoch}',
+        profileId: profileId,
+        mealDate: mealDate,
+        mealType: mealType,
+        name: name,
+        servingsConsumed: servingsConsumed,
+        nutritionInfo: nutritionInfo,
+        createdAt: now,
+        updatedAt: now,
+      );
     } catch (e) {
       throw Exception('Failed to log meal: $e');
     }
@@ -127,23 +127,29 @@ class MealRepository {
     String mealId,
     Map<String, dynamic> fields,
   ) async {
-    try {
-      final updateData = {
-        ...fields,
-        'updated_at': DateTime.now().toIso8601String(),
-      };
+    final updateData = {
+      ...fields,
+      'updated_at': DateTime.now().toIso8601String(),
+    };
 
-      final response = await _client
-          .from('wt_meals')
-          .update(updateData)
-          .eq('id', mealId)
-          .select()
-          .single();
+    MealEntity? onlineResult;
+    await offlineWrite(
+      table: 'wt_meals',
+      operation: 'update',
+      data: {'id': mealId, ...updateData},
+      execute: () async {
+        final response = await _client
+            .from('wt_meals')
+            .update(updateData)
+            .eq('id', mealId)
+            .select()
+            .single();
+        onlineResult = MealEntity.fromJson(response);
+      },
+    );
 
-      return MealEntity.fromJson(response);
-    } catch (e) {
-      throw Exception('Failed to update meal: $e');
-    }
+    if (onlineResult != null) return onlineResult!;
+    throw Exception('Meal update queued for offline sync');
   }
 
   Future<void> deleteMeal(String mealId) async {

@@ -3,6 +3,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../domain/checkin_entity.dart';
+import '../../../shared/core/sync/offline_write_mixin.dart';
 
 final checkinRepositoryProvider = Provider<CheckInRepository>((ref) {
   return CheckInRepository(Supabase.instance.client);
@@ -67,16 +68,27 @@ class CheckInRepository {
   /// UNIQUE constraint on profile_id + checkin_date).
   Future<CheckInEntity> upsertCheckIn(CheckInEntity checkIn) async {
     try {
-      final response = await _supabase
-          .from(_table)
-          .upsert(
-            checkIn.toJson(),
-            onConflict: 'profile_id,checkin_date',
-          )
-          .select()
-          .single();
+      final data = checkIn.toJson();
+      CheckInEntity? onlineResult;
 
-      return CheckInEntity.fromJson(response);
+      await offlineWrite(
+        table: _table,
+        operation: 'upsert',
+        data: data,
+        execute: () async {
+          final response = await _supabase
+              .from(_table)
+              .upsert(data, onConflict: 'profile_id,checkin_date')
+              .select()
+              .single();
+          onlineResult = CheckInEntity.fromJson(response);
+        },
+      );
+
+      if (onlineResult != null) return onlineResult!;
+
+      // Offline — return the input entity as optimistic result
+      return checkIn;
     } catch (e) {
       throw Exception('Failed to upsert check-in: $e');
     }

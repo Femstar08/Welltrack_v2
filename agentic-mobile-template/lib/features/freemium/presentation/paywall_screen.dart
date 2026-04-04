@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../data/billing_service.dart';
+import '../data/freemium_repository.dart';
 import '../domain/plan_tier.dart';
 
 /// Paywall screen for upgrading to Pro
@@ -16,6 +18,7 @@ class PaywallScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final billing = ref.watch(billingServiceProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -90,23 +93,29 @@ class PaywallScreen extends ConsumerWidget {
             )),
             const SizedBox(height: 32),
 
-            // Pricing
-            _buildPricingCard(context),
+            // Pricing — use real store prices when available
+            _buildPricingCard(context, ref),
             const SizedBox(height: 24),
 
+            // Error message
+            if (billing.errorMessage != null) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.errorContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  billing.errorMessage!,
+                  style: TextStyle(color: theme.colorScheme.onErrorContainer),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
             // CTA buttons
-            ElevatedButton(
-              onPressed: () => _handleUpgrade(context),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                backgroundColor: theme.colorScheme.primary,
-                foregroundColor: theme.colorScheme.onPrimary,
-              ),
-              child: const Text(
-                'Upgrade to Pro',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ),
+            _buildUpgradeButton(context, ref),
             const SizedBox(height: 12),
             OutlinedButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -115,15 +124,146 @@ class PaywallScreen extends ConsumerWidget {
               ),
               child: const Text('Maybe Later'),
             ),
+            const SizedBox(height: 12),
+
+            // Restore purchases
+            TextButton(
+              onPressed: billing.status == BillingStatus.loading
+                  ? null
+                  : () => ref
+                      .read(billingServiceProvider.notifier)
+                      .restorePurchases(),
+              child: const Text('Restore Purchases'),
+            ),
             const SizedBox(height: 24),
 
             // Fine print
             Text(
-              'Subscription automatically renews unless cancelled. Cancel anytime from your account settings.',
+              'Subscription automatically renews unless cancelled. '
+              'Cancel anytime from your device settings. '
+              'Payment will be charged to your Google Play or Apple ID account.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
               ),
               textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUpgradeButton(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final billing = ref.watch(billingServiceProvider);
+    final billingNotifier = ref.read(billingServiceProvider.notifier);
+
+    final isPurchasing = billing.status == BillingStatus.purchasing;
+    final isLoading = billing.status == BillingStatus.loading;
+
+    // Success states — refresh tier and pop
+    if (billing.status == BillingStatus.purchased ||
+        billing.status == BillingStatus.restored) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.invalidate(currentPlanTierProvider);
+        ref.invalidate(featureAvailableProvider);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              billing.status == BillingStatus.purchased
+                  ? 'Welcome to WellTrack Pro!'
+                  : 'Subscription restored successfully!',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.of(context).pop();
+      });
+    }
+
+    return ElevatedButton(
+      onPressed: (isPurchasing || isLoading)
+          ? null
+          : () {
+              final product = billingNotifier.monthlyProduct;
+              if (product != null) {
+                billingNotifier.purchaseSubscription(product);
+              } else {
+                // Fallback if products haven't loaded from store yet
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Products loading. Please try again in a moment.',
+                    ),
+                  ),
+                );
+                billingNotifier.loadProducts();
+              }
+            },
+      style: ElevatedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
+      ),
+      child: isPurchasing
+          ? const SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            )
+          : const Text(
+              'Upgrade to Pro',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+    );
+  }
+
+  Widget _buildPricingCard(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final billing = ref.watch(billingServiceProvider);
+    final billingNotifier = ref.read(billingServiceProvider.notifier);
+
+    // Use real store price if available, fallback to display price
+    final monthlyProduct = billingNotifier.monthlyProduct;
+    final priceText = monthlyProduct?.price ?? '\$9.99';
+
+    return Card(
+      color: theme.colorScheme.primaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            Text(
+              priceText,
+              style: theme.textTheme.displaySmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onPrimaryContainer,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'per month',
+              style: theme.textTheme.bodyLarge?.copyWith(
+                color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.7),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                billing.isAvailable ? 'BEST VALUE' : 'STORE LOADING...',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         ),
@@ -252,70 +392,6 @@ class PaywallScreen extends ConsumerWidget {
               benefit,
               style: theme.textTheme.bodyMedium,
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPricingCard(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Card(
-      color: theme.colorScheme.primaryContainer,
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Text(
-              '\$9.99',
-              style: theme.textTheme.displaySmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.onPrimaryContainer,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'per month',
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.7),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                'BEST VALUE',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onPrimary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _handleUpgrade(BuildContext context) {
-    // Stub for payment integration (RevenueCat/Stripe)
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Coming Soon'),
-        content: const Text(
-          'Payment integration with RevenueCat/Stripe is ready to be implemented. '
-          'This will handle subscription management, payments, and receipt validation.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
           ),
         ],
       ),

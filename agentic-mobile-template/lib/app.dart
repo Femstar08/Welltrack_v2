@@ -11,6 +11,7 @@ import 'features/health/data/health_background_sync.dart';
 import 'features/health/presentation/health_connections_provider.dart';
 import 'features/profile/presentation/profile_provider.dart';
 import 'features/reminders/data/notification_service.dart';
+import 'features/reminders/data/reminder_repository.dart';
 import 'shared/core/health/health_service.dart';
 import 'shared/core/router/app_router.dart';
 import 'shared/core/theme/app_theme.dart';
@@ -168,6 +169,29 @@ class _WellTrackAppState extends ConsumerState<WellTrackApp> {
 
       // Restore auth session state if user is already logged in
       await _restoreSessionState();
+
+      // Re-schedule all active reminders on app launch.
+      // Notifications are lost if the app is force-stopped or the OS kills it,
+      // so we re-register them every launch to guarantee they fire.
+      if (!kIsWeb) {
+        try {
+          final profileId = ref.read(activeProfileIdProvider);
+          if (profileId != null && profileId.isNotEmpty) {
+            final reminderRepo = ref.read(reminderRepositoryProvider);
+            final notifService = ref.read(notificationServiceProvider);
+            final activeReminders =
+                await reminderRepo.getActiveReminders(profileId);
+            for (final reminder in activeReminders) {
+              await notifService.scheduleRepeatingNotification(reminder);
+            }
+            _logger.info(
+              'Re-scheduled ${activeReminders.length} active reminders',
+            );
+          }
+        } catch (e) {
+          _logger.warning('Reminder re-scheduling failed (non-fatal): $e');
+        }
+      }
 
       // Register background health sync (after session restore so profile is available)
       // Workmanager is not supported on web — skip entirely

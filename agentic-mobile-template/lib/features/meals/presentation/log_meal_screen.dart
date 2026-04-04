@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/meal_repository.dart';
+import '../presentation/today_nutrition_provider.dart';
 import '../../profile/presentation/profile_provider.dart';
 import '../../recipes/domain/recipe_entity.dart';
 
@@ -9,8 +11,20 @@ class LogMealScreen extends ConsumerStatefulWidget {
   const LogMealScreen({
     super.key,
     this.recipe,
+    this.initialName,
+    this.initialMealType,
+    this.initialCalories,
+    this.initialProteinG,
+    this.initialCarbsG,
+    this.initialFatG,
   });
   final RecipeEntity? recipe;
+  final String? initialName;
+  final String? initialMealType;
+  final int? initialCalories;
+  final int? initialProteinG;
+  final int? initialCarbsG;
+  final int? initialFatG;
 
   @override
   ConsumerState<LogMealScreen> createState() => _LogMealScreenState();
@@ -21,10 +35,15 @@ class _LogMealScreenState extends ConsumerState<LogMealScreen> {
   final _nameController = TextEditingController();
   final _servingsController = TextEditingController();
   final _notesController = TextEditingController();
+  final _caloriesController = TextEditingController();
+  final _proteinController = TextEditingController();
+  final _carbsController = TextEditingController();
+  final _fatController = TextEditingController();
 
   String _mealType = 'lunch';
   double _rating = 3.0;
   bool _isLoading = false;
+  bool _showMacros = false;
 
   final List<String> _mealTypes = [
     'breakfast',
@@ -40,7 +59,24 @@ class _LogMealScreenState extends ConsumerState<LogMealScreen> {
       _nameController.text = widget.recipe!.title;
       _servingsController.text = widget.recipe!.servings.toString();
     } else {
+      _nameController.text = widget.initialName ?? '';
       _servingsController.text = '1';
+    }
+    _mealType = widget.initialMealType ?? 'lunch';
+
+    // Pre-fill macros if provided (e.g. from meal plan item or food search)
+    if (widget.initialCalories != null) {
+      _caloriesController.text = widget.initialCalories.toString();
+      _showMacros = true;
+    }
+    if (widget.initialProteinG != null) {
+      _proteinController.text = widget.initialProteinG.toString();
+    }
+    if (widget.initialCarbsG != null) {
+      _carbsController.text = widget.initialCarbsG.toString();
+    }
+    if (widget.initialFatG != null) {
+      _fatController.text = widget.initialFatG.toString();
     }
   }
 
@@ -49,6 +85,10 @@ class _LogMealScreenState extends ConsumerState<LogMealScreen> {
     _nameController.dispose();
     _servingsController.dispose();
     _notesController.dispose();
+    _caloriesController.dispose();
+    _proteinController.dispose();
+    _carbsController.dispose();
+    _fatController.dispose();
     super.dispose();
   }
 
@@ -74,21 +114,27 @@ class _LogMealScreenState extends ConsumerState<LogMealScreen> {
 
     try {
       final servings = double.tryParse(_servingsController.text) ?? 1.0;
+      final calories = int.tryParse(_caloriesController.text) ?? 0;
+      final proteinG = int.tryParse(_proteinController.text) ?? 0;
+      final carbsG = int.tryParse(_carbsController.text) ?? 0;
+      final fatG = int.tryParse(_fatController.text) ?? 0;
 
-      // Build nutrition info from recipe metadata.
-      // RecipeEntity doesn't store per-serving macros, so we record
-      // the recipe reference and servings for downstream computation.
-      // The meal plan path (addFoodToLog) uses FoodItem which has
-      // per-100g values — that path correctly calculates macros.
-      Map<String, dynamic>? nutritionInfo;
+      // Always build nutrition_info with the keys that
+      // today_nutrition_provider expects: calories, protein_g, carbs_g, fat_g
+      final nutritionInfo = <String, dynamic>{
+        'calories': calories,
+        'protein_g': proteinG,
+        'carbs_g': carbsG,
+        'fat_g': fatG,
+        'servings_consumed': servings,
+      };
+
       if (widget.recipe != null) {
-        final recipe = widget.recipe!;
-        nutritionInfo = {
-          'source': 'recipe',
-          'recipe_id': recipe.id,
-          'servings_consumed': servings,
-          'recipe_servings': recipe.servings,
-        };
+        nutritionInfo['source'] = 'recipe';
+        nutritionInfo['recipe_id'] = widget.recipe!.id;
+        nutritionInfo['recipe_servings'] = widget.recipe!.servings;
+      } else {
+        nutritionInfo['source'] = 'manual';
       }
 
       await ref.read(mealRepositoryProvider).logMeal(
@@ -105,6 +151,9 @@ class _LogMealScreenState extends ConsumerState<LogMealScreen> {
                 ? _notesController.text.trim()
                 : null,
           );
+
+      // Invalidate today's nutrition so dashboard updates immediately
+      ref.invalidate(todayMealsProvider);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -259,6 +308,113 @@ class _LogMealScreenState extends ConsumerState<LogMealScreen> {
             ),
             const SizedBox(height: 24),
 
+            // Nutrition section — expandable
+            Card(
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.local_fire_department),
+                    title: const Text('Nutrition Info'),
+                    subtitle: Text(
+                      _showMacros
+                          ? _macroSummaryText()
+                          : 'Tap to add calories & macros',
+                    ),
+                    trailing: Icon(
+                      _showMacros
+                          ? Icons.keyboard_arrow_up
+                          : Icons.keyboard_arrow_down,
+                    ),
+                    onTap: () => setState(() => _showMacros = !_showMacros),
+                  ),
+                  if (_showMacros)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      child: Column(
+                        children: [
+                          const Divider(),
+                          const SizedBox(height: 8),
+                          // Calories
+                          TextFormField(
+                            controller: _caloriesController,
+                            decoration: const InputDecoration(
+                              labelText: 'Calories (kcal)',
+                              prefixIcon: Icon(Icons.local_fire_department),
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          // Macro row
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _proteinController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Protein (g)',
+                                    border: OutlineInputBorder(),
+                                    isDense: true,
+                                  ),
+                                  keyboardType: TextInputType.number,
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly,
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _carbsController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Carbs (g)',
+                                    border: OutlineInputBorder(),
+                                    isDense: true,
+                                  ),
+                                  keyboardType: TextInputType.number,
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly,
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _fatController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Fat (g)',
+                                    border: OutlineInputBorder(),
+                                    isDense: true,
+                                  ),
+                                  keyboardType: TextInputType.number,
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly,
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Optional — enter what you know. '
+                            'Check the label or search online.',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurface
+                                  .withValues(alpha: 0.6),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
             // Rating
             Text(
               'How was it?',
@@ -319,7 +475,6 @@ class _LogMealScreenState extends ConsumerState<LogMealScreen> {
             Card(
               child: InkWell(
                 onTap: () {
-                  // TODO: Implement photo capture
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Photo capture coming soon!'),
@@ -365,6 +520,22 @@ class _LogMealScreenState extends ConsumerState<LogMealScreen> {
         ),
       ),
     );
+  }
+
+  String _macroSummaryText() {
+    final cal = _caloriesController.text;
+    final p = _proteinController.text;
+    final c = _carbsController.text;
+    final f = _fatController.text;
+    if (cal.isEmpty && p.isEmpty && c.isEmpty && f.isEmpty) {
+      return 'No nutrition entered';
+    }
+    final parts = <String>[];
+    if (cal.isNotEmpty) parts.add('${cal}kcal');
+    if (p.isNotEmpty) parts.add('${p}g P');
+    if (c.isNotEmpty) parts.add('${c}g C');
+    if (f.isNotEmpty) parts.add('${f}g F');
+    return parts.join(' · ');
   }
 
   IconData _getMealTypeIcon(String type) {

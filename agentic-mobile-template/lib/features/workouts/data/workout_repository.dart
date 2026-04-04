@@ -10,6 +10,7 @@ import '../domain/workout_log_entity.dart';
 import '../domain/workout_plan_entity.dart';
 import '../domain/workout_plan_exercise_entity.dart';
 import '../domain/workout_set_entity.dart';
+import '../../../shared/core/sync/offline_write_mixin.dart';
 
 final workoutRepositoryProvider = Provider<WorkoutRepository>((ref) {
   return WorkoutRepository(Supabase.instance.client);
@@ -113,31 +114,38 @@ class WorkoutRepository {
     String? notes,
     String? planId,
   }) async {
-    try {
-      final now = DateTime.now();
-      final data = {
-        'id': _uuid.v4(),
-        'profile_id': profileId,
-        'name': name,
-        'workout_type': workoutType,
-        'scheduled_date': scheduledDate.toIso8601String(),
-        'completed': false,
-        'notes': notes,
-        'plan_id': planId,
-        'created_at': now.toIso8601String(),
-        'updated_at': now.toIso8601String(),
-      };
+    final now = DateTime.now();
+    final data = {
+      'id': _uuid.v4(),
+      'profile_id': profileId,
+      'name': name,
+      'workout_type': workoutType,
+      'scheduled_date': scheduledDate.toIso8601String(),
+      'completed': false,
+      'notes': notes,
+      'plan_id': planId,
+      'created_at': now.toIso8601String(),
+      'updated_at': now.toIso8601String(),
+    };
 
-      final response = await _supabase
-          .from('wt_workouts')
-          .insert(data)
-          .select()
-          .single();
+    WorkoutEntity? onlineResult;
+    await offlineWrite(
+      table: 'wt_workouts',
+      operation: 'insert',
+      data: data,
+      execute: () async {
+        final response = await _supabase
+            .from('wt_workouts')
+            .insert(data)
+            .select()
+            .single();
+        onlineResult = WorkoutEntity.fromJson(response);
+      },
+    );
 
-      return WorkoutEntity.fromJson(response);
-    } catch (e) {
-      throw Exception('Failed to create workout: $e');
-    }
+    if (onlineResult != null) return onlineResult!;
+
+    return WorkoutEntity.fromJson(data);
   }
 
   Future<WorkoutEntity> startWorkoutSession({
@@ -146,31 +154,38 @@ class WorkoutRepository {
     required String workoutType,
     String? planId,
   }) async {
-    try {
-      final now = DateTime.now();
-      final data = {
-        'id': _uuid.v4(),
-        'profile_id': profileId,
-        'name': name,
-        'workout_type': workoutType,
-        'scheduled_date': now.toIso8601String(),
-        'completed': false,
-        'plan_id': planId,
-        'start_time': now.toIso8601String(),
-        'created_at': now.toIso8601String(),
-        'updated_at': now.toIso8601String(),
-      };
+    final now = DateTime.now();
+    final data = {
+      'id': _uuid.v4(),
+      'profile_id': profileId,
+      'name': name,
+      'workout_type': workoutType,
+      'scheduled_date': now.toIso8601String(),
+      'completed': false,
+      'plan_id': planId,
+      'start_time': now.toIso8601String(),
+      'created_at': now.toIso8601String(),
+      'updated_at': now.toIso8601String(),
+    };
 
-      final response = await _supabase
-          .from('wt_workouts')
-          .insert(data)
-          .select()
-          .single();
+    WorkoutEntity? onlineResult;
+    await offlineWrite(
+      table: 'wt_workouts',
+      operation: 'insert',
+      data: data,
+      execute: () async {
+        final response = await _supabase
+            .from('wt_workouts')
+            .insert(data)
+            .select()
+            .single();
+        onlineResult = WorkoutEntity.fromJson(response);
+      },
+    );
 
-      return WorkoutEntity.fromJson(response);
-    } catch (e) {
-      throw Exception('Failed to start workout session: $e');
-    }
+    if (onlineResult != null) return onlineResult!;
+
+    return WorkoutEntity.fromJson(data);
   }
 
   Future<WorkoutEntity> updateWorkout(WorkoutEntity workout) async {
@@ -195,30 +210,36 @@ class WorkoutRepository {
     String workoutId, {
     int? durationMinutes,
   }) async {
-    try {
-      final now = DateTime.now();
-      final data = <String, dynamic>{
-        'completed': true,
-        'completed_at': now.toIso8601String(),
-        'end_time': now.toIso8601String(),
-        'updated_at': now.toIso8601String(),
-      };
+    final now = DateTime.now();
+    final data = <String, dynamic>{
+      'completed': true,
+      'completed_at': now.toIso8601String(),
+      'end_time': now.toIso8601String(),
+      'updated_at': now.toIso8601String(),
+    };
 
-      if (durationMinutes != null) {
-        data['duration_minutes'] = durationMinutes;
-      }
-
-      final response = await _supabase
-          .from('wt_workouts')
-          .update(data)
-          .eq('id', workoutId)
-          .select()
-          .single();
-
-      return WorkoutEntity.fromJson(response);
-    } catch (e) {
-      throw Exception('Failed to complete workout: $e');
+    if (durationMinutes != null) {
+      data['duration_minutes'] = durationMinutes;
     }
+
+    WorkoutEntity? onlineResult;
+    await offlineWrite(
+      table: 'wt_workouts',
+      operation: 'update',
+      data: {'id': workoutId, ...data},
+      execute: () async {
+        final response = await _supabase
+            .from('wt_workouts')
+            .update(data)
+            .eq('id', workoutId)
+            .select()
+            .single();
+        onlineResult = WorkoutEntity.fromJson(response);
+      },
+    );
+
+    if (onlineResult != null) return onlineResult!;
+    throw Exception('Workout completion queued for offline sync');
   }
 
   Future<void> deleteWorkout(String workoutId) async {

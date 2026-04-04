@@ -342,10 +342,14 @@ class NotificationService {
   }
 }
 
-/// Provider for notification service
+/// Single shared plugin instance — must be the same one used everywhere
+/// (main.dart cold-launch check, app.dart initialization, and reminder scheduling).
+final FlutterLocalNotificationsPlugin sharedNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
+/// Provider for notification service — uses the shared plugin singleton
 final notificationServiceProvider = Provider<NotificationService>((ref) {
-  final plugin = FlutterLocalNotificationsPlugin();
-  return NotificationService(plugin);
+  return NotificationService(sharedNotificationsPlugin);
 });
 
 /// Holds the GoRouter route derived from a notification that cold-launched the

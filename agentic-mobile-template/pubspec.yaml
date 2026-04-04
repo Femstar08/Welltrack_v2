@@ -76,6 +76,9 @@ dependencies:
   # UI — dot page indicators
   smooth_page_indicator: ^1.1.0
 
+  # In-App Purchases (Google Play Billing + Apple StoreKit)
+  in_app_purchase: ^3.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

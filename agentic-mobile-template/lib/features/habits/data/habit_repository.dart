@@ -18,6 +18,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../domain/habit_entity.dart';
 import '../domain/habit_log_entity.dart';
+import '../../../shared/core/sync/offline_write_mixin.dart';
 
 // ---------------------------------------------------------------------------
 // Pre-defined habit type constants — use these everywhere to avoid typos.
@@ -83,24 +84,44 @@ class HabitRepository {
     String habitType,
     String habitLabel,
   ) async {
-    try {
-      final response = await _client
-          .from('wt_habit_streaks')
-          .insert({
-            'profile_id': profileId,
-            'habit_type': habitType,
-            'habit_label': habitLabel,
-            'current_streak_days': 0,
-            'longest_streak_days': 0,
-            'is_active': true,
-          })
-          .select()
-          .single();
+    final data = {
+      'profile_id': profileId,
+      'habit_type': habitType,
+      'habit_label': habitLabel,
+      'current_streak_days': 0,
+      'longest_streak_days': 0,
+      'is_active': true,
+    };
 
-      return HabitEntity.fromJson(response);
-    } catch (e) {
-      throw Exception('Failed to create habit: $e');
-    }
+    HabitEntity? onlineResult;
+    await offlineWrite(
+      table: 'wt_habit_streaks',
+      operation: 'insert',
+      data: data,
+      execute: () async {
+        final response = await _client
+            .from('wt_habit_streaks')
+            .insert(data)
+            .select()
+            .single();
+        onlineResult = HabitEntity.fromJson(response);
+      },
+    );
+
+    if (onlineResult != null) return onlineResult!;
+
+    final now = DateTime.now();
+    return HabitEntity(
+      id: 'offline_${now.microsecondsSinceEpoch}',
+      profileId: profileId,
+      habitType: habitType,
+      habitLabel: habitLabel,
+      currentStreakDays: 0,
+      longestStreakDays: 0,
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    );
   }
 
   /// Soft-deletes a habit by setting is_active = false.

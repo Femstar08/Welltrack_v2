@@ -11,6 +11,7 @@ import 'rest_timer_settings.dart';
 import '../../../features/workouts/presentation/rest_timer_provider.dart';
 import '../../../features/profile/data/profile_repository.dart';
 import '../../../features/freemium/data/freemium_repository.dart';
+import '../../../features/freemium/data/billing_service.dart';
 import '../../../features/freemium/domain/plan_tier.dart';
 import '../../../shared/core/ai/ai_providers.dart';
 import '../../../features/health/presentation/health_connections_provider.dart';
@@ -500,6 +501,57 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => showRestTimerAlertPicker(context, ref),
                 ),
+              ],
+            ),
+          ),
+
+          // Subscription Section
+          _buildSectionHeader('Subscription'),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: Icon(
+                    isPro ? Icons.workspace_premium : Icons.card_membership_outlined,
+                    color: isPro ? Colors.amber : null,
+                  ),
+                  title: Text(isPro ? 'WellTrack Pro' : 'Free Plan'),
+                  subtitle: Text(isPro ? 'All features unlocked' : 'Upgrade to unlock all features'),
+                  trailing: isPro
+                      ? const Icon(Icons.check_circle, color: Colors.green)
+                      : TextButton(
+                          onPressed: () => context.push('/paywall'),
+                          child: const Text('Upgrade'),
+                        ),
+                ),
+                if (isPro) ...[
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.restore),
+                    title: const Text('Restore Purchases'),
+                    onTap: () {
+                      ref.read(billingServiceProvider.notifier).restorePurchases();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Restoring purchases...')),
+                      );
+                    },
+                  ),
+                ],
+                if (!isPro) ...[
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.restore),
+                    title: const Text('Restore Purchases'),
+                    subtitle: const Text('Already subscribed? Restore here'),
+                    onTap: () {
+                      ref.read(billingServiceProvider.notifier).restorePurchases();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Restoring purchases...')),
+                      );
+                    },
+                  ),
+                ],
               ],
             ),
           ),

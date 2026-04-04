@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -53,9 +52,12 @@ void main() async {
     // intent data is lost. We resolve the payload into a route string here
     // and pass it as a ProviderScope override so WellTrackApp can navigate
     // to the correct screen as soon as the router is ready.
+    //
+    // IMPORTANT: use the shared singleton plugin so it's the same instance
+    // that gets initialized later in app.dart via notificationServiceProvider.
     String? notificationLaunchRoute;
     try {
-      final plugin = FlutterLocalNotificationsPlugin();
+      final plugin = sharedNotificationsPlugin;
       final launchDetails = await plugin.getNotificationAppLaunchDetails();
       if (launchDetails?.didNotificationLaunchApp == true) {
         final payload = launchDetails?.notificationResponse?.payload;
