@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../features/meals/presentation/enhanced_log_bottom_sheet.dart';
 
+/// Routes where the global log FAB should be hidden because the screen
+/// has its own primary action or the FAB would conflict with the UI.
+const _hideGlobalFabRoutes = ['/recipes'];
+
 /// Shell scaffold that renders the persistent bottom navigation bar across all
 /// primary tab destinations.  Each branch keeps its own navigation stack so
 /// users can push sub-routes (e.g. workout plan detail) without losing the nav
@@ -17,19 +21,23 @@ class ScaffoldWithBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final location = GoRouterState.of(context).uri.path;
+    final hideFab = _hideGlobalFabRoutes.any((r) => location.startsWith(r));
 
     return Scaffold(
       // The navigationShell renders the currently active branch's subtree.
       // Each branch's own Scaffold (with its AppBar) sits inside this body,
       // so nested Scaffolds are intentional and fully supported by Flutter.
       body: navigationShell,
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => showEnhancedLogSheet(context),
-        backgroundColor: theme.colorScheme.primary,
-        foregroundColor: theme.colorScheme.onPrimary,
-        tooltip: 'Log',
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: hideFab
+          ? null
+          : FloatingActionButton(
+              onPressed: () => showEnhancedLogSheet(context),
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: theme.colorScheme.onPrimary,
+              tooltip: 'Log',
+              child: const Icon(Icons.add),
+            ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,

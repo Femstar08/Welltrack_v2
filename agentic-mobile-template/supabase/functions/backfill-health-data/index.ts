@@ -3,10 +3,6 @@ import { corsHeaders } from '../_shared/cors.ts'
 import { refreshGarminToken, refreshStravaToken } from '../_shared/token-refresh.ts'
 import {
   type HealthMetric,
-  normalizeGarminDailiesPayload,
-  normalizeGarminSleepPayload,
-  normalizeGarminStressPayload,
-  normalizeGarminUserMetricsPayload,
   normalizeStravaActivityPayload,
 } from '../_shared/webhook-processor.ts'
 
@@ -191,7 +187,7 @@ async function backfillGarmin(
   userId: string,
   profileId: string
 ): Promise<number> {
-  // Refresh token if within 60-second expiry window
+  // Refresh token if within 600-second expiry window (per Garmin recommendation)
   let accessToken: string = connection.access_token_encrypted
 
   if (!accessToken) {
@@ -199,7 +195,7 @@ async function backfillGarmin(
   }
 
   const expiresAt = connection.token_expires_at ? new Date(connection.token_expires_at) : null
-  const nowPlusBuffer = new Date(Date.now() + 60_000)
+  const nowPlusBuffer = new Date(Date.now() + 600_000) // 10 min buffer per Garmin docs
 
   if (expiresAt && expiresAt <= nowPlusBuffer) {
     if (!connection.refresh_token_encrypted) {
@@ -230,105 +226,90 @@ async function backfillGarmin(
     }
   }
 
-  // Build date range: today going back 14 days (inclusive)
-  const today = new Date()
-  const startDate = new Date(today)
-  startDate.setDate(today.getDate() - 13) // 14 days including today
+  // Build time range: 14 days back from now (Unix timestamps in seconds)
+  const nowEpoch = Math.floor(Date.now() / 1000)
+  const startEpoch = nowEpoch - (14 * 24 * 60 * 60)
 
-  const startDateStr = formatDate(startDate) // YYYY-MM-DD
-  const endDateStr = formatDate(today)
+  console.log(`[Backfill Garmin] Requesting async backfill from ${startEpoch} to ${nowEpoch}`)
 
-  console.log(`[Backfill Garmin] Fetching data from ${startDateStr} to ${endDateStr}`)
-
-  const allMetrics: HealthMetric[] = []
-
-  // Garmin Health API base URL
-  const garminBase = 'https://healthapi.garmin.com/wellness-api/rest'
+  // Garmin Health API base URL (per official docs)
+  const garminBase = 'https://apis.garmin.com/wellness-api/rest'
   const authHeader = { 'Authorization': `Bearer ${accessToken}` }
 
-  // Fetch each data type in parallel — Garmin's API supports date-range queries
-  const [dailiesResult, sleepResult, stressResult, metricsResult] = await Promise.allSettled([
-    fetchGarminEndpoint(`${garminBase}/dailies?startDate=${startDateStr}&endDate=${endDateStr}`, authHeader, 'dailies'),
-    fetchGarminEndpoint(`${garminBase}/sleeps?startDate=${startDateStr}&endDate=${endDateStr}`, authHeader, 'sleeps'),
-    fetchGarminEndpoint(`${garminBase}/stressDetails?startDate=${startDateStr}&endDate=${endDateStr}`, authHeader, 'stressDetails'),
-    fetchGarminEndpoint(`${garminBase}/userMetrics?startDate=${startDateStr}&endDate=${endDateStr}`, authHeader, 'userMetrics'),
-  ])
+  // Use Garmin's official Backfill API endpoints (per Health API v1.2.0, Section 8).
+  // These return HTTP 202 immediately and process asynchronously — actual data
+  // arrives via Push/Ping webhooks to our webhook-garmin endpoint.
+  const backfillEndpoints = [
+    'backfill/dailies',
+    'backfill/sleeps',
+    'backfill/stressDetails',
+    'backfill/userMetrics',
+  ]
 
-  // Normalize each result using the shared normalizer exports
-  if (dailiesResult.status === 'fulfilled' && dailiesResult.value.length > 0) {
-    const metrics = await normalizeGarminDailiesPayload(userId, profileId, dailiesResult.value)
-    allMetrics.push(...metrics)
-    console.log(`[Backfill Garmin] Normalized ${metrics.length} dailies metrics`)
-  }
+  const queryParams = `summaryStartTimeInSeconds=${startEpoch}&summaryEndTimeInSeconds=${nowEpoch}`
 
-  if (sleepResult.status === 'fulfilled' && sleepResult.value.length > 0) {
-    const metrics = await normalizeGarminSleepPayload(userId, profileId, sleepResult.value)
-    allMetrics.push(...metrics)
-    console.log(`[Backfill Garmin] Normalized ${metrics.length} sleep metrics`)
-  }
+  const results = await Promise.allSettled(
+    backfillEndpoints.map((endpoint) =>
+      requestGarminBackfill(`${garminBase}/${endpoint}?${queryParams}`, authHeader, endpoint)
+    )
+  )
 
-  if (stressResult.status === 'fulfilled' && stressResult.value.length > 0) {
-    const metrics = await normalizeGarminStressPayload(userId, profileId, stressResult.value)
-    allMetrics.push(...metrics)
-    console.log(`[Backfill Garmin] Normalized ${metrics.length} stress metrics`)
-  }
-
-  if (metricsResult.status === 'fulfilled' && metricsResult.value.length > 0) {
-    const metrics = await normalizeGarminUserMetricsPayload(userId, profileId, metricsResult.value)
-    allMetrics.push(...metrics)
-    console.log(`[Backfill Garmin] Normalized ${metrics.length} userMetrics`)
-  }
-
-  // Log any failures from the parallel fetches (non-fatal — partial backfill is better than none)
-  for (const [name, result] of [
-    ['dailies', dailiesResult],
-    ['sleeps', sleepResult],
-    ['stressDetails', stressResult],
-    ['userMetrics', metricsResult],
-  ] as [string, PromiseSettledResult<any>][]) {
-    if (result.status === 'rejected') {
-      console.warn(`[Backfill Garmin] ${name} fetch failed (continuing):`, result.reason)
+  // Count successful backfill requests (HTTP 202 = accepted)
+  let acceptedCount = 0
+  for (const [i, result] of results.entries()) {
+    const endpoint = backfillEndpoints[i]
+    if (result.status === 'fulfilled') {
+      acceptedCount++
+      console.log(`[Backfill Garmin] ${endpoint}: accepted (202)`)
+    } else {
+      console.warn(`[Backfill Garmin] ${endpoint} request failed:`, result.reason)
     }
   }
 
-  // Upsert all metrics to wt_health_metrics with dedupe_hash conflict handling
-  return upsertMetrics(adminClient, allMetrics)
+  console.log(`[Backfill Garmin] ${acceptedCount}/${backfillEndpoints.length} backfill requests accepted`)
+
+  // Return the count of accepted requests. Actual data will arrive via webhooks.
+  // The webhook handler (webhook-garmin) queues events to wt_webhook_events,
+  // and process-webhooks normalizes and upserts to wt_health_metrics.
+  return acceptedCount
 }
 
 /**
- * Fetch a single Garmin Health API endpoint.
- * Returns the parsed JSON array or throws on HTTP error.
+ * Request an async backfill from Garmin's Backfill API.
+ *
+ * Per Garmin Health API v1.2.0 Section 8:
+ * - Returns HTTP 202 (accepted) on success — data arrives via Push/Ping webhooks
+ * - Returns HTTP 409 if a duplicate backfill request is already in progress
+ * - Returns HTTP 429 if rate-limited (100 days/min for eval keys)
+ *
+ * Throws on unexpected errors.
  */
-async function fetchGarminEndpoint(
+async function requestGarminBackfill(
   url: string,
   headers: Record<string, string>,
   label: string
-): Promise<any[]> {
-  const response = await fetch(url, { headers })
+): Promise<void> {
+  const response = await fetch(url, { method: 'GET', headers })
 
-  if (!response.ok) {
+  if (response.status === 202) {
+    // Success — backfill accepted, data will arrive via webhooks
+    return
+  }
+
+  if (response.status === 409) {
+    // Duplicate request — a backfill for this range is already in progress
+    console.log(`[Backfill Garmin] ${label}: duplicate request (409) — already in progress`)
+    return
+  }
+
+  if (response.status === 429) {
     const text = await response.text()
-    throw new Error(`[Backfill Garmin] ${label} HTTP ${response.status}: ${text}`)
+    console.warn(`[Backfill Garmin] ${label}: rate-limited (429) — ${text}`)
+    throw new Error(`Rate limited by Garmin for ${label}`)
   }
 
-  const data = await response.json()
-
-  // Garmin wraps array responses in a top-level key that varies by endpoint.
-  // Try common wrapper keys; fall back to treating the response as the array.
-  const wrapperKeys: Record<string, string> = {
-    dailies: 'dailies',
-    sleeps: 'sleeps',
-    stressDetails: 'stressDetails',
-    userMetrics: 'userMetrics',
-  }
-
-  const key = wrapperKeys[label]
-  if (key && Array.isArray(data[key])) {
-    return data[key]
-  }
-
-  // Some endpoints return the array at the top level
-  return Array.isArray(data) ? data : []
+  const text = await response.text()
+  throw new Error(`[Backfill Garmin] ${label} HTTP ${response.status}: ${text}`)
 }
 
 // ---------------------------------------------------------------------------
@@ -343,7 +324,7 @@ async function backfillStrava(
   userId: string,
   profileId: string
 ): Promise<number> {
-  // Refresh token if within 60-second expiry window
+  // Refresh token if within 600-second expiry window
   let accessToken: string = connection.access_token_encrypted
 
   if (!accessToken) {
@@ -351,7 +332,7 @@ async function backfillStrava(
   }
 
   const expiresAt = connection.token_expires_at ? new Date(connection.token_expires_at) : null
-  const nowPlusBuffer = new Date(Date.now() + 60_000)
+  const nowPlusBuffer = new Date(Date.now() + 600_000) // 10 min buffer
 
   if (expiresAt && expiresAt <= nowPlusBuffer) {
     if (!connection.refresh_token_encrypted) {
@@ -514,12 +495,3 @@ async function markConnectionNeedsReauth(
   }
 }
 
-/**
- * Format a Date as YYYY-MM-DD (Garmin API date format).
- */
-function formatDate(date: Date): string {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}

@@ -108,11 +108,12 @@ Deno.serve(async (req: Request) => {
     const signatureValid = await verifyGarminSignature(req, rawBody)
     if (!signatureValid) {
       console.error('[Garmin Webhook] Request rejected — invalid HMAC signature')
-      // Return 200 to avoid Garmin disabling the endpoint, but log the rejection.
-      // Garmin documentation states that non-200 responses may cause endpoint suspension.
+      // Return 401 for invalid signatures. Garmin retries failed notifications
+      // but only suspends endpoints for persistent failures, not occasional ones.
+      // Returning 200 on bad signatures would hide misconfiguration.
       return new Response(
-        JSON.stringify({ status: 'received' }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Invalid signature' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 

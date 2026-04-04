@@ -23,7 +23,7 @@ export interface TokenResult {
  * Refresh a Garmin OAuth 2.0 access token.
  *
  * Garmin uses the standard OAuth 2.0 refresh-token grant against
- * https://connectapi.garmin.com/oauth-service/oauth/token.
+ * https://diauth.garmin.com/di-oauth2-service/oauth/token (per PKCE spec).
  *
  * Required env vars:
  *   GARMIN_CLIENT_ID
@@ -44,7 +44,7 @@ export async function refreshGarminToken(refreshToken: string): Promise<TokenRes
     client_secret: clientSecret,
   })
 
-  const response = await fetch('https://connectapi.garmin.com/oauth-service/oauth/token', {
+  const response = await fetch('https://diauth.garmin.com/di-oauth2-service/oauth/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: body.toString(),

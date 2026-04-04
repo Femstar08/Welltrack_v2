@@ -510,10 +510,20 @@ class HealthConnectionScreen extends ConsumerWidget {
                 onPressed: connState.isConnecting
                     ? null
                     : () async {
+                        final authUrl = buildStravaAuthorizationUrl('');
+                        // Guard: if client_id is missing the URL will be malformed
+                        if (authUrl.contains('client_id=&')) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Strava client ID not configured. Rebuild with --dart-define-from-file=.env')),
+                            );
+                          }
+                          return;
+                        }
                         final oauthState = generateOAuthState();
                         ref.read(pendingOAuthStateProvider.notifier).state = oauthState;
-                        final authUrl = buildStravaAuthorizationUrl(oauthState);
-                        final uri = Uri.parse(authUrl);
+                        final fullUrl = buildStravaAuthorizationUrl(oauthState);
+                        final uri = Uri.parse(fullUrl);
                         await launchUrl(uri, mode: LaunchMode.externalApplication);
                       },
                 icon: connState.isConnecting

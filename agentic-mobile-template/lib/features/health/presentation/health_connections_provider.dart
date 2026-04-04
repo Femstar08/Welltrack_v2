@@ -12,10 +12,16 @@ final _logger = AppLogger();
 // ---------------------------------------------------------------------------
 
 /// Redirect URI registered with Garmin Connect for this app.
-const _garminRedirectUri = 'welltrack://oauth/garmin/callback';
+/// Points to our Edge Function which then redirects to the app's custom scheme.
+/// This is required because Garmin only accepts HTTPS redirect URIs.
+const _garminRedirectUri =
+    'https://nppjffhzkzfduulbbcih.supabase.co/functions/v1/oauth-garmin';
 
 /// Redirect URI registered with Strava for this app.
-const _stravaRedirectUri = 'welltrack://oauth/strava/callback';
+/// Points to our Edge Function which then redirects to the app's custom scheme.
+/// This is required because Strava only accepts HTTPS callback domains.
+const _stravaRedirectUri =
+    'https://nppjffhzkzfduulbbcih.supabase.co/functions/v1/oauth-strava';
 
 /// Strava client_id is embedded in the authorization URL (not secret).
 /// Injected via --dart-define at build time.
@@ -24,11 +30,11 @@ const _stravaClientId = String.fromEnvironment(
   defaultValue: '',
 );
 
-/// Garmin OAuth 2.0 authorize endpoint.
-/// The `oauth_token` (request token) is obtained by the Edge Function during
-/// the initiation step; the UI opens this URL after receiving it.
+/// Garmin OAuth 2.0 authorize endpoint (per official Garmin PKCE docs).
+/// The full URL is built server-side by the oauth-garmin Edge Function
+/// (including PKCE code_challenge), so this constant is only kept for reference.
 const _garminAuthorizeBase =
-    'https://connect.garmin.com/oauthConfirm';
+    'https://connect.garmin.com/oauth2Confirm';
 
 /// Generates a cryptographically random state nonce for OAuth CSRF protection.
 String generateOAuthState() {

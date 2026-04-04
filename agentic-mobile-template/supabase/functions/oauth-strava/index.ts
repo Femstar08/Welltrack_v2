@@ -39,10 +39,27 @@ Deno.serve(async (req: Request) => {
   }
 
   // ---------------------------------------------------------------------------
-  // GET — Strava webhook subscription verification
+  // GET — Strava OAuth callback redirect OR webhook subscription verification
   // ---------------------------------------------------------------------------
   if (req.method === 'GET') {
     const url = new URL(req.url)
+
+    // --- OAuth callback redirect ---
+    // Strava redirects the user here after consent. We forward the code and
+    // state to the app's custom scheme so the deep link handler picks it up.
+    const code = url.searchParams.get('code')
+    if (code) {
+      const state = url.searchParams.get('state') ?? ''
+      const scope = url.searchParams.get('scope') ?? ''
+      const appRedirect = `welltrack://oauth/strava/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}&scope=${encodeURIComponent(scope)}`
+      console.log('[OAuth Strava] Redirecting to app deep link:', appRedirect)
+      return new Response(null, {
+        status: 302,
+        headers: { ...corsHeaders, 'Location': appRedirect },
+      })
+    }
+
+    // --- Webhook subscription verification ---
     const mode = url.searchParams.get('hub.mode')
     const token = url.searchParams.get('hub.verify_token')
     const challenge = url.searchParams.get('hub.challenge')

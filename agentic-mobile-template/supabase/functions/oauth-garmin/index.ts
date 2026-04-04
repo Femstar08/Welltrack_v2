@@ -1,31 +1,58 @@
 import { createSupabaseClient } from '../_shared/supabase-client.ts'
 import { corsHeaders } from '../_shared/cors.ts'
+import { encode as base64UrlEncode } from 'https://deno.land/std@0.208.0/encoding/base64url.ts'
 
 /**
- * Garmin OAuth 2.0 Token Exchange + Disconnect
+ * Garmin OAuth 2.0 PKCE Token Exchange + Disconnect
  *
- * POST — Authorization code exchange
- *   Body: { authorization_code: string, redirect_uri: string, profile_id: string }
- *   1. Exchanges the code at Garmin's token endpoint
- *   2. Upserts a row in wt_health_connections with encrypted tokens
- *   3. Fires a non-blocking backfill for the last 14 days of Garmin data
+ * POST action: 'initiate'
+ *   Generates a PKCE code_verifier + code_challenge, stores the verifier
+ *   server-side keyed by profile_id, and returns the full authorization URL
+ *   (including code_challenge) for the client to open in a browser.
+ *
+ * POST (default) — Authorization code exchange
+ *   Body: { authorization_code, redirect_uri, profile_id }
+ *   Retrieves the stored code_verifier, exchanges the code at Garmin's
+ *   token endpoint with PKCE, upserts tokens to wt_health_connections,
+ *   and fires a non-blocking backfill.
  *   Returns: { status: 'connected', garmin_user_id: string }
  *
+ * GET — OAuth callback redirect
+ *   Garmin redirects the user here after consent. We forward the code
+ *   and state to the app's custom scheme via 302 redirect.
+ *
  * DELETE — Disconnect / revoke
- *   Body: { profile_id: string }
- *   1. Best-effort token revocation with Garmin API (never fails the request)
- *   2. Sets is_connected = false, clears token columns, records disconnected_at
+ *   Body: { profile_id }
  *   Returns: { status: 'disconnected' }
  *
  * Required Supabase secrets:
  *   GARMIN_CLIENT_ID
  *   GARMIN_CLIENT_SECRET
  *
- * NOTE: Tokens are stored in the columns `access_token_encrypted` and
- * `refresh_token_encrypted`. Encryption at rest is the responsibility of
- * the database-level security policy; the "encrypted" suffix signals intent
- * to ops so the columns are never exposed through RLS to the Flutter client.
+ * Garmin OAuth 2.0 PKCE endpoints (per official docs):
+ *   Authorize: https://connect.garmin.com/oauth2Confirm
+ *   Token:     https://diauth.garmin.com/di-oauth2-service/oauth/token
  */
+
+// ---------------------------------------------------------------------------
+// PKCE helpers
+// ---------------------------------------------------------------------------
+
+/** Generates a cryptographically random code_verifier (43–128 chars, A-Z a-z 0-9 -._~) */
+function generateCodeVerifier(): string {
+  const array = new Uint8Array(48) // 48 bytes → 64 base64url chars
+  crypto.getRandomValues(array)
+  return base64UrlEncode(array)
+}
+
+/** Creates a SHA-256 code_challenge from the code_verifier */
+async function generateCodeChallenge(verifier: string): Promise<string> {
+  const encoder = new TextEncoder()
+  const data = encoder.encode(verifier)
+  const digest = await crypto.subtle.digest('SHA-256', data)
+  return base64UrlEncode(new Uint8Array(digest))
+}
+
 Deno.serve(async (req: Request) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -33,11 +60,28 @@ Deno.serve(async (req: Request) => {
   }
 
   // ---------------------------------------------------------------------------
-  // POST — Initiate (get auth URL) or Authorization code exchange
+  // GET — Garmin OAuth callback redirect (browser → app deep link)
+  // ---------------------------------------------------------------------------
+  if (req.method === 'GET') {
+    const url = new URL(req.url)
+    const code = url.searchParams.get('code')
+    if (code) {
+      const state = url.searchParams.get('state') ?? ''
+      const appRedirect = `welltrack://oauth/garmin/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`
+      console.log('[OAuth Garmin] Redirecting to app deep link:', appRedirect)
+      return new Response(null, {
+        status: 302,
+        headers: { ...corsHeaders, 'Location': appRedirect },
+      })
+    }
+    return new Response('Bad Request — missing code parameter', { status: 400, headers: corsHeaders })
+  }
+
+  // ---------------------------------------------------------------------------
+  // POST — Initiate (get auth URL with PKCE) or Authorization code exchange
   // ---------------------------------------------------------------------------
   if (req.method === 'POST') {
     try {
-      // --- Parse and validate request body ---
       let body: { action?: string; authorization_code?: string; redirect_uri?: string; profile_id?: string }
 
       try {
@@ -51,7 +95,7 @@ Deno.serve(async (req: Request) => {
 
       const { action, authorization_code, redirect_uri, profile_id } = body
 
-      // --- Initiate action: return OAuth 2.0 authorization URL ---
+      // --- Initiate action: generate PKCE and return OAuth 2.0 authorization URL ---
       if (action === 'initiate') {
         if (!profile_id) {
           return new Response(
@@ -69,16 +113,47 @@ Deno.serve(async (req: Request) => {
           )
         }
 
-        // Build OAuth 2.0 authorization URL — client_id stays server-side
-        const garminRedirectUri = 'welltrack://oauth/garmin/callback'
+        // Generate PKCE code_verifier and code_challenge
+        const codeVerifier = generateCodeVerifier()
+        const codeChallenge = await generateCodeChallenge(codeVerifier)
+
+        // Store code_verifier server-side for later token exchange
+        const { adminClient } = createSupabaseClient(req)
+        const { error: storeError } = await adminClient
+          .from('wt_health_connections')
+          .upsert({
+            profile_id: profile_id,
+            provider: 'garmin',
+            is_connected: false,
+            connection_metadata: {
+              pkce_code_verifier: codeVerifier,
+              initiated_at: new Date().toISOString(),
+            },
+          }, { onConflict: 'profile_id,provider' })
+
+        if (storeError) {
+          console.error('[OAuth Garmin] Failed to store PKCE verifier:', storeError)
+          return new Response(
+            JSON.stringify({ error: 'Failed to initiate OAuth' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        // Use the Edge Function URL as redirect so Garmin can redirect via HTTPS,
+        // then we 302 to the app's custom scheme (same pattern as Strava)
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')
+        const garminRedirectUri = `${supabaseUrl}/functions/v1/oauth-garmin`
+
+        // Build OAuth 2.0 PKCE authorization URL per Garmin docs
         const params = new URLSearchParams({
           client_id: garminClientId,
-          redirect_uri: garminRedirectUri,
           response_type: 'code',
-          scope: 'ACTIVITY_IMPORT DAILY HEALTH_SNAPSHOT',
+          code_challenge: codeChallenge,
+          code_challenge_method: 'S256',
+          redirect_uri: garminRedirectUri,
         })
 
-        const authUrl = `https://connect.garmin.com/oauthConfirm?${params.toString()}`
+        const authUrl = `https://connect.garmin.com/oauth2Confirm?${params.toString()}`
         console.log('[OAuth Garmin] Initiate: returning auth URL for profile:', profile_id)
 
         return new Response(
@@ -88,9 +163,9 @@ Deno.serve(async (req: Request) => {
       }
 
       // --- Connect action (default POST): exchange authorization code for tokens ---
-      if (!authorization_code || !redirect_uri || !profile_id) {
+      if (!authorization_code || !profile_id) {
         return new Response(
-          JSON.stringify({ error: 'authorization_code, redirect_uri, and profile_id are required' }),
+          JSON.stringify({ error: 'authorization_code and profile_id are required' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
@@ -107,18 +182,42 @@ Deno.serve(async (req: Request) => {
         )
       }
 
+      // --- Retrieve stored PKCE code_verifier ---
+      const { adminClient } = createSupabaseClient(req)
+      const { data: storedConn, error: fetchVerifierErr } = await adminClient
+        .from('wt_health_connections')
+        .select('connection_metadata')
+        .eq('profile_id', profile_id)
+        .eq('provider', 'garmin')
+        .single()
+
+      if (fetchVerifierErr || !storedConn?.connection_metadata?.pkce_code_verifier) {
+        console.error('[OAuth Garmin] No PKCE code_verifier found for profile:', profile_id)
+        return new Response(
+          JSON.stringify({ error: 'OAuth session expired — please try connecting again' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      const codeVerifier = storedConn.connection_metadata.pkce_code_verifier as string
+
+      // --- Use the same redirect_uri that was sent during initiation ---
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')
+      const garminRedirectUri = redirect_uri || `${supabaseUrl}/functions/v1/oauth-garmin`
+
       // --- Exchange authorization_code for tokens at Garmin's token endpoint ---
-      console.log('[OAuth Garmin] Exchanging authorization code for tokens')
+      console.log('[OAuth Garmin] Exchanging authorization code for tokens (PKCE)')
 
       const tokenRequestBody = new URLSearchParams({
         grant_type: 'authorization_code',
         code: authorization_code,
-        redirect_uri: redirect_uri,
+        code_verifier: codeVerifier,
         client_id: garminClientId,
         client_secret: garminClientSecret,
+        redirect_uri: garminRedirectUri,
       })
 
-      const tokenResponse = await fetch('https://connectapi.garmin.com/oauth-service/oauth/token', {
+      const tokenResponse = await fetch('https://diauth.garmin.com/di-oauth2-service/oauth/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: tokenRequestBody.toString(),
@@ -137,9 +236,7 @@ Deno.serve(async (req: Request) => {
 
       const accessToken: string = tokenData.access_token
       const refreshToken: string = tokenData.refresh_token
-      const expiresIn: number = tokenData.expires_in ?? 3600
-      // Garmin embeds the user's Garmin ID in the token response
-      const garminUserId: string = tokenData.user_id?.toString() ?? tokenData.userId?.toString() ?? ''
+      const expiresIn: number = tokenData.expires_in ?? 86400
       const tokenExpiresAt = new Date(Date.now() + expiresIn * 1000).toISOString()
 
       if (!accessToken || !refreshToken) {
@@ -150,11 +247,23 @@ Deno.serve(async (req: Request) => {
         )
       }
 
+      // --- Fetch Garmin User ID via the permissions/user ID endpoint ---
+      let garminUserId = ''
+      try {
+        const userIdResponse = await fetch('https://apis.garmin.com/wellness-api/rest/user/id', {
+          headers: { 'Authorization': `Bearer ${accessToken}` },
+        })
+        if (userIdResponse.ok) {
+          const userIdData = await userIdResponse.json()
+          garminUserId = userIdData.userId?.toString() ?? ''
+        }
+      } catch (e) {
+        console.warn('[OAuth Garmin] Failed to fetch Garmin user ID (non-fatal):', e)
+      }
+
       console.log('[OAuth Garmin] Tokens received. Garmin user ID:', garminUserId)
 
       // --- Persist tokens to wt_health_connections ---
-      const { adminClient } = createSupabaseClient(req)
-
       const connectionRecord = {
         profile_id: profile_id,
         provider: 'garmin',
@@ -168,7 +277,6 @@ Deno.serve(async (req: Request) => {
         },
       }
 
-      // Use upsert on (profile_id, provider) to handle reconnects gracefully
       const { error: upsertError } = await adminClient
         .from('wt_health_connections')
         .upsert(connectionRecord, { onConflict: 'profile_id,provider' })
@@ -184,9 +292,6 @@ Deno.serve(async (req: Request) => {
       console.log('[OAuth Garmin] Connection saved for profile:', profile_id)
 
       // --- Fire-and-forget backfill for the last 14 days ---
-      // We deliberately do NOT await this — the connect response must return
-      // immediately. The backfill function handles its own rate-limit guard so
-      // it is safe to call on every (re-)connect.
       triggerBackfill(profile_id, 'garmin').catch((err) => {
         console.warn('[OAuth Garmin] Backfill trigger failed (non-fatal):', err)
       })
@@ -209,7 +314,6 @@ Deno.serve(async (req: Request) => {
   // ---------------------------------------------------------------------------
   if (req.method === 'DELETE') {
     try {
-      // --- Parse and validate request body ---
       let body: { profile_id?: string }
 
       try {
@@ -232,7 +336,6 @@ Deno.serve(async (req: Request) => {
 
       const { adminClient } = createSupabaseClient(req)
 
-      // --- Fetch the current access token so we can attempt revocation ---
       const { data: connection, error: fetchError } = await adminClient
         .from('wt_health_connections')
         .select('access_token_encrypted, connection_metadata')
@@ -241,7 +344,6 @@ Deno.serve(async (req: Request) => {
         .single()
 
       if (fetchError && fetchError.code !== 'PGRST116') {
-        // PGRST116 = row not found — that is fine, nothing to disconnect
         console.error('[OAuth Garmin] Failed to fetch connection for disconnect:', fetchError)
         return new Response(
           JSON.stringify({ error: 'Failed to fetch connection', detail: fetchError.message }),
@@ -249,42 +351,29 @@ Deno.serve(async (req: Request) => {
         )
       }
 
-      // --- Best-effort token revocation with Garmin ---
-      // Garmin does not publish a public token revocation endpoint at this time.
-      // The de-facto approach is to call Garmin Health API user deregistration.
-      // We attempt this but treat any failure as non-fatal so the user is always
-      // disconnected locally regardless of what Garmin's API returns.
+      // Best-effort deregistration per Garmin docs (required for compliance)
       if (connection?.access_token_encrypted) {
         try {
           const revokeResponse = await fetch(
-            'https://healthapi.garmin.com/wellness-api/rest/user/registration',
+            'https://apis.garmin.com/wellness-api/rest/user/registration',
             {
               method: 'DELETE',
               headers: {
                 'Authorization': `Bearer ${connection.access_token_encrypted}`,
-                'Content-Type': 'application/json',
               },
             }
           )
           if (revokeResponse.ok) {
-            console.log('[OAuth Garmin] Token revocation succeeded')
+            console.log('[OAuth Garmin] User deregistration succeeded')
           } else {
             const revokeText = await revokeResponse.text()
-            console.warn(
-              '[OAuth Garmin] Token revocation returned non-OK (best-effort, continuing):',
-              revokeResponse.status,
-              revokeText
-            )
+            console.warn('[OAuth Garmin] Deregistration returned non-OK (best-effort):', revokeResponse.status, revokeText)
           }
         } catch (revokeErr) {
-          // Non-fatal — always complete the local disconnect below
-          console.warn('[OAuth Garmin] Token revocation threw (best-effort, continuing):', revokeErr)
+          console.warn('[OAuth Garmin] Deregistration threw (best-effort):', revokeErr)
         }
       }
 
-      // --- Mark connection as disconnected and clear tokens ---
-      // Preserve existing metadata fields while adding disconnected_at so we
-      // retain the garmin_user_id for audit / analytics purposes.
       const existingMeta: Record<string, unknown> =
         typeof connection?.connection_metadata === 'object' && connection?.connection_metadata !== null
           ? (connection.connection_metadata as Record<string, unknown>)
@@ -298,6 +387,7 @@ Deno.serve(async (req: Request) => {
           refresh_token_encrypted: null,
           connection_metadata: {
             ...existingMeta,
+            pkce_code_verifier: undefined, // Clean up PKCE state
             disconnected_at: new Date().toISOString(),
           },
         })
@@ -334,11 +424,6 @@ Deno.serve(async (req: Request) => {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/**
- * Invoke the backfill-health-data Edge Function in a fire-and-forget manner.
- * The function URL is derived from the same SUPABASE_URL env var already
- * available to all Edge Functions.
- */
 async function triggerBackfill(profileId: string, provider: 'garmin' | 'strava'): Promise<void> {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
@@ -356,7 +441,6 @@ async function triggerBackfill(profileId: string, provider: 'garmin' | 'strava')
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      // Use the service-role key so the backfill function can authenticate
       'Authorization': `Bearer ${serviceRoleKey}`,
       'apikey': serviceRoleKey,
     },
