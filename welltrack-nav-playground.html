@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WellTrack Navigation Playground</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #111; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 24px; }
+
+  .header { text-align: center; margin-bottom: 20px; }
+  .header h1 { font-size: 22px; color: #fff; margin-bottom: 4px; }
+  .header p { font-size: 13px; color: #888; }
+
+  .toggle-bar { display: flex; gap: 0; margin-bottom: 24px; border-radius: 10px; overflow: hidden; border: 1px solid #333; }
+  .toggle-btn { padding: 10px 28px; background: #1a1a1a; color: #888; border: none; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.2s; }
+  .toggle-btn.active { background: #4DA8FF; color: #fff; }
+
+  .phone-frame { width: 375px; height: 780px; background: #0E0E0E; border-radius: 40px; border: 3px solid #333; overflow: hidden; position: relative; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+
+  .status-bar { height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; font-size: 12px; color: #999; }
+  .status-bar .time { font-weight: 600; color: #fff; }
+
+  .screen-content { height: calc(100% - 44px - 64px); overflow-y: auto; padding: 0 0 16px 0; scrollbar-width: none; }
+  .screen-content::-webkit-scrollbar { display: none; }
+
+  .bottom-nav { height: 64px; background: rgba(26,25,25,0.95); border-top: 1px solid #2a2a2a; display: flex; align-items: center; justify-content: space-around; position: absolute; bottom: 0; left: 0; right: 0; backdrop-filter: blur(10px); }
+  .nav-item { display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; padding: 6px 16px; border-radius: 12px; transition: all 0.15s; }
+  .nav-item:hover { background: rgba(77,168,255,0.08); }
+  .nav-item .icon { font-size: 22px; color: #666; transition: color 0.15s; }
+  .nav-item .label { font-size: 10px; color: #666; font-weight: 500; transition: color 0.15s; }
+  .nav-item.active .icon { color: #4DA8FF; }
+  .nav-item.active .label { color: #4DA8FF; font-weight: 700; }
+
+  .fab { position: absolute; bottom: 80px; right: 20px; width: 52px; height: 52px; background: #4DA8FF; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 28px; color: #fff; box-shadow: 0 4px 16px rgba(77,168,255,0.4); cursor: pointer; z-index: 10; }
+  .fab:hover { transform: scale(1.05); }
+
+  /* Cards */
+  .card { background: #1A1919; border-radius: 16px; padding: 16px; margin: 0 16px 12px; }
+  .card-title { font-size: 12px; color: #4DA8FF; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .card-value { font-size: 28px; font-weight: 700; color: #fff; }
+  .card-sub { font-size: 12px; color: #888; margin-top: 2px; }
+
+  .section-title { font-size: 14px; font-weight: 600; color: #fff; padding: 12px 16px 8px; }
+
+  /* Module grid */
+  .module-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 0 16px; margin-bottom: 12px; }
+  .module-tile { background: #1A1919; border-radius: 12px; padding: 12px 8px; text-align: center; cursor: pointer; transition: background 0.15s; }
+  .module-tile:hover { background: #252525; }
+  .module-tile .tile-icon { font-size: 20px; margin-bottom: 4px; }
+  .module-tile .tile-label { font-size: 10px; color: #ccc; font-weight: 500; }
+
+  /* Macro bars */
+  .macro-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; }
+  .macro-label { font-size: 12px; color: #ccc; width: 60px; }
+  .macro-bar-bg { flex: 1; height: 6px; background: #2a2a2a; border-radius: 3px; margin: 0 8px; }
+  .macro-bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+  .macro-val { font-size: 11px; color: #888; width: 50px; text-align: right; }
+
+  /* Sparkline */
+  .sparkline { display: flex; align-items: flex-end; gap: 3px; height: 40px; }
+  .spark-bar { width: 100%; border-radius: 2px; transition: height 0.3s; }
+
+  /* Quick actions */
+  .quick-actions { display: flex; gap: 8px; padding: 0 16px; margin-bottom: 12px; }
+  .quick-action { flex: 1; background: #1A1919; border-radius: 12px; padding: 14px 8px; text-align: center; cursor: pointer; }
+  .quick-action:hover { background: #252525; }
+  .quick-action .qa-icon { font-size: 20px; margin-bottom: 4px; }
+  .quick-action .qa-label { font-size: 10px; color: #ccc; }
+
+  /* Meal slots */
+  .meal-slot { display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid #222; }
+  .meal-slot:last-child { border-bottom: none; }
+  .meal-time { font-size: 11px; color: #4DA8FF; width: 70px; font-weight: 600; }
+  .meal-name { font-size: 13px; color: #fff; flex: 1; }
+  .meal-cals { font-size: 11px; color: #888; }
+
+  /* Settings list */
+  .settings-item { display: flex; align-items: center; padding: 14px 16px; border-bottom: 1px solid #1a1a1a; cursor: pointer; }
+  .settings-item:hover { background: #1a1919; }
+  .settings-item .si-icon { font-size: 18px; color: #4DA8FF; margin-right: 12px; }
+  .settings-item .si-label { font-size: 14px; color: #fff; flex: 1; }
+  .settings-item .si-arrow { color: #555; }
+
+  /* Habit row */
+  .habit-row { display: flex; align-items: center; padding: 8px 0; gap: 10px; }
+  .habit-check { width: 20px; height: 20px; border-radius: 50%; border: 2px solid #4DA8FF; display: flex; align-items: center; justify-content: center; font-size: 12px; cursor: pointer; }
+  .habit-check.done { background: #4DA8FF; }
+  .habit-label { font-size: 13px; color: #ccc; }
+  .habit-streak { font-size: 11px; color: #FF9800; margin-left: auto; }
+
+  /* Chart placeholder */
+  .chart-area { height: 100px; background: linear-gradient(135deg, rgba(77,168,255,0.08), rgba(77,168,255,0.02)); border-radius: 12px; display: flex; align-items: flex-end; padding: 8px; gap: 2px; margin-top: 8px; }
+  .chart-bar { flex: 1; background: #4DA8FF; border-radius: 2px 2px 0 0; opacity: 0.7; }
+
+  /* Prompt area */
+  .prompt-area { margin-top: 24px; width: 375px; background: #1a1a1a; border-radius: 12px; padding: 16px; border: 1px solid #333; }
+  .prompt-label { font-size: 11px; color: #4DA8FF; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .prompt-text { font-size: 13px; color: #ccc; line-height: 1.6; font-family: 'SF Mono', 'Fira Code', monospace; }
+  .copy-btn { margin-top: 12px; background: #4DA8FF; color: #fff; border: none; padding: 8px 20px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; }
+  .copy-btn:hover { background: #3a95e8; }
+
+  /* Diff badge */
+  .diff-badge { display: inline-block; background: rgba(77,168,255,0.15); color: #4DA8FF; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 600; margin-left: 6px; }
+  .diff-badge.removed { background: rgba(239,83,80,0.15); color: #EF5350; }
+  .diff-badge.new { background: rgba(76,175,80,0.15); color: #4CAF50; }
+
+  /* Workout tabs */
+  .tab-bar { display: flex; padding: 0 16px; gap: 0; margin-bottom: 12px; }
+  .tab-item { flex: 1; text-align: center; padding: 10px; font-size: 13px; color: #666; border-bottom: 2px solid transparent; cursor: pointer; font-weight: 500; }
+  .tab-item.active { color: #4DA8FF; border-bottom-color: #4DA8FF; }
+
+  /* AI card */
+  .ai-card { background: linear-gradient(135deg, rgba(77,168,255,0.1), rgba(77,168,255,0.03)); border: 1px solid rgba(77,168,255,0.2); border-radius: 16px; padding: 16px; margin: 0 16px 12px; }
+  .ai-card .ai-icon { font-size: 16px; color: #4DA8FF; margin-bottom: 6px; }
+  .ai-card .ai-text { font-size: 12px; color: #bbb; line-height: 1.5; font-style: italic; }
+
+  /* Steps row */
+  .steps-row { display: flex; gap: 8px; padding: 0 16px; margin-bottom: 12px; }
+  .step-tile { flex: 1; background: #1A1919; border-radius: 16px; padding: 16px; }
+  .step-tile .st-icon { font-size: 18px; margin-bottom: 6px; }
+  .step-tile .st-value { font-size: 22px; font-weight: 700; color: #fff; }
+  .step-tile .st-label { font-size: 11px; color: #888; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>WellTrack Navigation Playground</h1>
+  <p>Compare current vs proposed bottom navigation layout</p>
+</div>
+
+<div class="toggle-bar">
+  <button class="toggle-btn active" onclick="setLayout('current')">Current</button>
+  <button class="toggle-btn" onclick="setLayout('proposed')">Proposed</button>
+</div>
+
+<div class="phone-frame">
+  <div class="status-bar">
+    <span class="time">14:16</span>
+    <span>⚡ 71%</span>
+  </div>
+
+  <div class="screen-content" id="screenContent"></div>
+
+  <div class="fab" onclick="alert('Opens Enhanced Log Sheet:\n• Log Food\n• Barcode Scan\n• Voice Log (PRO)\n• Meal Scan (PRO)\n• Water\n• Weight\n• Exercise')">+</div>
+
+  <div class="bottom-nav" id="bottomNav"></div>
+</div>
+
+<div class="prompt-area">
+  <div class="prompt-label">Implementation Prompt</div>
+  <div class="prompt-text" id="promptText"></div>
+  <button class="copy-btn" onclick="copyPrompt()">Copy Prompt</button>
+</div>
+
+<script>
+const state = {
+  layout: 'current',
+  activeTab: 0,
+};
+
+const layouts = {
+  current: {
+    tabs: [
+      { icon: '🏠', iconOutline: '🏠', label: 'Home' },
+      { icon: '📝', iconOutline: '📝', label: 'Log' },
+      { icon: '💪', iconOutline: '💪', label: 'Workouts' },
+      { icon: '👤', iconOutline: '👤', label: 'Profile' },
+    ],
+  },
+  proposed: {
+    tabs: [
+      { icon: '🏠', iconOutline: '🏠', label: 'Home' },
+      { icon: '📅', iconOutline: '📅', label: 'Plan' },
+      { icon: '📈', iconOutline: '📈', label: 'Progress' },
+      { icon: '👤', iconOutline: '👤', label: 'Profile' },
+    ],
+  },
+};
+
+function setLayout(layout) {
+  state.layout = layout;
+  state.activeTab = 0;
+  document.querySelectorAll('.toggle-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', (i === 0 && layout === 'current') || (i === 1 && layout === 'proposed'));
+  });
+  render();
+}
+
+function setTab(index) {
+  state.activeTab = index;
+  render();
+}
+
+function renderNav() {
+  const nav = document.getElementById('bottomNav');
+  const tabs = layouts[state.layout].tabs;
+  nav.innerHTML = tabs.map((t, i) => `
+    <div class="nav-item ${i === state.activeTab ? 'active' : ''}" onclick="setTab(${i})">
+      <span class="icon">${t.icon}</span>
+      <span class="label">${t.label}</span>
+    </div>
+  `).join('');
+}
+
+function renderScreen() {
+  const el = document.getElementById('screenContent');
+  if (state.layout === 'current') {
+    el.innerHTML = [renderCurrentHome, renderCurrentLog, renderCurrentWorkouts, renderCurrentProfile][state.activeTab]();
+  } else {
+    el.innerHTML = [renderProposedHome, renderProposedPlan, renderProposedProgress, renderProposedProfile][state.activeTab]();
+  }
+}
+
+// ─── CURRENT LAYOUT SCREENS ───────────────────────────────
+
+function renderCurrentHome() {
+  return `
+    <div style="padding: 16px 16px 8px">
+      <div style="font-size: 14px; color: #888">Good afternoon,</div>
+      <div style="font-size: 26px; font-weight: 700; color: #fff">femi-test</div>
+    </div>
+
+    <div class="card">
+      <div style="display: flex; align-items: center; gap: 8px">
+        <span style="color: #4DA8FF">♡</span>
+        <span class="card-title" style="margin: 0">Recovery</span>
+        <span style="margin-left: auto; color: #555">›</span>
+      </div>
+      <div style="margin-top: 8px; color: #888; font-size: 13px">No recovery data yet</div>
+      <div style="color: #666; font-size: 11px">Log sleep and workouts to see your score.</div>
+    </div>
+
+    <div class="card" style="text-align: center; padding: 24px">
+      <div style="font-size: 16px; color: #666">🍽</div>
+      <div style="font-size: 14px; color: #999; margin: 8px 0">No food logged today</div>
+      <div style="color: #4DA8FF; font-size: 14px; cursor: pointer">Log your first meal</div>
+    </div>
+
+    <div class="steps-row">
+      <div class="step-tile">
+        <div class="st-icon" style="color: #4DA8FF">🚶</div>
+        <div class="st-value">96</div>
+        <div class="st-label">Steps</div>
+      </div>
+      <div class="step-tile">
+        <div class="st-icon" style="color: #4CAF50">🔥</div>
+        <div class="st-value">0</div>
+        <div class="st-label">Exercise kcal</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Weight Trend</div>
+      <div style="color: #888; font-size: 12px; text-align: center; padding: 20px 0">No weight data yet</div>
+    </div>
+
+    <div class="section-title">Modules</div>
+    <div class="module-grid">
+      ${['🍽 Meals', '💊 Suppl.', '💪 Workouts', '❤️ Health', '📊 Insights', '🔔 Remind.', '🎯 Goals', '🧪 Blood.', '🔥 Habits'].map(m => {
+        const [icon, label] = [m.substring(0, 2), m.substring(3)];
+        return `<div class="module-tile"><div class="tile-icon">${icon}</div><div class="tile-label">${label}</div></div>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+function renderCurrentLog() {
+  return `
+    <div style="padding: 16px; text-align: center">
+      <div style="display: flex; align-items: center; justify-content: space-between">
+        <span style="color: #666; cursor: pointer; font-size: 20px">‹</span>
+        <div>
+          <div style="font-size: 18px; font-weight: 700; color: #fff">Today</div>
+          <div style="font-size: 12px; color: #4DA8FF">Monday</div>
+        </div>
+        <span style="color: #666; cursor: pointer; font-size: 20px">›</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-value" style="text-align: center">2,100</div>
+      <div class="card-sub" style="text-align: center">Calories remaining</div>
+      <div style="display: flex; justify-content: space-around; margin-top: 16px">
+        <div style="text-align: center"><div style="font-size: 16px; font-weight: 600; color: #fff">2,100</div><div style="font-size: 10px; color: #888">Goal</div></div>
+        <div style="text-align: center"><div style="font-size: 16px; font-weight: 600; color: #fff">0</div><div style="font-size: 10px; color: #888">Consumed</div></div>
+        <div style="text-align: center"><div style="font-size: 16px; font-weight: 600; color: #fff">2,100</div><div style="font-size: 10px; color: #888">Remaining</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Macros</div>
+      <div class="macro-row"><span class="macro-label">Protein</span><div class="macro-bar-bg"><div class="macro-bar-fill" style="width: 0%; background: #4DA8FF"></div></div><span class="macro-val">0/150g</span></div>
+      <div class="macro-row"><span class="macro-label">Carbs</span><div class="macro-bar-bg"><div class="macro-bar-fill" style="width: 0%; background: #00E3FD"></div></div><span class="macro-val">0/250g</span></div>
+      <div class="macro-row"><span class="macro-label">Fat</span><div class="macro-bar-bg"><div class="macro-bar-fill" style="width: 0%; background: #FF9800"></div></div><span class="macro-val">0/70g</span></div>
+    </div>
+
+    <div class="quick-actions">
+      <div class="quick-action"><div class="qa-icon">🍽</div><div class="qa-label">Log Meal</div></div>
+      <div class="quick-action"><div class="qa-icon">📋</div><div class="qa-label">Meal Plan</div></div>
+      <div class="quick-action"><div class="qa-icon">💧</div><div class="qa-label">Water</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Habits</div>
+      <div class="habit-row"><div class="habit-check">✓</div><span class="habit-label">Kegels</span><span class="habit-streak">🔥 5 days</span></div>
+      <div class="habit-row"><div class="habit-check"></div><span class="habit-label">Sleep target</span></div>
+      <div class="habit-row"><div class="habit-check"></div><span class="habit-label">Steps target</span></div>
+    </div>
+  `;
+}
+
+function renderCurrentWorkouts() {
+  return `
+    <div style="padding: 16px 16px 0"><div style="font-size: 20px; font-weight: 700; color: #fff">Workouts</div></div>
+    <div class="tab-bar">
+      <div class="tab-item active">Today</div>
+      <div class="tab-item">Plans</div>
+      <div class="tab-item">History</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Today's Workout</div>
+      <div style="color: #999; font-size: 13px; text-align: center; padding: 24px 0">No workout scheduled</div>
+      <div style="text-align: center"><span style="color: #4DA8FF; font-size: 13px; cursor: pointer">Start a workout</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">This Week</div>
+      <div style="display: flex; justify-content: space-between; padding: 8px 0">
+        ${['M','T','W','T','F','S','S'].map((d,i) => `<div style="text-align: center"><div style="font-size: 10px; color: #666">${d}</div><div style="width: 28px; height: 28px; border-radius: 50%; background: ${i < 1 ? '#4DA8FF' : '#222'}; margin-top: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: ${i < 1 ? '#fff' : '#555'}">${i < 1 ? '✓' : ''}</div></div>`).join('')}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Training Volume</div>
+      <div class="chart-area">
+        ${[40,65,30,80,50,70,45].map(h => `<div class="chart-bar" style="height: ${h}%"></div>`).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function renderCurrentProfile() {
+  return `
+    <div style="text-align: center; padding: 32px 16px 16px">
+      <div style="width: 72px; height: 72px; border-radius: 50%; background: #4DA8FF; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; font-size: 28px; color: #fff; font-weight: 700">F</div>
+      <div style="font-size: 18px; font-weight: 700; color: #fff">femi-test</div>
+      <div style="font-size: 12px; color: #888">femi@test.com</div>
+    </div>
+    ${['⚙️ Settings', '🔔 Notifications', '🔗 Health Connections', '🎨 Appearance', '🔒 Privacy', '❓ Help & Support', '🚪 Sign Out'].map(item => {
+      const [icon, label] = [item.substring(0, 2), item.substring(3)];
+      return `<div class="settings-item"><span class="si-icon">${icon}</span><span class="si-label">${label}</span><span class="si-arrow">›</span></div>`;
+    }).join('')}
+  `;
+}
+
+// ─── PROPOSED LAYOUT SCREENS ──────────────────────────────
+
+function renderProposedHome() {
+  return `
+    <div style="padding: 16px 16px 8px">
+      <div style="font-size: 14px; color: #888">Good afternoon,</div>
+      <div style="font-size: 26px; font-weight: 700; color: #fff">femi-test</div>
+    </div>
+
+    <div class="card">
+      <div style="display: flex; align-items: center; gap: 8px">
+        <span style="color: #4DA8FF">♡</span>
+        <span class="card-title" style="margin: 0">Recovery</span>
+        <span class="diff-badge new">same</span>
+        <span style="margin-left: auto; color: #555">›</span>
+      </div>
+      <div style="margin-top: 8px; color: #888; font-size: 13px">No recovery data yet</div>
+    </div>
+
+    <div class="card" style="text-align: center; padding: 24px">
+      <div style="font-size: 16px; color: #666">🍽</div>
+      <div style="font-size: 14px; color: #999; margin: 8px 0">No food logged today</div>
+      <div style="color: #4DA8FF; font-size: 14px; cursor: pointer">Log your first meal</div>
+    </div>
+
+    <div class="steps-row">
+      <div class="step-tile">
+        <div class="st-icon" style="color: #4DA8FF">🚶</div>
+        <div class="st-value">96</div>
+        <div class="st-label">Steps</div>
+      </div>
+      <div class="step-tile">
+        <div class="st-icon" style="color: #4CAF50">🔥</div>
+        <div class="st-value">0</div>
+        <div class="st-label">Exercise kcal</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Weight Trend</div>
+      <div style="color: #888; font-size: 12px; text-align: center; padding: 20px 0">No weight data yet</div>
+    </div>
+
+    <div class="section-title">Modules</div>
+    <div class="module-grid">
+      ${['🍽 Meals', '💊 Suppl.', '❤️ Health', '🔔 Remind.', '🎯 Goals', '🧪 Blood.', '🔥 Habits'].map(m => {
+        const [icon, label] = [m.substring(0, 2), m.substring(3)];
+        return `<div class="module-tile"><div class="tile-icon">${icon}</div><div class="tile-label">${label}</div></div>`;
+      }).join('')}
+    </div>
+    <div style="padding: 0 16px; margin-bottom: 8px">
+      <div style="font-size: 10px; color: #555; text-align: center">Workouts & Insights moved to Plan & Progress tabs ↓</div>
+    </div>
+  `;
+}
+
+function renderProposedPlan() {
+  return `
+    <div style="padding: 16px; text-align: center">
+      <div style="display: flex; align-items: center; justify-content: space-between">
+        <span style="color: #666; cursor: pointer; font-size: 20px">‹</span>
+        <div>
+          <div style="font-size: 18px; font-weight: 700; color: #fff">Today's Plan</div>
+          <div style="font-size: 12px; color: #4DA8FF">Monday, Mar 31</div>
+        </div>
+        <span style="color: #666; cursor: pointer; font-size: 20px">›</span>
+      </div>
+    </div>
+
+    <div class="card" style="border-left: 3px solid #4DA8FF">
+      <div style="display: flex; align-items: center; gap: 8px">
+        <span style="font-size: 16px">☀️</span>
+        <div>
+          <div style="font-size: 13px; font-weight: 600; color: #fff">Morning Check-in</div>
+          <div style="font-size: 11px; color: #4DA8FF">Tap to start</div>
+        </div>
+        <span class="diff-badge new">NEW</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Meal Plan</div>
+      <div class="diff-badge new" style="margin-bottom: 8px">MOVED FROM LOG TAB</div>
+      <div class="meal-slot"><span class="meal-time">Breakfast</span><span class="meal-name">Oats with berries</span><span class="meal-cals">380 kcal</span></div>
+      <div class="meal-slot"><span class="meal-time">Lunch</span><span class="meal-name">Chicken salad wrap</span><span class="meal-cals">520 kcal</span></div>
+      <div class="meal-slot"><span class="meal-time">Dinner</span><span class="meal-name">Salmon with rice</span><span class="meal-cals">650 kcal</span></div>
+      <div class="meal-slot"><span class="meal-time">Snack</span><span class="meal-name">Greek yogurt</span><span class="meal-cals">150 kcal</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Workout</div>
+      <div class="diff-badge new" style="margin-bottom: 8px">MOVED FROM WORKOUTS TAB</div>
+      <div style="display: flex; align-items: center; gap: 12px">
+        <div style="width: 40px; height: 40px; background: rgba(77,168,255,0.15); border-radius: 10px; display: flex; align-items: center; justify-content: center">💪</div>
+        <div style="flex: 1">
+          <div style="font-size: 14px; font-weight: 600; color: #fff">Upper Body Push</div>
+          <div style="font-size: 11px; color: #888">45 min · 6 exercises</div>
+        </div>
+        <span style="color: #4DA8FF; font-size: 13px; cursor: pointer">Start</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Supplements</div>
+      <div class="habit-row"><div class="habit-check done">✓</div><span class="habit-label">Vitamin D3 · Morning</span></div>
+      <div class="habit-row"><div class="habit-check"></div><span class="habit-label">Omega-3 · With lunch</span></div>
+      <div class="habit-row"><div class="habit-check"></div><span class="habit-label">Magnesium · Before bed</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Habits</div>
+      <div class="habit-row"><div class="habit-check done">✓</div><span class="habit-label">Kegels</span><span class="habit-streak">🔥 5 days</span></div>
+      <div class="habit-row"><div class="habit-check"></div><span class="habit-label">Sleep target</span></div>
+      <div class="habit-row"><div class="habit-check"></div><span class="habit-label">Steps target</span></div>
+      <div class="habit-row"><div class="habit-check"></div><span class="habit-label">Porn free</span><span class="habit-streak">🔥 12 days</span></div>
+    </div>
+  `;
+}
+
+function renderProposedProgress() {
+  return `
+    <div style="padding: 16px 16px 8px">
+      <div style="font-size: 20px; font-weight: 700; color: #fff">Progress</div>
+      <div style="font-size: 12px; color: #888">Your health trends over time</div>
+      <span class="diff-badge new" style="margin-top: 4px">NEW TAB</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Recovery Trend</div>
+      <div style="display: flex; align-items: baseline; gap: 8px">
+        <span style="font-size: 32px; font-weight: 700; color: #4CAF50">75</span>
+        <span style="font-size: 12px; color: #4CAF50">▲ Good</span>
+      </div>
+      <div class="sparkline" style="margin-top: 12px">
+        ${[55,62,58,70,68,72,75].map(v => `<div class="spark-bar" style="height: ${v}%; background: ${v >= 70 ? '#4CAF50' : v >= 50 ? '#FF9800' : '#EF5350'}"></div>`).join('')}
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 9px; color: #555; margin-top: 4px">
+        <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">VO₂ Max</div>
+      <div style="display: flex; align-items: baseline; gap: 8px">
+        <span style="font-size: 28px; font-weight: 700; color: #fff">42.3</span>
+        <span style="font-size: 12px; color: #888">ml/kg/min</span>
+        <span style="font-size: 11px; color: #4CAF50; margin-left: auto">Good ↑</span>
+      </div>
+      <div class="chart-area" style="height: 80px">
+        ${Array.from({length: 14}, (_, i) => {
+          const h = 30 + i * 3 + Math.sin(i) * 8;
+          return `<div class="chart-bar" style="height: ${h}%; opacity: ${i > 10 ? 0.3 : 0.7}; ${i > 10 ? 'border: 1px dashed rgba(77,168,255,0.4); background: transparent;' : ''}"></div>`;
+        }).join('')}
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 9px; color: #555; margin-top: 4px">
+        <span>30 days ago</span><span style="color: #4DA8FF">── forecast ──</span><span>+30 days</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Training Load</div>
+      <div style="display: flex; align-items: baseline; gap: 8px">
+        <span style="font-size: 22px; font-weight: 700; color: #fff">1,240</span>
+        <span style="font-size: 12px; color: #888">AU this week</span>
+        <span style="font-size: 11px; color: #FF9800; margin-left: auto">+12% ↑</span>
+      </div>
+      <div class="chart-area" style="height: 60px">
+        ${[45,60,55,72,40,65,50,80,55,70,45,85,60,75,50,90,65,80,55,70,48,82,58,78,52,88,62,75].map((h,i) => `<div class="chart-bar" style="height: ${h}%; background: ${i >= 21 ? '#4DA8FF' : '#333'}; opacity: ${i >= 21 ? 0.8 : 0.4}"></div>`).join('')}
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 9px; color: #555; margin-top: 4px">
+        <span>4 weeks ago</span><span style="color: #4DA8FF">this week</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Sleep Quality</div>
+      <div style="display: flex; gap: 16px">
+        <div><div style="font-size: 18px; font-weight: 700; color: #fff">7.2h</div><div style="font-size: 10px; color: #888">7-day avg</div></div>
+        <div><div style="font-size: 18px; font-weight: 700; color: #fff">6.8h</div><div style="font-size: 10px; color: #888">14-day avg</div></div>
+        <div><div style="font-size: 18px; font-weight: 700; color: #4CAF50">▲</div><div style="font-size: 10px; color: #888">Improving</div></div>
+      </div>
+    </div>
+
+    <div class="ai-card">
+      <div class="ai-icon">✨ WellTrack Insight</div>
+      <div class="ai-text">"Your recovery has been trending upward this week. The extra sleep on Thursday and Friday may have contributed. Consider maintaining your current training volume — your body seems to be adapting well."</div>
+    </div>
+  `;
+}
+
+function renderProposedProfile() {
+  return renderCurrentProfile();
+}
+
+function updatePrompt() {
+  const el = document.getElementById('promptText');
+  const layout = layouts[state.layout];
+  const tabName = layout.tabs[state.activeTab].label;
+
+  if (state.layout === 'current') {
+    el.textContent = `Current navigation: 4 tabs — Home, Log, Workouts, Profile. The Log tab duplicates much of the Home dashboard (calories, macros, health metrics). Workouts has a dedicated tab while equally important features (Meals, Goals, Insights) are buried in the module grid. The FAB (+) and Log tab compete for the same "logging" concept.`;
+  } else {
+    el.textContent = `Proposed navigation: 4 tabs — Home, Plan, Progress, Profile. Replace "Log" with "Plan" (today's meals, workout, supplements, habits — actionable daily view). Replace "Workouts" with "Progress" (recovery trends, VO₂ max chart with forecast, training load, sleep quality, AI narrative). Workouts accessible from Plan tab and module grid. FAB (+) remains for quick-logging (food, water, weight). This gives the app's core differentiator (recovery-driven optimization) a dedicated tab while consolidating daily actions into one place.`;
+  }
+}
+
+function render() {
+  renderNav();
+  renderScreen();
+  updatePrompt();
+}
+
+function copyPrompt() {
+  const text = document.getElementById('promptText').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy Prompt', 1500);
+  });
+}
+
+// Initial render
+render();
+</script>
+</body>
+</html>

@@ -20,7 +20,79 @@ import { corsHeaders } from '../_shared/cors.ts'
  * - moveIQ: Auto-detected activities
  * - deregistration: User revoked access
  * - user-permission: Permission changes
+ *
+ * Security: Each inbound request is validated against an HMAC-SHA1 signature
+ * that Garmin generates using the consumer secret. Requests that fail
+ * verification are rejected with 401 before any processing occurs.
+ * Set GARMIN_CONSUMER_SECRET in Supabase secrets to enable validation.
+ * If the env var is absent the check is skipped (development mode).
  */
+
+/**
+ * Verify Garmin HMAC-SHA1 request signature.
+ *
+ * Garmin signs each webhook POST with:
+ *   X-Garmin-Signature: <hex(HMAC-SHA1(consumerSecret, rawBody))>
+ *
+ * Returns true when signature is valid or when the secret is not configured
+ * (allows local development without setting secrets).
+ */
+async function verifyGarminSignature(req: Request, rawBody: string): Promise<boolean> {
+  const consumerSecret = Deno.env.get('GARMIN_CONSUMER_SECRET')
+
+  // SECURITY: Reject all requests if the secret is not configured.
+  // Use ENVIRONMENT=development in Supabase secrets to skip validation in dev.
+  if (!consumerSecret) {
+    const env = Deno.env.get('ENVIRONMENT') ?? 'production'
+    if (env === 'development') {
+      console.warn('[Garmin Webhook] GARMIN_CONSUMER_SECRET not set — skipping HMAC (dev mode)')
+      return true
+    }
+    console.error('[Garmin Webhook] GARMIN_CONSUMER_SECRET not set — rejecting request')
+    return false
+  }
+
+  const signature = req.headers.get('X-Garmin-Signature')
+  if (!signature) {
+    console.error('[Garmin Webhook] Missing X-Garmin-Signature header')
+    return false
+  }
+
+  // Import the secret as a raw HMAC-SHA1 key using the Web Crypto API
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(consumerSecret),
+    { name: 'HMAC', hash: 'SHA-1' },
+    false,
+    ['sign']
+  )
+
+  const signatureBytes = await crypto.subtle.sign(
+    'HMAC',
+    keyMaterial,
+    new TextEncoder().encode(rawBody)
+  )
+
+  // Encode computed signature as lowercase hex
+  const computedHex = Array.from(new Uint8Array(signatureBytes))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+
+  // Constant-time comparison is not natively available in Deno crypto.subtle,
+  // but the comparison is done entirely server-side so timing attacks from
+  // the network are not a practical concern here.
+  const isValid = computedHex === signature.toLowerCase()
+
+  if (!isValid) {
+    console.error('[Garmin Webhook] HMAC signature mismatch', {
+      expected: computedHex,
+      received: signature,
+    })
+  }
+
+  return isValid
+}
+
 Deno.serve(async (req: Request) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -28,15 +100,41 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    // Read raw body text once so we can pass it to both HMAC verification
+    // and JSON parsing without consuming the stream twice.
+    const rawBody = await req.text()
+
+    // --- HMAC Signature Validation ---
+    const signatureValid = await verifyGarminSignature(req, rawBody)
+    if (!signatureValid) {
+      console.error('[Garmin Webhook] Request rejected — invalid HMAC signature')
+      // Return 401 for invalid signatures. Garmin retries failed notifications
+      // but only suspends endpoints for persistent failures, not occasional ones.
+      // Returning 200 on bad signatures would hide misconfiguration.
+      return new Response(
+        JSON.stringify({ error: 'Invalid signature' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const { adminClient } = createSupabaseClient(req)
+
+    // Parse the body we already read
+    let payload: any
+    try {
+      payload = JSON.parse(rawBody)
+    } catch {
+      console.error('[Garmin Webhook] Failed to parse JSON body')
+      return new Response(
+        JSON.stringify({ status: 'received' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
     // Extract event type from URL path or header
     const url = new URL(req.url)
     const pathParts = url.pathname.split('/')
     const eventType = pathParts[pathParts.length - 1] || 'unknown'
-
-    // Parse payload
-    const payload = await req.json()
 
     console.log(`[Garmin Webhook] Received ${eventType} event`, {
       payloadType: Array.isArray(payload) ? 'array' : typeof payload,

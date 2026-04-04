@@ -13,6 +13,8 @@ class MealPlanItemEntity {
     this.sortOrder = 0,
     this.isLogged = false,
     this.swapCount = 0,
+    this.portionMultiplier = 1.0,
+    this.source = 'plan',
     required this.createdAt,
   });
 
@@ -31,6 +33,8 @@ class MealPlanItemEntity {
       sortOrder: json['sort_order'] as int? ?? 0,
       isLogged: json['is_logged'] as bool? ?? false,
       swapCount: json['swap_count'] as int? ?? 0,
+      portionMultiplier: (json['portion_multiplier'] as num?)?.toDouble() ?? 1.0,
+      source: json['source'] as String? ?? 'plan',
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }
@@ -48,7 +52,17 @@ class MealPlanItemEntity {
   final int sortOrder;
   final bool isLogged;
   final int swapCount;
+  /// Fraction of base macros consumed (1.0 = 100%, 0.5 = 50%).
+  final double portionMultiplier;
+  /// 'plan' = AI-generated, 'food_search' = user-logged from food database.
+  final String source;
   final DateTime createdAt;
+
+  // Effective macros after applying portionMultiplier
+  int get effectiveCalories => ((calories ?? 0) * portionMultiplier).round();
+  int get effectiveProteinG => ((proteinG ?? 0) * portionMultiplier).round();
+  int get effectiveCarbsG => ((carbsG ?? 0) * portionMultiplier).round();
+  int get effectiveFatG => ((fatG ?? 0) * portionMultiplier).round();
 
   MealPlanItemEntity copyWith({
     String? mealType,
@@ -62,6 +76,8 @@ class MealPlanItemEntity {
     int? sortOrder,
     bool? isLogged,
     int? swapCount,
+    double? portionMultiplier,
+    String? source,
   }) {
     return MealPlanItemEntity(
       id: id,
@@ -77,6 +93,8 @@ class MealPlanItemEntity {
       sortOrder: sortOrder ?? this.sortOrder,
       isLogged: isLogged ?? this.isLogged,
       swapCount: swapCount ?? this.swapCount,
+      portionMultiplier: portionMultiplier ?? this.portionMultiplier,
+      source: source ?? this.source,
       createdAt: createdAt,
     );
   }
@@ -96,6 +114,8 @@ class MealPlanItemEntity {
       'sort_order': sortOrder,
       'is_logged': isLogged,
       'swap_count': swapCount,
+      'portion_multiplier': portionMultiplier,
+      'source': source,
       'created_at': createdAt.toIso8601String(),
     };
   }
@@ -226,6 +246,23 @@ class MealPlanEntity {
 
   int get totalFatActual =>
       items.fold(0, (sum, item) => sum + (item.fatG ?? 0));
+
+  // Consumed = only logged items, with portionMultiplier applied
+  int get consumedCalories => items
+      .where((i) => i.isLogged)
+      .fold(0, (sum, i) => sum + i.effectiveCalories);
+
+  int get consumedProteinG => items
+      .where((i) => i.isLogged)
+      .fold(0, (sum, i) => sum + i.effectiveProteinG);
+
+  int get consumedCarbsG => items
+      .where((i) => i.isLogged)
+      .fold(0, (sum, i) => sum + i.effectiveCarbsG);
+
+  int get consumedFatG => items
+      .where((i) => i.isLogged)
+      .fold(0, (sum, i) => sum + i.effectiveFatG);
 
   int get loggedCount => items.where((i) => i.isLogged).length;
 

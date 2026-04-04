@@ -125,6 +125,12 @@ class ModuleTileWidget extends StatelessWidget {
         return 'Manage your notifications';
       case WellTrackModule.dailyView:
         return 'Today\'s tasks and progress';
+      case WellTrackModule.goals:
+        return 'Set and track your fitness goals';
+      case WellTrackModule.bloodwork:
+        return 'Track lab results and trends';
+      case WellTrackModule.habits:
+        return 'Build streaks and earn milestones';
       case WellTrackModule.moduleToggles:
         return 'Customize your dashboard';
     }
@@ -142,9 +148,9 @@ class ModuleTileWidget extends StatelessWidget {
   static String? _getModuleRoute(WellTrackModule module) {
     switch (module) {
       case WellTrackModule.meals:
-        return '/pantry';
+        return '/meals/plan';
       case WellTrackModule.nutrients:
-        return '/insights';
+        return '/settings/nutrition-targets';
       case WellTrackModule.supplements:
         return '/supplements';
       case WellTrackModule.workouts:
@@ -156,9 +162,15 @@ class ModuleTileWidget extends StatelessWidget {
       case WellTrackModule.reminders:
         return '/reminders';
       case WellTrackModule.dailyView:
-        return '/daily-view';
+        return '/plan';
+      case WellTrackModule.goals:
+        return '/goals';
+      case WellTrackModule.bloodwork:
+        return '/bloodwork';
+      case WellTrackModule.habits:
+        return '/habits';
       case WellTrackModule.moduleToggles:
-        return '/settings';
+        return '/settings/modules';
     }
   }
 }
@@ -206,9 +218,9 @@ class CompactModuleTile extends StatelessWidget {
               Icon(
                 module.icon,
                 color: accentColor,
-                size: 36,
+                size: 32,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Text(
                 module.displayName,
                 style: AppTypography.labelMedium.copyWith(

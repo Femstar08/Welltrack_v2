@@ -314,47 +314,47 @@ void main() {
   // =========================================================================
 
   group('PerformanceEngine.calculateRecoveryScore', () {
-    /// Weights from the engine source:
-    ///   stress=0.25, sleep=0.30, hr=0.20, load=0.25
+    /// Weights from the new engine source:
+    ///   sleepDur=0.30, sleepQual=0.20, hr=0.25, load=0.25
     /// Weighted average = sum(value*weight) / sum(weights)
 
     group('All four components provided', () {
       test('returns correct weighted average when all components are present', () {
-        // stress=50  → normalizeStress(50) = 50.0
-        // sleep=480  → normalizeSleep(480) = 100.0
+        // sleepDuration=7.5 → normalizeSleepDuration(7.5) = 100.0
+        // sleepQuality=0.40 → normalizeSleepQuality(0.40) = 100.0
         // hr (60/60) → normalizeHR(60, 60)  = 100.0
-        // load(100,100) → normalizeLoad(100,100) = 75.0
-        // weighted = (50*0.25 + 100*0.30 + 100*0.20 + 75*0.25) / 1.0
-        //          = (12.5 + 30 + 20 + 18.75) = 81.25
+        // load(100,200) → normalizeLoadScore(100,200) = 50.0
+        // weighted = (100*0.30 + 100*0.20 + 100*0.25 + 50*0.25) / 1.0
+        //          = (30 + 20 + 25 + 12.5) = 87.5
         final result = PerformanceEngine.calculateRecoveryScore(
           profileId: _kProfileId,
           date: _kDate,
-          stressAvg: 50.0,
-          sleepDurationMin: 480.0,
+          sleepDurationHours: 7.5,
+          sleepQualityRatio: 0.40,
           restingHr: 60.0,
           baselineHr: 60.0,
-          currentWeekLoad: 100.0,
-          previousWeekLoad: 100.0,
+          sevenDayLoad: 100.0,
+          fourWeekAvgLoad: 200.0,
         );
 
-        expect(result.recoveryScore, closeTo(81.25, 0.001));
+        expect(result.recoveryScore, closeTo(87.5, 0.001));
         expect(result.componentsAvailable, 4);
-        expect(result.stressComponent, closeTo(50.0, 0.001));
+        expect(result.stressComponent, closeTo(100.0, 0.001)); // mapped to sleepQualityRatio
         expect(result.sleepComponent, closeTo(100.0, 0.001));
         expect(result.hrComponent, closeTo(100.0, 0.001));
-        expect(result.loadComponent, closeTo(75.0, 0.001));
+        expect(result.loadComponent, closeTo(50.0, 0.001));
       });
 
       test('populates profileId and scoreDate on the returned entity', () {
         final result = PerformanceEngine.calculateRecoveryScore(
           profileId: _kProfileId,
           date: _kDate,
-          stressAvg: 30.0,
-          sleepDurationMin: 480.0,
+          sleepDurationHours: 7.5,
+          sleepQualityRatio: 0.40,
           restingHr: 60.0,
           baselineHr: 60.0,
-          currentWeekLoad: 80.0,
-          previousWeekLoad: 100.0,
+          sevenDayLoad: 80.0,
+          fourWeekAvgLoad: 100.0,
         );
 
         expect(result.profileId, _kProfileId);
@@ -363,19 +363,19 @@ void main() {
     });
 
     group('Missing components — weights are rebalanced', () {
-      test('only stress and sleep provided — weighted average uses combined weight 0.55', () {
-        // stress=50 → 50.0; sleep=480 → 100.0
-        // sum   = 50*0.25 + 100*0.30 = 12.5 + 30 = 42.5
-        // total weight = 0.25 + 0.30 = 0.55
-        // score = 42.5 / 0.55 ≈ 77.27
+      test('only sleep duration and quality provided — weighted average uses combined weight 0.50', () {
+        // sleepDuration=3.75 → 50.0; sleepQuality=0.40 → 100.0
+        // sum   = 50*0.30 + 100*0.20 = 15 + 20 = 35
+        // total weight = 0.30 + 0.20 = 0.50
+        // score = 35 / 0.50 = 70.0
         final result = PerformanceEngine.calculateRecoveryScore(
           profileId: _kProfileId,
           date: _kDate,
-          stressAvg: 50.0,
-          sleepDurationMin: 480.0,
+          sleepDurationHours: 3.75,
+          sleepQualityRatio: 0.40,
         );
 
-        expect(result.recoveryScore, closeTo(77.27, 0.01));
+        expect(result.recoveryScore, closeTo(70.0, 0.01));
         expect(result.componentsAvailable, 2);
         expect(result.hrComponent, isNull);
         expect(result.loadComponent, isNull);
@@ -385,22 +385,22 @@ void main() {
         final result = PerformanceEngine.calculateRecoveryScore(
           profileId: _kProfileId,
           date: _kDate,
-          stressAvg: 0.0,
-          sleepDurationMin: 480.0,
-          currentWeekLoad: 50.0,
-          previousWeekLoad: 100.0,
+          sleepDurationHours: 7.5,
+          sleepQualityRatio: 0.40,
+          sevenDayLoad: 50.0,
+          fourWeekAvgLoad: 100.0,
         );
 
         expect(result.hrComponent, isNull);
         expect(result.componentsAvailable, 3);
       });
 
-      test('load component absent (missing currentWeekLoad) leaves loadComponent null', () {
+      test('load component absent (missing sevenDayLoad) leaves loadComponent null', () {
         final result = PerformanceEngine.calculateRecoveryScore(
           profileId: _kProfileId,
           date: _kDate,
-          stressAvg: 20.0,
-          sleepDurationMin: 480.0,
+          sleepDurationHours: 7.5,
+          sleepQualityRatio: 0.40,
           restingHr: 60.0,
           baselineHr: 60.0,
         );
@@ -409,72 +409,43 @@ void main() {
         expect(result.componentsAvailable, 3);
       });
 
-      test('load component absent (missing previousWeekLoad only) leaves loadComponent null', () {
+      test('load component absent (missing fourWeekAvgLoad only) leaves loadComponent null', () {
         final result = PerformanceEngine.calculateRecoveryScore(
           profileId: _kProfileId,
           date: _kDate,
-          currentWeekLoad: 100.0,
-          // previousWeekLoad intentionally omitted
+          sevenDayLoad: 100.0,
+          // fourWeekAvgLoad omitted
         );
 
         expect(result.loadComponent, isNull);
       });
     });
 
-    group('Only stress provided', () {
-      test('single stress component — score equals the normalised stress value', () {
-        // normalizeStress(50) = 50.0; weighted = 50*0.25 / 0.25 = 50.0
+    group('Only sleep duration provided', () {
+      test('single sleep component — score equals the normalised sleep value', () {
+        // normalizeSleep(3.75) = 50.0; weighted = 50*0.30 / 0.30 = 50.0
         final result = PerformanceEngine.calculateRecoveryScore(
           profileId: _kProfileId,
           date: _kDate,
-          stressAvg: 50.0,
+          sleepDurationHours: 3.75,
         );
 
         expect(result.recoveryScore, closeTo(50.0, 0.001));
         expect(result.componentsAvailable, 1);
-        expect(result.stressComponent, closeTo(50.0, 0.001));
-        expect(result.sleepComponent, isNull);
-        expect(result.hrComponent, isNull);
-        expect(result.loadComponent, isNull);
-      });
-
-      test('zero stress produces score of 100 (perfect recovery from stress side)', () {
-        final result = PerformanceEngine.calculateRecoveryScore(
-          profileId: _kProfileId,
-          date: _kDate,
-          stressAvg: 0.0,
-        );
-
-        expect(result.recoveryScore, closeTo(100.0, 0.001));
-      });
-    });
-
-    group('Only sleep provided', () {
-      test('single sleep component — score equals the normalised sleep value', () {
-        // normalizeSleep(480) = 100.0; weighted = 100*0.30 / 0.30 = 100.0
-        final result = PerformanceEngine.calculateRecoveryScore(
-          profileId: _kProfileId,
-          date: _kDate,
-          sleepDurationMin: 480.0,
-        );
-
-        expect(result.recoveryScore, closeTo(100.0, 0.001));
-        expect(result.componentsAvailable, 1);
-        expect(result.sleepComponent, closeTo(100.0, 0.001));
+        expect(result.sleepComponent, closeTo(50.0, 0.001));
         expect(result.stressComponent, isNull);
         expect(result.hrComponent, isNull);
         expect(result.loadComponent, isNull);
       });
 
-      test('short sleep of 210 minutes produces score of 50', () {
-        // normalizeSleep(210) = 50; weighted = 50*0.30 / 0.30 = 50
+      test('optimal sleep produces score of 100', () {
         final result = PerformanceEngine.calculateRecoveryScore(
           profileId: _kProfileId,
           date: _kDate,
-          sleepDurationMin: 210.0,
+          sleepDurationHours: 7.5,
         );
 
-        expect(result.recoveryScore, closeTo(50.0, 0.001));
+        expect(result.recoveryScore, closeTo(100.0, 0.001));
       });
     });
 
@@ -499,7 +470,7 @@ void main() {
         final result = PerformanceEngine.calculateRecoveryScore(
           profileId: _kProfileId,
           date: _kDate,
-          stressAvg: 25.0,
+          sleepDurationHours: 7.5,
         );
 
         expect(result, isA<RecoveryScoreEntity>());
@@ -509,16 +480,16 @@ void main() {
         final result = PerformanceEngine.calculateRecoveryScore(
           profileId: _kProfileId,
           date: _kDate,
-          stressAvg: 30.0,
-          sleepDurationMin: 420.0,
+          sleepDurationHours: 7.5,
+          sleepQualityRatio: 0.40,
         );
 
         expect(result.rawData, isNotNull);
-        expect(result.rawData!.containsKey('stress_avg'), isTrue);
-        expect(result.rawData!.containsKey('sleep_duration_min'), isTrue);
+        expect(result.rawData!.containsKey('sleep_duration_hours'), isTrue);
+        expect(result.rawData!.containsKey('sleep_quality_ratio'), isTrue);
         expect(result.rawData!.containsKey('resting_hr'), isTrue);
-        expect(result.rawData!['stress_avg'], 30.0);
-        expect(result.rawData!['sleep_duration_min'], 420.0);
+        expect(result.rawData!['sleep_duration_hours'], 7.5);
+        expect(result.rawData!['sleep_quality_ratio'], 0.40);
         expect(result.rawData!['resting_hr'], isNull);
       });
     });

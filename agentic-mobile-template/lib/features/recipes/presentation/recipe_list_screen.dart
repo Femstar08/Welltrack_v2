@@ -45,6 +45,7 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
         actions: [
           IconButton(
             icon: Icon(_showSearch ? Icons.close : Icons.search),
+            tooltip: 'Search',
             onPressed: () {
               setState(() {
                 _showSearch = !_showSearch;
@@ -56,6 +57,11 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
                 }
               });
             },
+          ),
+          IconButton(
+            icon: const Icon(Icons.add),
+            tooltip: 'Add recipe',
+            onPressed: () => _showAddOptions(context),
           ),
         ],
       ),
@@ -132,10 +138,7 @@ class _RecipeListScreenState extends ConsumerState<RecipeListScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddOptions(context),
-        child: const Icon(Icons.add),
-      ),
+      // FAB removed — add action is in AppBar to avoid conflict with global FAB
     );
   }
 

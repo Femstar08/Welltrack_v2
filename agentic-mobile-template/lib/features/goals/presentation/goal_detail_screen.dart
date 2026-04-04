@@ -48,12 +48,21 @@ class _GoalDetailContent extends ConsumerWidget {
     final theme = Theme.of(context);
     final forecast = goal.forecast;
 
+    // Fetch real metric history for the projection chart
+    final trendAsync = ref.watch(
+      goalMetricTrendProvider((
+        profileId: goal.profileId,
+        metricType: goal.metricType,
+      )),
+    );
+
     return Scaffold(
       appBar: AppBar(
         title: Text(goal.metricDisplayName),
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_outlined),
+            tooltip: 'Edit goal',
             onPressed: () {
               // Navigate to edit screen - push with goal data
               context.push('/goals/create', extra: goal);
@@ -61,6 +70,7 @@ class _GoalDetailContent extends ConsumerWidget {
           ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
+            tooltip: 'Delete goal',
             onPressed: () => _confirmDelete(context, ref),
           ),
         ],
@@ -96,7 +106,18 @@ class _GoalDetailContent extends ConsumerWidget {
                       const SizedBox(height: 16),
                       SizedBox(
                         height: 250,
-                        child: GoalProjectionChart(goal: goal),
+                        child: trendAsync.when(
+                          loading: () =>
+                              const Center(child: CircularProgressIndicator()),
+                          error: (_, __) => GoalProjectionChart(
+                            goal: goal,
+                            actualDataPoints: const [],
+                          ),
+                          data: (dataPoints) => GoalProjectionChart(
+                            goal: goal,
+                            actualDataPoints: dataPoints,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -381,6 +402,7 @@ class _GoalDetailContent extends ConsumerWidget {
                   .deleteGoal(goal.id);
               if (context.mounted) context.pop();
             },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Delete'),
           ),
         ],

@@ -1,0 +1,50 @@
+# Ralph Progress Log — Production Readiness
+Started: 2026-03-31
+Branch: ralph/production-readiness
+
+## Codebase Patterns
+- build.gradle.kts at android/app/build.gradle.kts
+- AndroidManifest at android/app/src/main/AndroidManifest.xml
+- health_permissions at android/app/src/main/res/values/health_permissions.xml
+- Settings screen at lib/features/settings/presentation/settings_screen.dart
+- Tests run via cmd.exe /c flutter test
+- Privacy/Terms URLs will be at welltrack.fit/privacy and welltrack.fit/terms
+- Supabase auth: Supabase.instance.client.auth
+---
+
+## 2026-03-31 - PROD-001
+- Pinned targetSdk=35 in build.gradle.kts (was flutter.targetSdkVersion)
+- Fixed BootReceiver android:exported=true (was false — broke reboot rescheduling on Android 12+)
+- Completed health_permissions.xml: added 6 missing types (TotalCaloriesBurned, ExerciseSession, RestingHeartRate, HeartRateVariability, OxygenSaturation, Vo2Max) — now 13 matching manifest
+---
+
+## 2026-03-31 - PROD-002
+- Fixed SupplementsCard type mismatch: todayLogs was List<SupplementLogEntity>, expected Map<String,bool>
+- Changed to use todayLogsByProtocol (Map<String, SupplementLogEntity?>) from SupplementState
+- presentation_v2 already deleted, surfaceContainerLowest already removed in prior sessions
+- flutter analyze: 0 errors
+---
+
+## 2026-03-31 - PROD-003
+- Created delete_user_data() RPC that cascades deletes across all wt_* tables
+- Added Delete Account button + confirmation dialog to settings_screen.dart
+- Confirmation warns about permanent data loss, shows red Delete Everything button
+- Success: signs out user, shows data propagation notice, navigates to /login
+- Files changed: supabase/migrations/20260331000002_delete_user_data_rpc.sql (new), settings_screen.dart
+---
+
+## 2026-03-31 - PROD-004
+- Created shared MedicalDisclaimer widget at shared/core/widgets/medical_disclaimer.dart
+- Added to bottom of: dashboard_screen.dart, daily_view_screen.dart (Plan), progress_tab_screen.dart (Progress)
+- Text: 'wellness suggestions only, not substitute for medical advice, consult your doctor'
+- Subtle styling: 10sp, muted color, info icon, always visible
+---
+
+## 2026-03-31 - PROD-005 + PROD-006
+- All 530 tests pass — no failures to fix
+- Wired AI calls display: reads from aiUsageProvider, shows used/limit for free, infinity for PRO
+- Privacy Policy link: opens https://welltrack.fit/privacy via url_launcher
+- Terms of Service link: opens https://welltrack.fit/terms via url_launcher
+- Change Password: real dialog with Supabase auth.updateUser + 8 char minimum
+- Files changed: settings_screen.dart
+---

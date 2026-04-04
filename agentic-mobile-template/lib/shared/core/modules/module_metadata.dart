@@ -3,14 +3,17 @@ import 'package:flutter/material.dart';
 /// Enum representing all available modules in WellTrack
 enum WellTrackModule {
   meals('Meals & Recipes', Icons.restaurant, true),
-  nutrients('Nutrient Tracking', Icons.pie_chart, true),
+  nutrients('Nutrient Tracking', Icons.pie_chart, false), // Config screen, lives in Settings
   supplements('Supplements', Icons.medication, true),
-  workouts('Workouts', Icons.fitness_center, true),
+  workouts('Workouts', Icons.fitness_center, false), // Accessible from Plan tab
   health('Activity & Sleep', Icons.monitor_heart, true),
   insights('Insights', Icons.insights, true),
   reminders('Reminders', Icons.notifications, true),
-  dailyView('Daily View', Icons.today, true),
-  moduleToggles('Module Settings', Icons.tune, true);
+  dailyView('Daily View', Icons.today, false), // Has own bottom nav tab
+  goals('Goals', Icons.flag, true),
+  bloodwork('Bloodwork', Icons.biotech, true),
+  habits('Habits', Icons.local_fire_department, true),
+  moduleToggles('Module Settings', Icons.tune, false); // Meta-setting, lives in Settings
 
   const WellTrackModule(this.displayName, this.icon, this.defaultEnabled);
 
@@ -39,6 +42,12 @@ enum WellTrackModule {
         return const Color(0xFF2196F3); // info color
       case WellTrackModule.dailyView:
         return const Color(0xFF00BFA5); // secondary (teal)
+      case WellTrackModule.goals:
+        return const Color(0xFFFFCA28); // amber — goals
+      case WellTrackModule.bloodwork:
+        return const Color(0xFFEF5350); // red — lab results
+      case WellTrackModule.habits:
+        return const Color(0xFFFF7043); // deep orange — fire / streaks
       case WellTrackModule.moduleToggles:
         return const Color(0xFF757575); // textSecondaryLight
     }

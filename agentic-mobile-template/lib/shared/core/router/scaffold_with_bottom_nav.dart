@@ -1,0 +1,78 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../../../features/meals/presentation/enhanced_log_bottom_sheet.dart';
+
+/// Routes where the global log FAB should be hidden because the screen
+/// has its own primary action or the FAB would conflict with the UI.
+const _hideGlobalFabRoutes = ['/recipes'];
+
+/// Shell scaffold that renders the persistent bottom navigation bar across all
+/// primary tab destinations.  Each branch keeps its own navigation stack so
+/// users can push sub-routes (e.g. workout plan detail) without losing the nav
+/// bar and return to the same position within a branch when switching tabs.
+class ScaffoldWithBottomNav extends StatelessWidget {
+  const ScaffoldWithBottomNav({
+    super.key,
+    required this.navigationShell,
+  });
+
+  final StatefulNavigationShell navigationShell;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final location = GoRouterState.of(context).uri.path;
+    final hideFab = _hideGlobalFabRoutes.any((r) => location.startsWith(r));
+
+    return Scaffold(
+      // The navigationShell renders the currently active branch's subtree.
+      // Each branch's own Scaffold (with its AppBar) sits inside this body,
+      // so nested Scaffolds are intentional and fully supported by Flutter.
+      body: navigationShell,
+      floatingActionButton: hideFab
+          ? null
+          : FloatingActionButton(
+              onPressed: () => showEnhancedLogSheet(context),
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: theme.colorScheme.onPrimary,
+              tooltip: 'Log',
+              child: const Icon(Icons.add),
+            ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        currentIndex: navigationShell.currentIndex,
+        onTap: (index) {
+          // goBranch with initialLocation: true when re-tapping the current tab
+          // pops back to the branch root (standard tab-bar UX).
+          navigationShell.goBranch(
+            index,
+            initialLocation: index == navigationShell.currentIndex,
+          );
+        },
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_today_outlined),
+            activeIcon: Icon(Icons.calendar_today),
+            label: 'Plan',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.trending_up_outlined),
+            activeIcon: Icon(Icons.trending_up),
+            label: 'Progress',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outlined),
+            activeIcon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
+      ),
+    );
+  }
+}

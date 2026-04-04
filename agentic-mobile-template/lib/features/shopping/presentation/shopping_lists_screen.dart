@@ -153,6 +153,7 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen> {
                   .read(shoppingListsProvider(profileId).notifier)
                   .deleteList(list.id);
             },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Delete'),
           ),
         ],
@@ -267,9 +268,28 @@ class _ShoppingListCard extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.archive),
               title: const Text('Archive'),
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(ctx);
-                onArchive();
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (dialogCtx) => AlertDialog(
+                    title: const Text('Archive list?'),
+                    content: Text(
+                      'Archive "${list.name}"? You can find it later in archived lists.',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(dialogCtx).pop(false),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(dialogCtx).pop(true),
+                        child: const Text('Archive'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirmed == true) onArchive();
               },
             ),
             ListTile(

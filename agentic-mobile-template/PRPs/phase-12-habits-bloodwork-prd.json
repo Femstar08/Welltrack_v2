@@ -1,0 +1,181 @@
+{
+  "project": "WellTrack",
+  "branchName": "ralph/phase-12-habits-bloodwork",
+  "description": "Phase 12: Habits & Bloodwork Verify & Polish — Verify streak logic, kegel timer, bloodwork AI interpretation, dashboard integration, and edge cases",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Verify habit creation, toggle, and streak calculation",
+      "passes": false,
+      "priority": 1,
+      "acceptanceCriteria": [
+        "Read lib/features/habits/presentation/habit_provider.dart first",
+        "Read lib/features/habits/data/habit_repository.dart",
+        "4 preset habits display on HabitsScreen: porn_free, kegels, sleep_target, steps_target",
+        "Tapping a habit toggle calls logHabitDay() and updates UI optimistically",
+        "Streak recalculation runs after each log: walks backwards counting consecutive completed days",
+        "current_streak_days resets to 0 when a day is skipped (not logged or completed=false)",
+        "longest_streak_days only increases, never decreases",
+        "Last 30-day grid shows green for completed, grey for missed, ring for today",
+        "flutter analyze returns 0 errors",
+        "Verify on Android device"
+      ],
+      "technicalNotes": "Streak calc is client-side in habit_repository.dart. Verify the algorithm handles timezone edge cases (user logs at 11:59 PM vs 12:01 AM). Check UNIQUE(profile_id, habit_type, log_date) constraint prevents duplicate logs."
+    },
+    {
+      "id": "US-002",
+      "title": "Verify custom habit creation and soft delete",
+      "passes": false,
+      "priority": 1,
+      "acceptanceCriteria": [
+        "Read lib/features/habits/presentation/habits_screen.dart",
+        "User can create custom habit with free-text name",
+        "Custom habit gets auto-generated unique type key (e.g., custom_timestamp)",
+        "Custom habit appears in the habits list alongside presets",
+        "Deleting a habit sets is_active=false (soft delete), habit disappears from UI",
+        "Soft-deleted habits do NOT appear on reload",
+        "Streak data preserved in DB after soft delete (no cascade)",
+        "flutter analyze returns 0 errors"
+      ],
+      "technicalNotes": "Check habit_entity.dart for the type key generation pattern. Verify is_active filter in repository queries."
+    },
+    {
+      "id": "US-003",
+      "title": "Verify streak milestone dialog fires at 7, 30, 90, 180 days",
+      "passes": false,
+      "priority": 2,
+      "acceptanceCriteria": [
+        "Read lib/features/habits/presentation/widgets/streak_milestone_dialog.dart",
+        "When current_streak_days reaches 7, milestone dialog shown with habit name and count",
+        "Same for 30, 90, and 180 day milestones",
+        "Dialog dismisses on tap and does not reappear same session",
+        "Milestone only fires once per threshold (not on every toggle after 7)",
+        "flutter analyze returns 0 errors"
+      ],
+      "technicalNotes": "Check how milestone state is tracked — should compare previous streak vs new streak to detect threshold crossing."
+    },
+    {
+      "id": "US-004",
+      "title": "Verify kegel timer with all 3 protocols",
+      "passes": false,
+      "priority": 1,
+      "acceptanceCriteria": [
+        "Read lib/features/habits/presentation/kegel_timer_provider.dart",
+        "Read lib/features/habits/presentation/kegel_timer_screen.dart",
+        "Quick Flicks protocol: 3 sets x 10 reps, 1s squeeze/relax, 10s rest between sets",
+        "Long Holds protocol: 3 sets x 5 reps, 5s squeeze/relax, 15s rest between sets",
+        "Reverse Kegels protocol: 3 sets x 5 reps, 5s squeeze/relax, 15s rest between sets",
+        "Phase transitions: squeeze -> relax -> next rep OR rest -> next set OR complete",
+        "Circular progress ring updates every second",
+        "Vibration feedback fires on each phase transition",
+        "Session completion auto-logs kegels habit via logHabitDay()",
+        "Timer can be paused and resumed",
+        "flutter analyze returns 0 errors",
+        "Verify on Android device (vibration requires real device)"
+      ],
+      "technicalNotes": "Auto-logging is best-effort (errors suppressed). Verify the habitProvider is accessible from kegelTimerProvider. Check kegel_protocol.dart for protocol definitions."
+    },
+    {
+      "id": "US-005",
+      "title": "Verify bloodwork logging with reference ranges and out-of-range detection",
+      "passes": false,
+      "priority": 1,
+      "acceptanceCriteria": [
+        "Read lib/features/bloodwork/presentation/bloodwork_screen.dart",
+        "Read lib/features/bloodwork/data/bloodwork_repository.dart",
+        "12+ pre-defined test types organized in 4 tabs: Hormones, Metabolic, Cardiovascular, Vitamins",
+        "Adding a result with value outside reference range shows red indicator (is_out_of_range=true)",
+        "Adding a result within range shows green indicator",
+        "Adding a result within 10% of boundary shows amber borderline indicator",
+        "Custom test name accepted (free-text) with user-specified reference range",
+        "Edit and delete work correctly, with confirmation dialog on delete",
+        "is_out_of_range is a Postgres GENERATED ALWAYS column (read-only from client)",
+        "flutter analyze returns 0 errors"
+      ],
+      "technicalNotes": "Read bloodwork_entity.dart for isBorderline helper. Check bloodwork_test_types.dart for the 12 pre-defined types. Verify the computed column formula matches the client-side display logic."
+    },
+    {
+      "id": "US-006",
+      "title": "Verify bloodwork detail screen with trend chart",
+      "passes": false,
+      "priority": 2,
+      "acceptanceCriteria": [
+        "Read lib/features/bloodwork/presentation/bloodwork_detail_screen.dart",
+        "Navigate to /bloodwork/:testName shows trend chart for that test",
+        "Chart plots all historical values for the selected test (x=date, y=value)",
+        "Reference range shown as shaded band on chart",
+        "Out-of-range data points highlighted in red",
+        "Empty state shown if no history for selected test",
+        "Back navigation works correctly",
+        "flutter analyze returns 0 errors"
+      ],
+      "technicalNotes": "Uses FL Chart for rendering. Check if the chart handles single data point gracefully (no crash on 1 entry)."
+    },
+    {
+      "id": "US-007",
+      "title": "Verify AI bloodwork interpretation with consent check",
+      "passes": false,
+      "priority": 2,
+      "acceptanceCriteria": [
+        "Read lib/features/bloodwork/presentation/bloodwork_provider.dart lines 224-399",
+        "AI interpretation only triggers if ai_consent_bloodwork=true on user profile",
+        "If consent=false, show appropriate message prompting user to enable in settings",
+        "AI call sends out-of-range + borderline results to ai_orchestrator_service.orchestrate()",
+        "Workflow type is 'interpret_bloodwork'",
+        "AI response parsed: interpretation text, possible_considerations array, consultation note",
+        "Response displayed in AiInterpretationCard with medical disclaimer",
+        "If AI call fails, deterministic fallback summary generated from rules",
+        "3-second debounce prevents rapid re-calls",
+        "flutter analyze returns 0 errors"
+      ],
+      "technicalNotes": "Consent is checked via profile repository getAiConsentBloodwork(). The debounce uses DateTime-based guard. Fallback builds human-readable summary from out-of-range patterns."
+    },
+    {
+      "id": "US-008",
+      "title": "Verify habits and bloodwork surface on main dashboard",
+      "passes": false,
+      "priority": 2,
+      "acceptanceCriteria": [
+        "Read lib/features/dashboard/presentation/dashboard_screen.dart",
+        "Read lib/features/bloodwork/presentation/widgets/bloodwork_summary_card.dart",
+        "Dashboard shows bloodwork summary card with count of flagged (out-of-range) results",
+        "Tapping bloodwork card navigates to /bloodwork",
+        "Dashboard shows habit streak progress for active habits",
+        "Tapping habits card navigates to /habits",
+        "Cards handle empty state gracefully (no habits logged, no bloodwork)",
+        "flutter analyze returns 0 errors"
+      ],
+      "technicalNotes": "Check how dashboard_provider.dart loads habits and bloodwork state. Verify providers are invalidated after mutations (Phase 13 wired this)."
+    },
+    {
+      "id": "US-009",
+      "title": "Verify RLS policies for habits and bloodwork tables",
+      "passes": false,
+      "priority": 3,
+      "acceptanceCriteria": [
+        "Read supabase/migrations for wt_habit_streaks, wt_habit_logs, wt_bloodwork_results",
+        "User can only SELECT/INSERT/UPDATE/DELETE their own habit_streaks (via profile_id -> user_id)",
+        "User can only SELECT/INSERT/UPDATE/DELETE their own habit_logs",
+        "User can only SELECT/INSERT/UPDATE/DELETE their own bloodwork_results",
+        "Attempting to access another user's data returns empty result (not error)",
+        "Indexes exist: idx_habit_streaks_profile_active, idx_habit_logs_profile_type_date, idx_bloodwork_profile_test_date, idx_bloodwork_out_of_range"
+      ],
+      "technicalNotes": "RLS defined in migrations 20260220000008 and 20260309000002. Verify policies use the pattern: profile_id IN (SELECT id FROM wt_profiles WHERE user_id = auth.uid())."
+    },
+    {
+      "id": "US-010",
+      "title": "Verify sensitive data handling for bloodwork",
+      "passes": false,
+      "priority": 3,
+      "acceptanceCriteria": [
+        "Read bloodwork_entity.dart is_sensitive field",
+        "Results marked is_sensitive=true are excluded from any data export",
+        "Sensitive results never included in AI context unless explicit consent given",
+        "Sensitive flag can be toggled per result",
+        "No sensitive data appears in debug logs or console output",
+        "flutter analyze returns 0 errors"
+      ],
+      "technicalNotes": "Check if the AI interpretation context builder filters out is_sensitive=true results when consent is partial. Verify no print() statements leak sensitive values."
+    }
+  ]
+}

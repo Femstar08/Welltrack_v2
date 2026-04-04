@@ -1,10 +1,19 @@
 // lib/features/workouts/presentation/live_session_provider.dart
 
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/workout_repository.dart';
+import '../domain/exercise_entity.dart';
 import '../domain/workout_entity.dart';
 import '../domain/workout_plan_exercise_entity.dart';
 import '../domain/workout_set_entity.dart';
+import '../../insights/data/insights_repository.dart';
+import '../../insights/data/performance_engine.dart';
+import '../../insights/domain/training_load_entity.dart';
+import '../../insights/presentation/insights_provider.dart';
+import '../../dashboard/presentation/dashboard_home_provider.dart';
+import '../../../shared/core/utils/error_mapper.dart';
 
 // ---------------------------------------------------------------------------
 // LiveExerciseData — per-exercise state within an active session
@@ -198,9 +207,12 @@ class LiveSessionState {
 // ---------------------------------------------------------------------------
 
 class LiveSessionNotifier extends StateNotifier<LiveSessionState> {
-  LiveSessionNotifier(this._repository) : super(const LiveSessionState());
+  LiveSessionNotifier(this._repository, this._insightsRepository, this._ref)
+      : super(const LiveSessionState());
 
   final WorkoutRepository _repository;
+  final InsightsRepository _insightsRepository;
+  final Ref _ref;
 
   // ── Session lifecycle ─────────────────────────────────────────────────────
 
@@ -271,7 +283,7 @@ class LiveSessionNotifier extends StateNotifier<LiveSessionState> {
         isLoading: false,
       );
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(isLoading: false, error: ErrorMapper.mapError(e));
     }
   }
 
@@ -300,7 +312,7 @@ class LiveSessionNotifier extends StateNotifier<LiveSessionState> {
         isLoading: false,
       );
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(isLoading: false, error: ErrorMapper.mapError(e));
     }
   }
 
@@ -377,7 +389,7 @@ class LiveSessionNotifier extends StateNotifier<LiveSessionState> {
 
       return isNewPR;
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = state.copyWith(error: ErrorMapper.mapError(e));
       return false;
     }
   }
@@ -439,7 +451,7 @@ class LiveSessionNotifier extends StateNotifier<LiveSessionState> {
 
       return isNewPR;
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = state.copyWith(error: ErrorMapper.mapError(e));
       return false;
     }
   }
@@ -483,6 +495,54 @@ class LiveSessionNotifier extends StateNotifier<LiveSessionState> {
     state = state.copyWith(exercises: updatedExercises);
   }
 
+  // ── Add exercise to ad-hoc session ────────────────────────────────────────
+
+  /// Adds an exercise to the current session (for ad-hoc / quick workouts).
+  void addExerciseToSession(ExerciseEntity exercise, {int targetSets = 3, int targetReps = 10, int restSeconds = 90}) {
+    final workoutId = state.workoutId ?? '';
+    final now = DateTime.now();
+
+    final planExercise = WorkoutPlanExerciseEntity(
+      id: 'adhoc_${state.exercises.length}',
+      planId: '',
+      exerciseId: exercise.id,
+      dayOfWeek: DateTime.now().weekday,
+      sortOrder: state.exercises.length,
+      targetSets: targetSets,
+      targetReps: targetReps,
+      restSeconds: restSeconds,
+      createdAt: now,
+      exercise: exercise,
+    );
+
+    // Pre-seed empty sets for each target set.
+    final sets = List.generate(
+      targetSets,
+      (i) => WorkoutSetEntity(
+        id: 'pending_${state.exercises.length}_${i + 1}',
+        profileId: state.profileId ?? '',
+        workoutId: workoutId,
+        exerciseId: exercise.id,
+        setNumber: i + 1,
+        completed: false,
+        loggedAt: now,
+        createdAt: now,
+      ),
+    );
+
+    final liveExercise = LiveExerciseData(
+      planExercise: planExercise,
+      sets: sets,
+      previousSets: const [],
+    );
+
+    final updatedExercises = [...state.exercises, liveExercise];
+    state = state.copyWith(
+      exercises: updatedExercises,
+      currentExerciseIndex: updatedExercises.length - 1,
+    );
+  }
+
   // ── Navigation ────────────────────────────────────────────────────────────
 
   /// Advances to the next exercise (no-op if already at the last one).
@@ -519,7 +579,10 @@ class LiveSessionNotifier extends StateNotifier<LiveSessionState> {
       throw StateError('Cannot complete a session that was never started.');
     }
 
+    // Capture before reset.
+    final profileId = state.profileId;
     final durationMinutes = state.elapsed.inMinutes;
+
     final completed = await _repository.completeWorkout(
       workoutId,
       durationMinutes: durationMinutes,
@@ -528,7 +591,84 @@ class LiveSessionNotifier extends StateNotifier<LiveSessionState> {
     // Reset local state so the notifier is ready for the next session.
     state = const LiveSessionState();
 
+    // Invalidate downstream providers so they re-fetch with the new session data.
+    _ref.invalidate(insightsProvider);
+    _ref.invalidate(dashboardHomeProvider);
+
+    // Fire-and-forget: save training load and trigger recovery recalculation.
+    if (profileId != null && durationMinutes > 0) {
+      unawaited(_saveTrainingLoad(
+        workoutId: workoutId,
+        profileId: profileId,
+        workout: completed,
+        durationMinutes: durationMinutes.toDouble(),
+      ));
+    }
+
     return completed;
+  }
+
+  /// Calculates and persists training load for the completed session, then
+  /// triggers a recovery score recalculation for today. Runs in the background
+  /// — errors are swallowed so they never interrupt the session-complete flow.
+  Future<void> _saveTrainingLoad({
+    required String workoutId,
+    required String profileId,
+    required WorkoutEntity workout,
+    required double durationMinutes,
+  }) async {
+    try {
+      final loadType = _loadTypeFromWorkoutType(workout.workoutType);
+      final intensityFactor = _intensityFactorForLoadType(loadType);
+      final trainingLoad = PerformanceEngine.calculateTrainingLoad(
+        durationMinutes,
+        intensityFactor,
+      );
+
+      final load = TrainingLoadEntity(
+        id: '',
+        profileId: profileId,
+        workoutId: workoutId,
+        loadDate: workout.completedAt ?? DateTime.now(),
+        durationMinutes: durationMinutes,
+        intensityFactor: intensityFactor,
+        trainingLoad: trainingLoad,
+        loadType: loadType,
+      );
+
+      await _insightsRepository.saveTrainingLoad(load);
+
+      // Best-effort recovery score refresh for today.
+      await _insightsRepository.calculateAndSaveDailyRecovery(
+        profileId: profileId,
+      );
+    } catch (_) {
+      // Non-critical — training load errors must not surface to the user.
+    }
+  }
+
+  static TrainingLoadType _loadTypeFromWorkoutType(String workoutType) {
+    switch (workoutType.toLowerCase()) {
+      case 'cardio':
+        return TrainingLoadType.cardio;
+      case 'strength':
+        return TrainingLoadType.strength;
+      default:
+        return TrainingLoadType.mixed;
+    }
+  }
+
+  static double _intensityFactorForLoadType(TrainingLoadType loadType) {
+    switch (loadType) {
+      case TrainingLoadType.cardio:
+        return 1.5;
+      case TrainingLoadType.strength:
+        return 1.0;
+      case TrainingLoadType.mixed:
+        return 1.0;
+      case TrainingLoadType.recovery:
+        return 0.5;
+    }
   }
 
   // ── Error handling ────────────────────────────────────────────────────────
@@ -580,6 +720,7 @@ final liveSessionProvider =
     StateNotifierProvider<LiveSessionNotifier, LiveSessionState>(
   (ref) {
     final repo = ref.watch(workoutRepositoryProvider);
-    return LiveSessionNotifier(repo);
+    final insightsRepo = ref.watch(insightsRepositoryProvider);
+    return LiveSessionNotifier(repo, insightsRepo, ref);
   },
 );

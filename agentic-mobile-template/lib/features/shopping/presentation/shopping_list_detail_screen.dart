@@ -191,7 +191,7 @@ class _DetailContent extends ConsumerWidget {
                         Icon(Icons.shopping_cart_outlined,
                             size: 64,
                             color: theme.colorScheme.onSurfaceVariant
-                                .withOpacity(0.5)),
+                                .withValues(alpha: 0.5)),
                         const SizedBox(height: 16),
                         Text(
                           'No items yet',
@@ -251,14 +251,11 @@ class _DetailContent extends ConsumerWidget {
         await repo.toggleAllItems(listId, false);
         ref.invalidate(shoppingListDetailProvider(listId));
       case 'archive':
-        await repo.updateListStatus(listId, 'archived');
-        router.pop();
-      case 'delete':
-        final confirmed = await showDialog<bool>(
+        final archiveConfirmed = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text('Delete list?'),
-            content: const Text('This cannot be undone.'),
+            title: const Text('Archive list?'),
+            content: Text('Archive "${list.name}"? You can find it later in archived lists.'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
@@ -266,6 +263,29 @@ class _DetailContent extends ConsumerWidget {
               ),
               TextButton(
                 onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Archive'),
+              ),
+            ],
+          ),
+        );
+        if (archiveConfirmed == true) {
+          await repo.updateListStatus(listId, 'archived');
+          router.pop();
+        }
+      case 'delete':
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Delete list?'),
+            content: Text('Delete "${list.name}"? This cannot be undone.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
                 child: const Text('Delete'),
               ),
             ],
@@ -333,6 +353,7 @@ class _AisleSection extends ConsumerWidget {
                   ),
                   TextButton(
                     onPressed: () => Navigator.pop(ctx, true),
+                    style: TextButton.styleFrom(foregroundColor: Colors.red),
                     child: const Text('Remove'),
                   ),
                 ],
@@ -526,7 +547,7 @@ class _AddEditItemSheetState extends State<_AddEditItemSheet> {
               height: 4,
               margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
-                color: theme.colorScheme.onSurfaceVariant.withOpacity(0.4),
+                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -591,7 +612,7 @@ class _AddEditItemSheetState extends State<_AddEditItemSheet> {
           const SizedBox(height: 12),
           // Aisle dropdown
           DropdownButtonFormField<String>(
-            value: _selectedAisle,
+            initialValue: _selectedAisle,
             decoration: InputDecoration(
               labelText: 'Aisle',
               border: OutlineInputBorder(

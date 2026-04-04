@@ -263,22 +263,62 @@ Deno.serve(async (req: Request) => {
 })
 
 function buildSystemPrompt(context: any, toolSpecificAdditions: string): string {
-  return `You are WellTrack AI, a performance optimization assistant.
+  // Build vitality context only if consent was given and data exists
+  let vitalityBlock = ''
+  if (context.vitality_data) {
+    const v = context.vitality_data
+    vitalityBlock = `
+Vitality Indicators (consent granted):
+- Morning erection: ${v.days_with_morning_erection}/${v.total_days_tracked} days tracked
+- Weekly quality score: ${v.latest_erection_quality_weekly ?? 'Not reported'}
+- Feeling trend: ${v.feeling_trend ?? 'Insufficient data'}
+Note: Treat these as physiological recovery indicators. Never sexualise.`
+  }
 
-CORE IDENTITY:
-- You help users optimize their wellness through data-driven insights
-- You are suggestive, never prescriptive
-- You use phrases like "You might consider...", "Based on your data...", "This suggests..."
-- You are encouraging, supportive, and realistic
+  // Build bloodwork context only if consent was given and data exists
+  let bloodworkBlock = ''
+  if (context.bloodwork_results && context.bloodwork_results.length > 0) {
+    const outOfRange = context.bloodwork_results.filter((b: any) => b.is_out_of_range)
+    bloodworkBlock = `
+Bloodwork Results (consent granted, ${context.bloodwork_results.length} tests on file):
+${outOfRange.length > 0 ? `- Out of range: ${outOfRange.map((b: any) => `${b.test_name}: ${b.value_num} ${b.unit}`).join(', ')}` : '- All results within reference ranges'}
+Note: Always recommend consulting a healthcare professional for out-of-range values.`
+  }
 
-MEDICAL DISCLAIMER:
-- NEVER make medical diagnoses, treatment recommendations, or health claims
-- NEVER prescribe specific dosages or medications
-- If user describes concerning symptoms, suggest consulting a healthcare professional
-- You provide general wellness suggestions only
+  return `SYSTEM ROLE
 
-USER CONTEXT:
+You are the WellTrack Intelligence Engine.
+
+Your role is to analyse wellness, fitness, and lifestyle data and generate supportive insights that help users train consistently and improve their overall performance.
+
+Your responses must always follow these principles:
+1. Suggestive, never prescriptive — use "you might consider", "based on your data", "this suggests"
+2. Wellness guidance only, never medical diagnosis
+3. Evidence-informed but conservative
+4. Data-driven when possible — reference the user's actual numbers
+5. Simple and actionable for everyday users
+
+---
+
+SAFETY RULES
+
+- NEVER diagnose medical conditions.
+- NEVER prescribe medication, hormone therapy, or specific supplement dosages.
+- NEVER claim to treat, cure, or prevent diseases.
+- When interpreting biomarkers or bloodwork, always say:
+  "This value is outside the typical reference range. Consider discussing this with a qualified healthcare professional."
+- NEVER provide explicit sexual content.
+- Morning vitality metrics are physiological indicators of recovery and hormonal health — treat them clinically.
+- If the user describes acute symptoms (chest pain, dizziness, breathing difficulty), respond:
+  "This sounds like it needs immediate attention. Please contact a healthcare professional or emergency services."
+
+---
+
+DATA CONTEXT
+
 Profile: ${context.profile.display_name}, ${context.profile.age || 'age unknown'}, ${context.profile.gender || 'gender unspecified'}
+Height: ${context.profile.height_cm ? context.profile.height_cm + ' cm' : 'Unknown'} | Weight: ${context.profile.weight_kg ? context.profile.weight_kg + ' kg' : 'Unknown'}
+Activity Level: ${context.profile.activity_level || 'Not specified'}
 Plan Tier: ${context.profile.plan_tier}
 Fitness Goals: ${context.profile.fitness_goals || 'Not specified'}
 Dietary Restrictions: ${context.profile.dietary_restrictions || 'None'}
@@ -286,32 +326,50 @@ Allergies: ${context.profile.allergies || 'None'}
 Preferred Ingredients: ${context.profile.preferred_ingredients?.join(', ') || 'None'}
 Excluded Ingredients: ${context.profile.excluded_ingredients?.join(', ') || 'None'}
 
-INGREDIENT RULES:
-- ALWAYS prioritize preferred ingredients when generating meal plans, recipes, or shopping lists.
-- NEVER use excluded ingredients in any meal plan, recipe, or shopping list.
+Recent Metrics (7 days):
+${context.recent_metrics.length > 0 ? context.recent_metrics.map((m: any) => `- ${m.metric_type}: avg ${m.avg_value?.toFixed(1) ?? '?'} ${m.unit}, latest ${m.latest_value ?? '?'}, trend: ${m.trend}`).join('\n') : 'No metrics available'}
 
-RECENT METRICS (Last 7 days):
-${context.recent_metrics.map((m: any) => `- ${m.metric_type}: avg ${m.avg_value} ${m.unit}, trend: ${m.trend}`).join('\n') || 'No metrics available'}
+Active Plan: ${context.active_plan ? `${context.active_plan.title} (${context.active_plan.completion_pct}% complete)` : 'None'}
 
-ACTIVE PLAN:
-${context.active_plan ? `${context.active_plan.title} (${context.active_plan.completion_pct}% complete)` : 'No active plan'}
+Recent Meals (3 days):
+${context.recent_meals.length > 0 ? context.recent_meals.slice(0, 5).map((m: any) => `- ${m.date} ${m.meal_type}: ${m.name} (${m.calories || '?'} cal)`).join('\n') : 'No meals logged'}
 
-RECENT MEALS (Last 3 days):
-${context.recent_meals.slice(0, 5).map((m: any) => `- ${m.date} ${m.meal_type}: ${m.name} (${m.calories || '?'} cal)`).join('\n') || 'No meals logged'}
+Supplement Adherence: ${(context.supplement_adherence * 100).toFixed(0)}%
+Recovery Score: ${context.recovery_score ?? 'Not available'}
+Baselines: ${context.baselines?.filter((b: any) => b.is_complete).length ?? 0} calibrated metrics
+${vitalityBlock}${bloodworkBlock}
 
-SUPPLEMENT ADHERENCE: ${(context.supplement_adherence * 100).toFixed(0)}%
+User Preferences (AI Memory):
+${context.ai_memory.filter((m: any) => m.memory_type === 'preference').slice(0, 5).map((m: any) => `- ${m.memory_key}: ${JSON.stringify(m.memory_value)}`).join('\n') || 'No stored preferences'}
 
-RECOVERY SCORE: ${context.recovery_score || 'Not available'}
+---
 
-AI MEMORY (User Preferences):
-${context.ai_memory.filter((m: any) => m.memory_type === 'preference').slice(0, 3).map((m: any) => `- ${m.memory_key}: ${JSON.stringify(m.memory_value)}`).join('\n') || 'No stored preferences'}
+INGREDIENT RULES
+
+- ALWAYS prioritise preferred ingredients when generating meal plans, recipes, or shopping lists.
+- NEVER use excluded ingredients under any circumstance.
+- NEVER include foods that match stated allergies.
+
+---
+
+RESPONSE STYLE
+
+Tone: Friendly, motivating, calm, professional. Never alarmist.
+Language: Use "you might consider", "based on your signals", "many athletes find that".
+NEVER use: "you should", "you must", "you need to", "you have to".
+
+---
+
+OUTPUT FORMAT
+
+Return structured JSON following the schema defined by the calling workflow.
+Do NOT wrap JSON in markdown code fences unless the workflow explicitly requests it.
+All numeric values must be integers or floats — never strings.
+All date values must be ISO 8601 format (YYYY-MM-DD).
+
+---
 
 ${toolSpecificAdditions}
-
-RESPONSE FORMAT:
-Your response should be conversational and helpful. If you are generating structured data (plans, recipes, recommendations), include a JSON code block in your response with the appropriate structure as specified in the tool instructions.
-
-Always be encouraging and focus on small, achievable steps.
 `
 }
 
@@ -362,66 +420,116 @@ function parseAssistantResponse(
     return { dbWrites, suggestedActions, updatedForecast }
   }
 
-  // Extract JSON blocks from response
+  // Try parsing entire message as bare JSON first (preferred format)
+  let parsedBareJson: any = null
+  try {
+    parsedBareJson = JSON.parse(message.trim())
+  } catch (_) {
+    // Not bare JSON — fall through to code block extraction
+  }
+
+  // Extract JSON from response — either bare JSON or code-fenced blocks
+  const jsonCandidates: any[] = []
+  if (parsedBareJson) {
+    jsonCandidates.push(parsedBareJson)
+  }
+
+  // Also check for code-fenced JSON blocks (backward compatibility)
   const jsonBlockRegex = /```json\n([\s\S]*?)\n```/g
   let match
-
   while ((match = jsonBlockRegex.exec(message)) !== null) {
     try {
-      const jsonData = JSON.parse(match[1])
+      jsonCandidates.push(JSON.parse(match[1]))
+    } catch (_) {
+      // Skip malformed blocks
+    }
+  }
 
+  for (const jsonData of jsonCandidates) {
+    try {
       // Parse based on workflow type
-      if (workflowType === 'generate_weekly_plan' && jsonData.days) {
-        // Convert plan to DB writes
-        dbWrites.push({
-          table: 'wt_plans',
-          operation: 'insert',
-          data: {
-            title: jsonData.plan_title,
-            status: 'recommended',
-            plan_data: jsonData,
-          },
-          dry_run: true,
-        })
+      // Support both new and legacy schemas for each workflow
 
-        if (jsonData.expected_goal_date) {
-          updatedForecast = {
-            goal_id: '', // Will be set by app
-            new_expected_date: jsonData.expected_goal_date,
-            confidence: jsonData.confidence || 0.5,
-            explanation: jsonData.rationale || '',
-          }
+      if (workflowType === 'generate_weekly_plan') {
+        // New schema: { week_plan: [...], weekly_summary: {...} }
+        // Legacy: { days: [...], plan_title, ... }
+        const planData = jsonData.week_plan || jsonData.days
+        if (planData) {
+          const title = jsonData.weekly_summary?.primary_focus || jsonData.plan_title || 'Weekly Plan'
+          dbWrites.push({
+            table: 'wt_plans',
+            operation: 'insert',
+            data: {
+              title,
+              status: 'recommended',
+              plan_data: jsonData,
+            },
+            dry_run: true,
+          })
         }
-      } else if (workflowType === 'generate_pantry_recipes' && Array.isArray(jsonData)) {
-        // Recipes array - convert to suggested actions
-        jsonData.forEach((recipe: any) => {
-          suggestedActions.push({
-            action_type: 'view_recipe',
-            label: recipe.name,
-            payload: recipe,
+      } else if (workflowType === 'generate_pantry_recipes') {
+        // New schema: { recipes: [...] }
+        // Legacy: top-level array
+        const recipes = jsonData.recipes || (Array.isArray(jsonData) ? jsonData : null)
+        if (recipes) {
+          recipes.forEach((recipe: any) => {
+            suggestedActions.push({
+              action_type: 'view_recipe',
+              label: recipe.name,
+              payload: recipe,
+            })
           })
-        })
-      } else if (workflowType === 'summarize_insights' && jsonData.recommendations) {
-        jsonData.recommendations.forEach((rec: any) => {
-          suggestedActions.push({
-            action_type: 'apply_recommendation',
-            label: rec.action,
-            payload: rec,
+        }
+      } else if (workflowType === 'summarize_insights') {
+        // New schema: { insights: [{title, explanation, suggestion}] }
+        // Legacy: { summary, recommendations: [{action, rationale}] }
+        if (jsonData.insights && Array.isArray(jsonData.insights)) {
+          jsonData.insights.forEach((insight: any) => {
+            if (insight.suggestion) {
+              suggestedActions.push({
+                action_type: 'apply_recommendation',
+                label: insight.suggestion,
+                payload: insight,
+              })
+            }
           })
-        })
-      } else if (workflowType === 'generate_shopping_list' && jsonData.items) {
-        // Shopping list items - convert to suggested actions
-        jsonData.items.forEach((item: any) => {
-          suggestedActions.push({
-            action_type: 'add_shopping_item',
-            label: item.ingredient_name,
-            payload: item,
+        } else if (jsonData.recommendations) {
+          jsonData.recommendations.forEach((rec: any) => {
+            suggestedActions.push({
+              action_type: 'apply_recommendation',
+              label: rec.action,
+              payload: rec,
+            })
           })
-        })
+        }
+      } else if (workflowType === 'generate_shopping_list') {
+        // New schema: { shopping_list: { produce: [], protein: [], ... } }
+        // Legacy: { items: [{ingredient_name, ...}] }
+        if (jsonData.shopping_list && typeof jsonData.shopping_list === 'object') {
+          for (const [aisle, items] of Object.entries(jsonData.shopping_list)) {
+            if (Array.isArray(items)) {
+              (items as string[]).forEach((item: string) => {
+                suggestedActions.push({
+                  action_type: 'add_shopping_item',
+                  label: item,
+                  payload: { ingredient_name: item, aisle },
+                })
+              })
+            }
+          }
+        } else if (jsonData.items) {
+          jsonData.items.forEach((item: any) => {
+            suggestedActions.push({
+              action_type: 'add_shopping_item',
+              label: item.ingredient_name,
+              payload: item,
+            })
+          })
+        }
       }
       // Add more workflow-specific parsing as needed
     } catch (e) {
-      console.error('Failed to parse JSON block:', e)
+      console.error('Failed to parse JSON data:', e)
     }
   }
 

@@ -2,6 +2,35 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/goal_repository.dart';
 import '../domain/goal_entity.dart';
 import '../../insights/data/insights_repository.dart';
+import '../../insights/domain/forecast_entity.dart';
+import '../../../shared/core/utils/error_mapper.dart';
+
+/// Maps goal metric type to health metric type stored in wt_health_metrics.
+/// Goal types can differ from DB column values (e.g. 'hr' → 'resting_hr').
+String _healthMetricTypeFor(String goalMetricType) {
+  switch (goalMetricType) {
+    case 'hr':
+      return 'resting_hr';
+    default:
+      return goalMetricType;
+  }
+}
+
+/// Fetches real metric history for the goal projection chart.
+/// Queries last 90 days of wt_health_metrics for the given metric type.
+final goalMetricTrendProvider = FutureProvider.family<
+    List<DataPoint>,
+    ({String profileId, String metricType})>((ref, params) async {
+  final insightsRepo = ref.watch(insightsRepositoryProvider);
+  final endDate = DateTime.now();
+  final startDate = endDate.subtract(const Duration(days: 90));
+  return insightsRepo.getMetricTrend(
+    profileId: params.profileId,
+    metricType: _healthMetricTypeFor(params.metricType),
+    startDate: startDate,
+    endDate: endDate,
+  );
+});
 
 final goalsProvider = StateNotifierProvider.family<
     GoalsNotifier,
@@ -36,7 +65,10 @@ class GoalsNotifier extends StateNotifier<AsyncValue<List<GoalEntity>>> {
       final goals = await _repository.getGoals(_profileId);
       state = AsyncValue.data(goals);
     } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
+      state = AsyncValue.error(
+        Exception(ErrorMapper.mapError(e)),
+        stack,
+      );
     }
   }
 
@@ -62,7 +94,10 @@ class GoalsNotifier extends StateNotifier<AsyncValue<List<GoalEntity>>> {
       );
       await loadGoals();
     } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
+      state = AsyncValue.error(
+        Exception(ErrorMapper.mapError(e)),
+        stack,
+      );
     }
   }
 
@@ -71,7 +106,10 @@ class GoalsNotifier extends StateNotifier<AsyncValue<List<GoalEntity>>> {
       await _repository.updateGoal(goalId, fields);
       await loadGoals();
     } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
+      state = AsyncValue.error(
+        Exception(ErrorMapper.mapError(e)),
+        stack,
+      );
     }
   }
 
@@ -80,7 +118,10 @@ class GoalsNotifier extends StateNotifier<AsyncValue<List<GoalEntity>>> {
       await _repository.deleteGoal(goalId);
       await loadGoals();
     } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
+      state = AsyncValue.error(
+        Exception(ErrorMapper.mapError(e)),
+        stack,
+      );
     }
   }
 
@@ -89,7 +130,10 @@ class GoalsNotifier extends StateNotifier<AsyncValue<List<GoalEntity>>> {
       await _repository.recalculateForecast(goalId, _insightsRepository);
       await loadGoals();
     } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
+      state = AsyncValue.error(
+        Exception(ErrorMapper.mapError(e)),
+        stack,
+      );
     }
   }
 

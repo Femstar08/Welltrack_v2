@@ -155,7 +155,7 @@ class _ScheduleCard extends StatelessWidget {
                     option.description,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: isSelected
-                          ? colorScheme.onPrimaryContainer.withOpacity(0.8)
+                          ? colorScheme.onPrimaryContainer.withValues(alpha: 0.8)
                           : colorScheme.onSurfaceVariant,
                     ),
                   ),

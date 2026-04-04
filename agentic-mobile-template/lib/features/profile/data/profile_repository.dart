@@ -166,12 +166,26 @@ class ProfileRepository {
 
   Future<void> markOnboardingComplete(String userId) async {
     try {
-      await _client
-          .from('wt_users')
-          .update({'onboarding_completed': true})
-          .eq('id', userId);
+      // Uses SECURITY DEFINER RPC to bypass column-level REVOKE (SEC-002).
+      // The RPC validates that a wt_profiles record exists before setting the flag.
+      await _client.rpc('mark_onboarding_complete');
     } catch (e) {
       throw Exception('Failed to mark onboarding complete: $e');
+    }
+  }
+
+  /// Returns the value of `ai_consent_bloodwork` for the given profile.
+  /// Returns `false` when the field is null or the row cannot be found.
+  Future<bool> getAiConsentBloodwork(String profileId) async {
+    try {
+      final row = await _client
+          .from('wt_profiles')
+          .select('ai_consent_bloodwork')
+          .eq('id', profileId)
+          .maybeSingle();
+      return row?['ai_consent_bloodwork'] as bool? ?? false;
+    } catch (e) {
+      throw Exception('Failed to fetch bloodwork AI consent: $e');
     }
   }
 }

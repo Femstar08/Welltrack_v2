@@ -29,11 +29,25 @@ Deno.serve(async (req: Request) => {
   console.log('[Process Webhooks] Starting webhook processing batch')
 
   try {
+    // Auth guard: only allow service-role or pre-shared secret (SEC-004)
+    const authHeader = req.headers.get('Authorization') ?? ''
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    const cronSecret = Deno.env.get('CRON_SECRET') ?? ''
+    const bearerToken = authHeader.replace('Bearer ', '')
+
+    if (bearerToken !== serviceKey && bearerToken !== cronSecret) {
+      console.warn('[Process Webhooks] Unauthorized request — rejecting')
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+
     const { adminClient } = createSupabaseClient(req)
 
-    // Get batch size from query param or use default
+    // Get batch size from query param or use default (capped at 50)
     const url = new URL(req.url)
-    const batchSize = parseInt(url.searchParams.get('batch_size') || '10')
+    const batchSize = Math.min(parseInt(url.searchParams.get('batch_size') || '10'), 50)
 
     // Process pending events
     const result = await processPendingEvents(adminClient, batchSize)

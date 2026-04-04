@@ -10,8 +10,9 @@ export function createSupabaseClient(req: Request) {
   return {
     // Admin client (bypasses RLS)
     adminClient: createClient(supabaseUrl, supabaseServiceKey),
-    // User client (respects RLS)
-    userClient: createClient(supabaseUrl, supabaseServiceKey, {
+    // User client (respects RLS) — uses anon key so PostgREST enforces RLS.
+    // The user's JWT in the Authorization header determines which rows are visible.
+    userClient: createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY') ?? supabaseServiceKey, {
       global: {
         headers: { Authorization: authHeader || '' },
       },

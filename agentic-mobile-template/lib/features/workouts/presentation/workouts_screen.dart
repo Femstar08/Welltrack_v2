@@ -1,5 +1,7 @@
 // lib/features/workouts/presentation/workouts_screen.dart
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -101,12 +103,11 @@ class _TodayTab extends ConsumerWidget {
       data: (activePlan) {
         if (activePlan == null) {
           return _TodayEmptyState(
+            profileId: profileId,
             message: 'No active plan',
             detail: 'Create a workout plan and set it as active to see your daily workout here.',
             actionLabel: 'Create your first workout plan',
             onAction: () {
-              // Switch to Plans tab — parent TabController is needed; use a
-              // simple ScaffoldMessenger nudge as a fallback.
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Switch to the Plans tab to create a plan.'),
@@ -114,6 +115,7 @@ class _TodayTab extends ConsumerWidget {
                 ),
               );
             },
+            showQuickStart: true,
           );
         }
         return _TodayPlanView(
@@ -157,10 +159,12 @@ class _TodayPlanView extends ConsumerWidget {
         data: (exercises) {
           if (exercises.isEmpty) {
             return _TodayEmptyState(
+              profileId: profileId,
               message: 'Rest Day',
               detail: 'No exercises scheduled on ${_dowLabel(todayDow)} in "${plan.name}". Enjoy your recovery.',
               actionLabel: null,
               onAction: null,
+              showQuickStart: true,
             );
           }
 
@@ -338,15 +342,19 @@ class _TodayPlanView extends ConsumerWidget {
 
 class _TodayEmptyState extends StatelessWidget {
   const _TodayEmptyState({
+    required this.profileId,
     required this.message,
     required this.detail,
     required this.actionLabel,
     required this.onAction,
+    this.showQuickStart = false,
   });
+  final String profileId;
   final String message;
   final String detail;
   final String? actionLabel;
   final VoidCallback? onAction;
+  final bool showQuickStart;
 
   @override
   Widget build(BuildContext context) {
@@ -383,6 +391,21 @@ class _TodayEmptyState extends StatelessWidget {
               FilledButton.tonal(
                 onPressed: onAction,
                 child: Text(actionLabel!),
+              ),
+            ],
+            if (showQuickStart) ...[
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: () {
+                  context.push(
+                    '/workouts/log/new',
+                    extra: {
+                      'planName': 'Quick Workout',
+                    },
+                  );
+                },
+                icon: const Icon(Icons.play_arrow),
+                label: const Text('Start Quick Workout'),
               ),
             ],
           ],
@@ -553,7 +576,7 @@ class _PlansTab extends ConsumerWidget {
                 );
                 ref.invalidate(workoutPlansProvider(profileId));
                 if (context.mounted) {
-                  context.push('/workouts/plan/${plan.id}');
+                  unawaited(context.push('/workouts/plan/${plan.id}'));
                 }
               } catch (e) {
                 if (context.mounted) {

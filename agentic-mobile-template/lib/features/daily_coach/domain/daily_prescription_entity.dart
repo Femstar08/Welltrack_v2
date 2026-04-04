@@ -1,8 +1,36 @@
 // lib/features/daily_coach/domain/daily_prescription_entity.dart
 
+/// Score-based plan type per CLAUDE.md Phase 2 table.
+enum PlanType {
+  push,   // recovery 80–100
+  normal, // recovery 60–79
+  easy,   // recovery 40–59
+  rest,   // recovery 0–39
+}
+
+extension PlanTypeExtension on PlanType {
+  String get dbValue => name;
+
+  static PlanType fromDbValue(String value) {
+    switch (value) {
+      case 'push':
+        return PlanType.push;
+      case 'normal':
+        return PlanType.normal;
+      case 'easy':
+        return PlanType.easy;
+      case 'rest':
+        return PlanType.rest;
+      default:
+        return PlanType.normal;
+    }
+  }
+}
+
 enum PrescriptionScenario {
   wellRested,
   tiredNotSore,
+  sore,
   verySore,
   behindSteps,
   weightStalling,
@@ -19,6 +47,8 @@ extension PrescriptionScenarioExtension on PrescriptionScenario {
         return 'well_rested';
       case PrescriptionScenario.tiredNotSore:
         return 'tired_not_sore';
+      case PrescriptionScenario.sore:
+        return 'sore';
       case PrescriptionScenario.verySore:
         return 'very_sore';
       case PrescriptionScenario.behindSteps:
@@ -40,6 +70,8 @@ extension PrescriptionScenarioExtension on PrescriptionScenario {
         return PrescriptionScenario.wellRested;
       case 'tired_not_sore':
         return PrescriptionScenario.tiredNotSore;
+      case 'sore':
+        return PrescriptionScenario.sore;
       case 'very_sore':
         return PrescriptionScenario.verySore;
       case 'behind_steps':
@@ -149,12 +181,15 @@ class DailyPrescriptionEntity {
     required this.profileId,
     this.checkinId,
     required this.prescriptionDate,
+    this.planType = PlanType.normal,
+    this.recoveryScore,
     required this.scenario,
     required this.workoutDirective,
     this.workoutVolumeModifier = 1.0,
     this.workoutNote,
     required this.mealDirective,
     this.calorieModifier = 0,
+    this.calorieAdjustmentPercent = 0.0,
     this.stepsNudge,
     this.aiFocusTip,
     this.aiNarrative,
@@ -167,16 +202,79 @@ class DailyPrescriptionEntity {
     this.updatedAt,
   });
 
+  factory DailyPrescriptionEntity.fromJson(Map<String, dynamic> json) {
+    return DailyPrescriptionEntity(
+      id: json['id'] as String?,
+      profileId: json['profile_id'] as String,
+      checkinId: json['checkin_id'] as String?,
+      prescriptionDate: DateTime.parse(json['prescription_date'] as String),
+      planType: json['plan_type'] != null
+          ? PlanTypeExtension.fromDbValue(json['plan_type'] as String)
+          : PlanType.normal,
+      recoveryScore: json['recovery_score'] != null
+          ? (json['recovery_score'] as num).toDouble()
+          : null,
+      scenario: PrescriptionScenarioExtension.fromDbValue(
+        json['scenario'] as String,
+      ),
+      workoutDirective: WorkoutDirectiveExtension.fromDbValue(
+        json['workout_directive'] as String,
+      ),
+      workoutVolumeModifier: json['workout_volume_modifier'] != null
+          ? (json['workout_volume_modifier'] as num).toDouble()
+          : 1.0,
+      workoutNote: json['workout_note'] as String?,
+      mealDirective: MealDirectiveExtension.fromDbValue(
+        json['meal_directive'] as String,
+      ),
+      calorieModifier: json['calorie_modifier'] != null
+          ? (json['calorie_modifier'] as num).toInt()
+          : 0,
+      calorieAdjustmentPercent: json['calorie_adjustment_percent'] != null
+          ? (json['calorie_adjustment_percent'] as num).toDouble()
+          : 0.0,
+      stepsNudge: json['steps_nudge'] as String?,
+      aiFocusTip: json['ai_focus_tip'] as String?,
+      aiNarrative: json['ai_narrative'] as String?,
+      bedtimeHour: json['bedtime_hour'] != null
+          ? (json['bedtime_hour'] as num).toInt()
+          : null,
+      bedtimeMinute: json['bedtime_minute'] != null
+          ? (json['bedtime_minute'] as num).toInt()
+          : null,
+      generatedAt: json['generated_at'] != null
+          ? DateTime.parse(json['generated_at'] as String)
+          : null,
+      aiModel: json['ai_model'] as String?,
+      isFallback: json['is_fallback'] as bool? ?? false,
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'] as String)
+          : null,
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'] as String)
+          : null,
+    );
+  }
+
   final String? id;
   final String profileId;
   final String? checkinId;
   final DateTime prescriptionDate;
+  final PlanType planType;
+
+  /// Recovery score 0–100 used to determine plan type.
+  final double? recoveryScore;
+
   final PrescriptionScenario scenario;
   final WorkoutDirective workoutDirective;
   final double workoutVolumeModifier;
   final String? workoutNote;
   final MealDirective mealDirective;
   final int calorieModifier;
+
+  /// Percentage calorie adjustment (e.g. -0.10 = -10%).
+  final double calorieAdjustmentPercent;
+
   final String? stepsNudge;
   final String? aiFocusTip;
   final String? aiNarrative;
@@ -201,51 +299,6 @@ class DailyPrescriptionEntity {
     return '$displayHour:$displayMinute $period';
   }
 
-  factory DailyPrescriptionEntity.fromJson(Map<String, dynamic> json) {
-    return DailyPrescriptionEntity(
-      id: json['id'] as String?,
-      profileId: json['profile_id'] as String,
-      checkinId: json['checkin_id'] as String?,
-      prescriptionDate: DateTime.parse(json['prescription_date'] as String),
-      scenario: PrescriptionScenarioExtension.fromDbValue(
-        json['scenario'] as String,
-      ),
-      workoutDirective: WorkoutDirectiveExtension.fromDbValue(
-        json['workout_directive'] as String,
-      ),
-      workoutVolumeModifier: json['workout_volume_modifier'] != null
-          ? (json['workout_volume_modifier'] as num).toDouble()
-          : 1.0,
-      workoutNote: json['workout_note'] as String?,
-      mealDirective: MealDirectiveExtension.fromDbValue(
-        json['meal_directive'] as String,
-      ),
-      calorieModifier: json['calorie_modifier'] != null
-          ? (json['calorie_modifier'] as num).toInt()
-          : 0,
-      stepsNudge: json['steps_nudge'] as String?,
-      aiFocusTip: json['ai_focus_tip'] as String?,
-      aiNarrative: json['ai_narrative'] as String?,
-      bedtimeHour: json['bedtime_hour'] != null
-          ? (json['bedtime_hour'] as num).toInt()
-          : null,
-      bedtimeMinute: json['bedtime_minute'] != null
-          ? (json['bedtime_minute'] as num).toInt()
-          : null,
-      generatedAt: json['generated_at'] != null
-          ? DateTime.parse(json['generated_at'] as String)
-          : null,
-      aiModel: json['ai_model'] as String?,
-      isFallback: json['is_fallback'] as bool? ?? false,
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String)
-          : null,
-      updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'] as String)
-          : null,
-    );
-  }
-
   Map<String, dynamic> toJson() {
     return {
       if (id != null) 'id': id,
@@ -253,12 +306,15 @@ class DailyPrescriptionEntity {
       if (checkinId != null) 'checkin_id': checkinId,
       'prescription_date':
           prescriptionDate.toIso8601String().substring(0, 10),
+      'plan_type': planType.dbValue,
+      if (recoveryScore != null) 'recovery_score': recoveryScore,
       'scenario': scenario.dbValue,
       'workout_directive': workoutDirective.dbValue,
       'workout_volume_modifier': workoutVolumeModifier,
       if (workoutNote != null) 'workout_note': workoutNote,
       'meal_directive': mealDirective.dbValue,
       'calorie_modifier': calorieModifier,
+      'calorie_adjustment_percent': calorieAdjustmentPercent,
       if (stepsNudge != null) 'steps_nudge': stepsNudge,
       if (aiFocusTip != null) 'ai_focus_tip': aiFocusTip,
       if (aiNarrative != null) 'ai_narrative': aiNarrative,
@@ -276,12 +332,15 @@ class DailyPrescriptionEntity {
     String? profileId,
     String? checkinId,
     DateTime? prescriptionDate,
+    PlanType? planType,
+    double? recoveryScore,
     PrescriptionScenario? scenario,
     WorkoutDirective? workoutDirective,
     double? workoutVolumeModifier,
     String? workoutNote,
     MealDirective? mealDirective,
     int? calorieModifier,
+    double? calorieAdjustmentPercent,
     String? stepsNudge,
     String? aiFocusTip,
     String? aiNarrative,
@@ -298,6 +357,8 @@ class DailyPrescriptionEntity {
       profileId: profileId ?? this.profileId,
       checkinId: checkinId ?? this.checkinId,
       prescriptionDate: prescriptionDate ?? this.prescriptionDate,
+      planType: planType ?? this.planType,
+      recoveryScore: recoveryScore ?? this.recoveryScore,
       scenario: scenario ?? this.scenario,
       workoutDirective: workoutDirective ?? this.workoutDirective,
       workoutVolumeModifier:
@@ -305,6 +366,8 @@ class DailyPrescriptionEntity {
       workoutNote: workoutNote ?? this.workoutNote,
       mealDirective: mealDirective ?? this.mealDirective,
       calorieModifier: calorieModifier ?? this.calorieModifier,
+      calorieAdjustmentPercent:
+          calorieAdjustmentPercent ?? this.calorieAdjustmentPercent,
       stepsNudge: stepsNudge ?? this.stepsNudge,
       aiFocusTip: aiFocusTip ?? this.aiFocusTip,
       aiNarrative: aiNarrative ?? this.aiNarrative,

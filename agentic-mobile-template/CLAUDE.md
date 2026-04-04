@@ -1,651 +1,359 @@
-# WellTrack — Claude Code Master Prompt (Enhanced v4)
+# WellTrack — Claude Code Master Prompt (v4)
 
-> Paste this entire prompt into Claude Code.
-> You are a Principal Engineer + Product Architect.
-> Build a production-grade cross-platform app called **WellTrack** using **Flutter** (Android + iOS) with **Supabase** backend.
->
-> **Product positioning:** A Performance & Recovery Optimization Engine for high-achieving professionals.
-> **First optimization model:** Physical fitness & VO₂ max improvement.
-> **AI philosophy:** Suggestive, never prescriptive. Math generates forecasts; AI explains them.
-> **Medical:** Strictly wellness — no medical claims ever.
-> **Distribution:** Intended for eventual public release on Google Play and App Store for personal use.
+> You are a Principal Engineer + Product Architect working on an **existing, partially-built** Flutter app.
+> Do NOT scaffold from scratch. The codebase already exists — read the existing files before making changes.
+> Always check what's already built before writing new code.
 
 ---
 
-## 0) Non-Negotiables
+## Product
 
-- Flutter app must be accepted by Google Play and Apple App Store.
-- Native integrations: Health Connect (Android), HealthKit (iOS).
-- Offline-first: queue writes locally, sync when connected. Use last-write-wins conflict resolution (no enterprise-grade conflict engine needed for personal use).
-- Sensitive wellness data: secure by default (RLS + encrypted local storage).
-- **Sensitive data policy (CRITICAL):** Morning erection tracking, erection quality, and bloodwork results must be: encrypted at rest (column-level encryption or field encryption before insert), excluded from analytics exports, never sent to AI without explicit user consent toggle, never displayed in push notification content, and labelled with `is_sensitive = true` in schema. Treat as health metadata, not sexual content.
-- AI must be server-side (do NOT call AI directly from the mobile client).
-- Central AI orchestrator with tool routing (single entrypoint).
-- Freemium: gate intelligence features, never gate workout logging.
-- No enterprise-grade concurrency, multi-user scaling, or microservice explosion. This is a single-user app first. Keep it clean, modular, single-app.
+**WellTrack** is a Performance & Recovery Optimization Engine for high-achieving professionals.
+- Cross-platform: Flutter (Android + iOS) + Supabase backend
+- Data aggregator: Health Connect (Android) → HealthKit (iOS) → WellTrack → Supabase
+- AI philosophy: **Math generates the plan. AI explains it.** Never reverse this.
+- Positioning: Strictly wellness — zero medical claims, ever.
+- AI plans are always SUGGESTIVE ("consider this"), never PRESCRIPTIVE ("do this")
 
 ---
 
-## 1) Architecture Principles
+## Non-Negotiables
 
-### Core Philosophy
-> Treat this as one modular performance engine with staged capability unlocks. Not 8 parallel mini apps.
+- Flutter app accepted by Google Play and Apple App Store
+- Health Connect (Android) + HealthKit (iOS) — native integrations, already coded in `health_service.dart`
+- Offline-first: full logging works offline, sync later with conflict resolution (Hive + WorkManager)
+- AI is server-side only — never call Claude/OpenAI directly from the Flutter client
+- Central AI orchestrator: `shared/core/ai/ai_orchestrator_service.dart` is the single entry point
+- Freemium: gate optimization features, not basic logging
+- Sensitive wellness data: RLS on all Supabase tables + encrypted local storage (flutter_secure_storage)
+- Deduplication: all health metrics use `dedupe_hash` (SHA-256) to prevent duplicate inserts
 
-### Domain Separation (Mandatory)
-No domain directly queries another domain's tables. All cross-domain interactions go through services or events.
+---
+
+## Current Tech Stack
 
 ```
-core/
-  auth
-  sync
-  health_pipeline
-  ai_orchestrator
-  notifications
-
-domains/
-  workouts
-  goals
-  recovery
-  nutrition
-  daily_coach
-  habits
-  vitality
-  bloodwork
-```
-
-### Feature Modularity
-- Each feature is a module that can be enabled/disabled per profile.
-- Dashboard adapts automatically based on enabled modules.
-- Home screen must remain calm and uncluttered. Less is more.
-
-### Clean Architecture (per domain)
-```
-features/<domain>/{data, domain, presentation}
-shared/core/{network, storage, auth, theme, router}
-```
-
-### Data Flow
-```
-Garmin Watch → Garmin Connect → Health Connect → WellTrack → Room/Supabase → Dashboard/Charts/AI
+Flutter (Dart) + Riverpod (state) + GoRouter (navigation)
+Supabase (backend + auth + realtime)
+Hive (offline local storage)
+WorkManager (background sync)
+Health package v13.3.0 (Health Connect + HealthKit)
+Dio (networking)
+FL Chart (charts)
+Google MLKit (OCR)
 ```
 
 ---
 
-## 2) Database Schema
+## Architecture: Data Flow
 
-### Core Tables (Supabase + local Room mirror)
-Include (at minimum):
-- `WT_users` (if needed beyond Supabase auth)
-- `WT_profiles` (parent + dependents — single profile for MVP)
-- `WT_profile_modules` (enabled modules per profile)
-- `WT_daily_logs` (unified daily records; multiple per day; profile scoped)
-- `WT_health_metrics` (normalized metrics from all sources)
-- `WT_webhook_events` (queue table — never process webhooks inline)
-
-### Workout Logger Tables (NEW — JEFIT-style)
-- `WT_exercises` (exercise library: name, muscle_groups[], equipment_type, instructions, image_url, gif_url)
-- `WT_workout_plans` (named plans with day assignments)
-- `WT_workout_plan_exercises` (exercises within a plan, with order, target_sets, target_reps)
-- `WT_workout_sessions` (completed sessions: plan_id, start_time, end_time, notes)
-- `WT_workout_sets` (individual logged sets: session_id, exercise_id, set_number, weight_kg, reps, completed, estimated_1rm)
-- `WT_exercise_records` (personal records per exercise: max_weight, max_reps, max_volume, max_1rm, dates)
-- `WT_muscle_volume` (weekly volume per muscle group, derived)
-
-### Meal Planning Tables (NEW)
-- `WT_meals` (logged meals with macro breakdown)
-- `WT_meal_plans` (AI-generated daily meal plans: date, training_day_type, total_cals, total_protein)
-- `WT_meal_plan_items` (individual meals within a plan: meal_type, name, description, cals, protein, carbs, fat)
-- `WT_recipes` (full recipes with ingredients, steps, prep_time, cook_time)
-- `WT_recipe_steps` (ordered cooking steps)
-- `WT_recipe_ingredients` (ingredients with quantities)
-- `WT_recipe_favourites` (user-saved recipes)
-- `WT_shopping_lists` (weekly generated shopping lists)
-- `WT_shopping_list_items` (items with aisle grouping, tick-off)
-
-### Existing Tables (from original spec)
-- `WT_pantry_items`, `WT_leftovers`
-- `WT_nutrients`, `WT_nutrient_targets`, `WT_meal_nutrient_breakdown`
-- `WT_supplements`, `WT_supplement_logs`, `WT_supplement_protocols`
-- `WT_plans`, `WT_plan_items`
-- `WT_goals` (metric, current_value, target_value, deadline, priority)
-- `WT_goal_snapshots` (daily snapshots for projection calculation)
-- `WT_goal_forecasts` (expected achievement dates with confidence)
-- `WT_insights` (AI-generated summaries)
-- `WT_daily_checkins` (morning check-in responses)
-- `WT_daily_prescriptions` (AI-generated daily plans)
-- `WT_reminders`
-- `WT_ai_usage` (metering) + `WT_ai_audit_log` (traceability)
-- `WT_recovery_scores` (daily composite with component breakdown)
-- `WT_training_load` (daily/weekly load calculations)
-
-### Habit & Streak Tracking Tables (NEW)
-> **UI PLACEMENT:** These features live inside Log > Secondary tab or Profile > Health Records. Do NOT surface aggressively on the home dashboard.
-- `WT_habit_streaks` (generic streak tracker: habit_type, current_streak_days, longest_streak, last_logged_date, is_active)
-  - Supports: porn_free, kegels_am, kegels_pm, sleep_target, steps_target, or any user-defined habit
-- `WT_bloodwork_results` (lab results over time: test_name, value_num, unit, reference_range_low, reference_range_high, test_date, notes)
-  - Pre-loaded test types: total_testosterone, free_testosterone, shbg, oestradiol, prolactin, fasting_glucose, hba1c, total_cholesterol, ldl, hdl, triglycerides, tsh, vitamin_d, blood_pressure_systolic, blood_pressure_diastolic
-  - Trend charts per test over time
-  - Flag values outside reference range
-
-Implement RLS policies: all data is profile-scoped and owned by auth user.
-
----
-
-## 3) Health Metrics Pipeline
-
-### Normalized Health Metrics Table
-`WT_health_metrics` with:
-- id, user_id, profile_id
-- source (healthconnect, healthkit, garmin, strava, manual)
-- metric_type (sleep, stress, vo2max, steps, hr, rhr, weight, body_fat, hrv, active_calories, etc.)
-- value_num, value_text, unit
-- start_time, end_time, recorded_at
-- raw_payload_json (optional)
-- dedupe_hash, created_at, updated_at
-
-### Ingest Rules
-- Sleep: ingest from Health Connect/HealthKit and Garmin; deduplicate by start/end time; prefer most detailed record
-- Stress: Garmin Stress Score (0-100). If unavailable, store null -- do not block pipeline
-- VO2 Max: not available via Health Connect. Manual entry screen for users without Garmin (update every 1-2 weeks). When Garmin is connected (Phase 11), auto-ingest from Garmin Connect. **UX requirement:** If user has no Garmin linked, show a contextual banner on the VO2 Max input screen: "Connect Garmin for automatic VO2 Max tracking" with a link to Health Connections. Never silently leave the field empty -- prompt the user to enter manually or connect a device
-- Steps, HR, Weight, Body Fat, HRV, Active Calories: automatic from Health Connect
-
-### Garmin API Integration (MVP -- Server-to-Server)
-**Architecture:** PUSH only. Garmin sends data to your webhook. You do NOT poll.
-
-**OAuth 2.0 PKCE flow:**
-- Authorization endpoint: `https://connect.garmin.com/oauthConfirm`
-- Token endpoint: `https://connectapi.garmin.com/oauth-service/oauth/token`
-- Encrypted token storage (never store unencrypted on client)
-- Token refresh with retry logic
-
-**Webhook handling:**
-- Receive POST at your registered callback URL
-- Respond HTTP 200 within 30 seconds (queue for async processing)
-- Store raw payload in `WT_webhook_events` first, then process
-- Webhook types for MVP: `userMetrics` (VO2 max), `stressDetails`, `dailies`, `sleeps`, `activities`
-
-**Brand attribution (required for Garmin review):**
-- Display "Garmin" trademark with (TM) or (R) where data is shown
-- Include "Powered by Garmin Connect" or "Data from Garmin" attribution
-- Never modify or abbreviate the Garmin name
-- Follow Garmin's colour and logo usage guidelines
-
-**Data validation layer:**
-- Validate webhook signatures
-- Check for duplicate delivery (idempotency via dedupe_hash)
-- Validate data ranges (e.g. VO2 max 10-100, stress 0-100)
-- Log validation failures without blocking pipeline
-
----
-
-## 4) Workout Logger (JEFIT-Style -- NEW)
-
-> **BUILDER NOTE:** UX matters more than architecture here. This is the highest-risk feature. If this is weak, everything collapses. Every tap must be optimised. Rest timer must not fail in background. Auto-fill previous session weights is mandatory. Swipe gesture must be fluid. This phase deserves dedicated testing time.
-
-### Exercise Database
-- Pre-loaded library: 200+ exercises covering all major muscle groups
-- Categorised by: body part (chest, back, shoulders, arms, legs, core) AND equipment type (barbell, dumbbell, cable, machine, bodyweight, kettlebell, trap bar)
-- Each exercise: name, target_muscles[], secondary_muscles[], instructions, image_url, gif_url
-- User can add custom exercises
-- Search by name, filter by muscle group or equipment
-
-### Workout Plans
-- Named plans (e.g. "4-Day Push/Pull/Legs")
-- Day assignments (Monday = Lower Body, Tuesday = Upper Push, etc.)
-- Each day: ordered list of exercises with target_sets and target_reps
-- Plan editor: add/remove/reorder exercises, duplicate plans
-- Default plan pre-loaded from user's current programme
-
-### Live Workout Logging Screen
-**Critical UX principle:** Minimal taps during a workout. Pre-loaded data from last session means most sets log with a single tap.
-
-**Interface per exercise:**
-- Header: exercise name, target muscles, GIF demo, current estimated 1RM
-- Set rows: Set # | Weight (kg) | Reps | Completion tick
-- Pre-loaded values: weight and reps auto-fill from last session for that exercise
-- Tap tick -> logs set, starts rest timer
-- "+" button to add extra sets
-- Swipe left/right to move between exercises
-
-**Rest timer:**
-- Auto-starts after logging a set
-- Configurable per exercise type (default: 90s compounds, 60s isolation)
-- Alert when rest is over: vibration + optional sound (user chooses in Settings: vibrate only, sound only, both, or silent)
-- Manual override (skip or extend)
-
-**1RM tracking:**
-- Auto-calculate estimated 1RM using Epley formula: `1RM = weight * (1 + reps/30)`
-- Display current 1RM on exercise header
-- Highlight new personal records with visual celebration
-- Store in `WT_exercise_records`
-
-**Session summary (after completing all exercises):**
-- Total volume lifted (sets x reps x weight)
-- Session duration
-- Personal records hit
-- Muscle groups worked
-- Comparison vs last session of same plan day
-
-### Progressive Overload Tracking
-- Weekly total volume chart per muscle group
-- 1RM history line chart per exercise over weeks/months
-- Personal records log (all-time bests per exercise)
-- Smart suggestions: "You've done 85 kg x 12 for 3 weeks -- try 90 kg x 10 next"
-
-### Body Map Visualisation
-- Visual muscle map showing muscles trained this week
-- Colour coded: green (well-trained), amber (lightly trained), grey (not hit)
-- Tap muscle -> shows contributing exercises and volume
-- Ensures balanced training across the week
-
----
-
-## 5) AI Meal Planning & Nutrition Engine (NEW)
-
-> **BUILDER NOTE:** Very complex feature. Cache weekly plans in DB -- avoid regenerating daily. Separate generation logic from presentation layer. Cuisine + nutrition profiles are preferences, not hard constraints. Avoid perfect macro precision obsession -- within +/-10% of targets is acceptable.
-
-### Macro Calculation
-Daily targets calculated from: current weight, goal, activity level, training schedule.
-
-| Day Type | Strategy |
-|----------|----------|
-| Strength training day | Higher calories, higher carbs for performance |
-| Cardio day | Moderate calories, moderate carbs |
-| Rest day | Lower calories, calorie deficit for fat loss |
-
-Auto-adjust macros when new weight is logged.
-
-### Nutrition Profiles (AI Meal Generation Weighting)
-Users can enable nutrition profiles that bias AI meal generation toward specific food groups without overriding macro targets:
-
-| Profile | Prioritises | Reduces |
-|---------|-------------|---------|
-| **Default** | Balanced whole foods | Processed foods |
-| **Cardiovascular & Blood Flow** | Beetroot, dark leafy greens (spinach, rocket, kale), watermelon, pomegranate, dark chocolate 85%+, garlic -- all nitric oxide boosters | Added sugar, refined carbs |
-| **Hormonal Support** | Whole eggs, fatty fish (salmon, mackerel, sardines), zinc-rich foods (pumpkin seeds, chickpeas, red meat), cruciferous vegetables (broccoli, cauliflower), magnesium-rich foods (almonds, avocado) | Excess soy, heavily processed foods |
-
-Profiles stack -- enabling both Cardiovascular and Hormonal means AI includes foods from both lists. The AI weighting is a preference, not a hard constraint: if a meal doesn't include a profile food, that's fine as long as macros are hit.
-
-### AI Meal Generation
-AI generates daily meal plans with 3 meals + 1-2 snacks. Each meal includes:
-- Name and description
-- Full macro breakdown (calories, protein, carbs, fat per serving)
-- Portion sizes in grams
-- Step-by-step recipe with prep and cook time
-- Swap option: tap "Swap" -> AI generates alternative hitting same macros
-- Cuisine preference support (Nigerian, British, Mediterranean, Asian, etc.)
-
-### Meal Prep Assistant
-Weekly meal prep screen:
-- Identifies which meals can be batch-cooked
-- Consolidated shopping list sorted by supermarket aisle
-- Estimated prep time, cook time, storage instructions
-- Tick-off items as you shop, mark meals as prepped
-
-### Recipe Database
-Categorised by: goal alignment, cuisine type, prep time, diet type.
-User can favourite recipes -> AI prioritises them in future plans.
-
-### Recipe Import (Existing WellTrack Feature)
-- **URL paste** (Phase 9): User pastes URL -> server extracts recipe -> user confirms
-- **Photo OCR** (Phase 12): User photographs recipe -> OCR -> extraction -> confirm
-- **AI-generated**: From pantry items or macro targets
-- **Saved**: User's stored favourites
-
----
-
-## 6) AI Daily Coach (NEW)
-
-> **BUILDER NOTE:** High coupling risk. Keep prescription logic rule-based first (if/else decision tree). AI only narrates the output -- it does NOT make the workout/meal decisions. Workout modification must not corrupt workout history. Morning check-in should be lightweight (< 30 seconds to complete).
-
-### Morning Check-In
-When user opens app (or via morning notification):
-
-| Question | Input |
-|----------|-------|
-| How are you feeling? | Great / Good / Tired / Sore / Unwell |
-| How did you sleep? | Auto-filled from Garmin sleep data. User can override |
-| Morning erection today? | Yes / No (private, encrypted, used for trend tracking) |
-| Any injuries or pain? | Optional free text |
-| What's your schedule today? | Busy / Normal / Flexible |
-
-Additionally, prompt weekly (every Sunday):
-| Weekly question | Input |
-|-----------------|-------|
-| Erection quality this week? | 1-10 slider (private, encrypted) |
-
-Store responses in `WT_daily_checkins`. Morning erection and erection quality fields are marked `is_sensitive = true` in schema and excluded from any data export unless user explicitly opts in.
-
-### Daily Prescription Logic
-AI combines check-in + Health Connect data + goals to generate today's plan:
-
-| Scenario | Signals | Prescription |
-|----------|---------|-------------|
-| Well rested, feeling great | 7+ hrs sleep, low RHR, "Great" | Full planned workout. Push progressive overload. Standard meals. |
-| Tired but not sore | <6 hrs sleep, "Tired" | Keep workout, reduce volume 20%. Extra carbs at breakfast. Bedtime reminder. |
-| Very sore | "Sore", heavy session yesterday | Active recovery: light walk + stretching. High-protein meals. |
-| Behind on steps | 3 PM and <4,000 steps | Nudge: "A 30-min walk after work gets you to your goal." |
-| Weight stalling | No change 2+ weeks | Suggest reducing rest-day calories by 100-200. Add one cardio session. |
-| Busy day | Schedule = "Busy" | Quick 30-min workout variant. Simple grab-and-go meals. |
-| Unwell | "Unwell" | No workout. Hydration focus. Light meals. Rest day. |
-
-### Today's Plan Screen
-Single screen showing personalised day:
-- **Workout card:** Today's session (or rest note) with duration. Tap to start logging.
-- **Meals card:** Breakfast, lunch, dinner, snacks with macro summaries. Tap for recipe.
-- **Steps target:** Progress ring with projected completion.
-- **Focus tip:** One actionable insight.
-- **Bedtime reminder:** Based on wake time and 7+ hour sleep target.
-
-### Adaptive Intelligence
-The AI learns from patterns over time:
-- Consistently skip Wednesday workouts -> suggest swapping days
-- Always swap out a particular meal -> stop suggesting that recipe
-- Resting HR spikes after poor sleep -> surface the correlation
-- Better performance on high-carb training days -> adjust future macros
-- Morning erections correlate with 7+ hours sleep -> surface the connection (private insight)
-- Erection quality improves after cardio-heavy weeks -> reinforce cardio consistency
-- Recovery score trends with erection quality over time -> surface pattern if strong correlation found
-
----
-
-## 7) Goal Tracking & Projection Engine (ENHANCED)
-
-### Goal Setup
-Users set targets for each metric with a deadline and priority:
-- Weight, VO2 Max, Resting HR, Steps, Sleep, Strength frequency, Cardio frequency
-- Exercise-specific goals (e.g. Trap Bar Deadlift 1RM: 119 -> 160 kg)
-
-### Projection Algorithm (Deterministic -- Math First)
-**Layer 1 -- Deterministic (SQL/math):**
-- Data window: last 14-28 days of readings
-- Rate of change: (current - value N days ago) / N days
-- Recent bias: last 7 days weighted 2x vs prior 7 days
-- Projection: (Target - Current) / Rate of Change = Estimated Days Remaining
-- Confidence band: optimistic (best 7-day rate) and pessimistic (worst 7-day rate)
-
-**Layer 2 -- AI Narrative (explanation only):**
-- AI receives deterministic forecast + supporting data
-- Generates human-readable explanation
-- Can suggest adjustments but NEVER overrides the math
-
-### Goal Display (per goal)
-- Progress bar (percentage toward target)
-- Trend arrow (improving, stagnant, declining)
-- Projected date ("At this rate, you'll reach 93 kg by September 2026")
-- Status badge: On Track (green), Slightly Behind (amber), Off Track (red)
-- Weekly velocity (e.g. "Losing 0.75 kg/week")
-- Confidence range (best/worst case projections)
-
-### Dashboard Goals Overview
-Mini progress rings for each goal with status colour. Next milestone with countdown.
-
----
-
-## 8) Baseline Calibration (Required Before Optimization)
-
-First 14 days after onboarding = **Baseline Establishment Mode**.
-
-During baseline:
-- All data collection is active
-- Dashboard shows "Collecting your baseline..." with day counter
-- No optimization features, forecasts, or suggestions
-- Captures: stress average, sleep consistency, VO2 max trend, training load baseline, resting HR baseline, step average, weight trend
-
-After 14 days:
-- Baseline locked in
-- Optimization features unlock
-- All future data compared against baseline
-- "vs your baseline" comparisons available on all charts
-
----
-
-## 9) Performance Intelligence Engine (Existing WellTrack IP)
-
-> **This is your moat.** Build in this exact order: (1) Recovery Score first, (2) Load model second, (3) Baseline gating third, (4) AI explanation last. Do NOT mix AI into the calculation layer.
-
-### Training Load Model
 ```
-Load Score = Duration (min) x Intensity Factor
+Garmin Watch  ──┐
+Wear OS Watch ──┼──→  Health Connect (Android)  ──→  health_service.dart  ──→  health_repository_impl.dart  ──→  Supabase
+Android Phone ──┘      HealthKit (iOS)               (reads platform data)      (bulk upsert + dedup)           wt_health_metrics table
+
+                                                                ↓
+                                                    performance_engine.dart
+                                                    (recovery score calculation)
+                                                                ↓
+                                                    prescription_engine.dart
+                                                    (tomorrow's plan — math-based)
+                                                                ↓
+                                                    ai_orchestrator_service.dart
+                                                    (AI narrates the WHY)
+                                                                ↓
+                                                    daily_coach screens
+                                                    (user sees plan)
 ```
-Intensity factors: Light (0.5), Moderate (1.0), Hard (1.5), Very Hard (2.0)
 
-Derive:
-- Weekly load total
-- Load trend (increasing/decreasing/stable)
-- Recovery ratio (load vs recovery score)
-- Overtraining detection (load spike > 150% of 4-week average)
+---
 
-### Recovery Score (WellTrack Composite -- Proprietary)
+## Codebase Structure (already built)
+
 ```
-WT_recovery_score = weighted combination of:
-  - Stress trend (lower = better recovery) -- weight: 0.25
-  - Sleep quality score -- weight: 0.30
-  - Resting HR trend (declining = recovering) -- weight: 0.20
-  - Training load trend (decreasing after peak = recovering) -- weight: 0.25
+lib/
+├── main.dart
+├── app.dart
+├── features/
+│   ├── auth/              ✅ Complete — login, signup, Supabase auth
+│   ├── health/            ⚠️  Built but Health Connect NOT wired (AndroidManifest missing)
+│   ├── daily_coach/       ⚠️  Built but running on stub/mock data
+│   ├── dashboard/         ⚠️  Built but widgets show placeholder data
+│   ├── insights/          ⚠️  Built but not connected to real health data
+│   ├── workouts/          ⚠️  Partially complete — live session needs finishing
+│   ├── meals/             ⚠️  Generates meals but user interaction broken
+│   ├── goals/             ⚠️  Goal projection chart not connected to real data
+│   ├── recipes/           ⚠️  URL import + OCR exists, needs end-to-end test
+│   ├── shopping/          ⚠️  List generation broken — no real ingredient data
+│   ├── reminders/         🔴  Reminders created but notifications never fire
+│   ├── supplements/       ⚠️  Basic log works, reminders not linked
+│   ├── pantry/            ⚠️  Exists but not cross-referenced with shopping
+│   ├── freemium/          ⚠️  Gate logic exists but not enforced properly
+│   ├── profile/           ✅  Onboarding flow built
+│   └── settings/          ✅  Health settings screen built
+└── shared/core/
+    ├── ai/                ✅  Orchestrator built — verify it calls Supabase Edge Functions, not client-side
+    ├── health/            ⚠️  health_service.dart complete — needs AndroidManifest wiring
+    ├── sync/              ⚠️  Conflict resolver + sync engine built — needs WorkManager registration
+    └── router/            ✅  GoRouter with route guards
 ```
-- Score: 0-100 (0 = depleted, 100 = fully recovered)
-- Recalculate daily
-- Store with component breakdown for transparency
-- Primary performance indicator on dashboard (Pro feature)
-
-### Insights Architecture
-All core trend calculations MUST be deterministic SQL, not AI-generated:
-- Sleep trend = SQL (7/14/30 day averages, consistency score)
-- VO2 max trend = SQL (slope, moving average)
-- Stress trend = SQL (daily average, weekly comparison)
-- Training load trend = SQL (rolling sum, recovery ratio)
-- Recovery score = SQL (weighted composite)
-
-AI generates the narrative layer only -- explaining trends and suggesting actions.
 
 ---
 
-## 10) AI Orchestrator
+## Immediate Priorities (Phase 1 — Foundation)
 
-### Architecture
-- Single endpoint: `/ai/orchestrate`
-- Inputs: user_id, profile_id, context snapshot, user message, workflow type
-- Routing: decides which tool to call
+These MUST be done before anything else. Nothing can be tested on real data until these are complete.
 
-### Tool Registry
-**MVP tools (Phase 4 -- implement these first, do NOT register everything at once):**
-- `generate_daily_plan` (morning check-in -> workout + meals + tips)
-- `explain_metric` (AI explains a trend or score in plain language)
-- `generate_meal_plan` (daily/weekly meal generation)
+### 1.1 — AndroidManifest.xml (CRITICAL — 30 mins)
+File: `android/app/src/main/AndroidManifest.xml`
 
-**Phase 8+ tools (add as each phase lands):**
-- `generate_meal_swap` (replace one meal, maintain macros)
-- `generate_weekly_plan` (overall weekly planning)
-- `generate_pantry_recipes`
-- `generate_recipe_steps`
-- `suggest_progressive_overload` (workout suggestions)
-- `summarize_insights` (weekly narrative)
-- `recommend_supplements`
-- `recalc_goal_forecast` (trigger forecast recalculation)
-- `generate_shopping_list` (from meal plan)
-- `correlate_health_trends` (find patterns between metrics, e.g. sleep -> morning erections)
-- `summarize_bloodwork` (interpret bloodwork results, flag out-of-range, suggest retests)
+Add inside `<manifest>` tag:
+```xml
+<uses-permission android:name="android.permission.health.READ_SLEEP" />
+<uses-permission android:name="android.permission.health.READ_STEPS" />
+<uses-permission android:name="android.permission.health.READ_HEART_RATE" />
+<uses-permission android:name="android.permission.health.READ_WEIGHT" />
+<uses-permission android:name="android.permission.health.READ_EXERCISE" />
+<uses-permission android:name="android.permission.health.READ_DISTANCE" />
+<uses-permission android:name="android.permission.health.READ_ACTIVE_CALORIES_BURNED" />
+<uses-permission android:name="android.permission.health.READ_BODY_FAT" />
+```
 
-Grow the registry gradually. Each new phase registers its tools. Do not front-load.
+Add inside `<activity>` tag (Health Connect availability intent):
+```xml
+<intent-filter>
+    <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+</intent-filter>
+<meta-data
+    android:name="health_permissions"
+    android:resource="@array/health_permissions" />
+```
 
-### AI Context Updates
-Orchestrator must include in context snapshots:
-- Normalized health metrics (stress, sleep, VO2 max, RHR, HRV)
-- Latest recovery score + components
-- Training load (current week vs 4-week average)
-- Goal progress (current values vs targets)
-- Recent workout history (last 7 days)
-- Check-in responses (morning erection trend -- last 7 days, **only if user has enabled "Share vitality data with AI" consent toggle**)
-- Dietary preferences, enabled nutrition profiles, and favourited recipes
-- Active habit streaks (current + longest)
-- Latest bloodwork results (**only if user has enabled consent toggle**, with flags for out-of-range values)
+Create `android/app/src/main/res/values/health_permissions.xml`:
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <array name="health_permissions">
+        <item>androidx.health.permission.Steps</item>
+        <item>androidx.health.permission.HeartRate</item>
+        <item>androidx.health.permission.SleepSession</item>
+        <item>androidx.health.permission.Weight</item>
+        <item>androidx.health.permission.Distance</item>
+        <item>androidx.health.permission.ActiveCaloriesBurned</item>
+        <item>androidx.health.permission.BodyFat</item>
+    </array>
+</resources>
+```
 
-### Cost Control
-- Context trimming (summarised state, not raw data)
-- Response caching for repeated queries
-- Meal plans cached weekly (regenerate only on swap)
-- AI usage metered via `WT_ai_usage`
-- Free tier: limited calls/day. Pro tier: higher limits.
+### 1.2 — Register Background Sync with WorkManager
+File: `lib/main.dart` + `lib/features/health/data/health_background_sync.dart`
 
-### AI Guardrails
-- Rate limiting: max N calls per user per hour
-- Input validation: reject nonsensical or adversarial inputs
-- Output validation: verify AI responses match expected JSON schema
-- Safety checks: flag any content that could be interpreted as medical advice
-- Fallback: if AI fails, show deterministic data only (never a blank screen)
+- Register WorkManager callback in `main()` before `runApp()`
+- Background task must call `HealthService.syncHealthData()` then `HealthRepositoryImpl.saveHealthMetrics()`
+- Sync interval: 15 minutes minimum (WorkManager constraint)
+- Test: close app → wait → reopen → Supabase `wt_health_metrics` table should have new rows
 
----
+### 1.3 — Verify Supabase Schema
+Confirm these tables exist with correct columns and RLS enabled:
+- `wt_health_metrics` — with `dedupe_hash` UNIQUE constraint
+- `wt_profiles`
+- `wt_workouts` + `wt_workout_logs`
+- `wt_meals` + `wt_meal_plans`
+- `wt_goals`
+- `wt_reminders`
 
-## 11) Notifications & Nudges
+### 1.4 — Fix Notification Service
+File: `lib/features/reminders/data/notification_service.dart`
 
-**Priority notifications (implement first, keep conservative -- avoid spam):**
-- **Morning check-in** (configurable time, default 7 AM)
-- **Workout reminder** (30 min before planned session time)
-- **Wind-down reminder** (default 10 PM -- "Screens off. Start your wind-down routine.")
-- **Milestone celebrations** (new PR, new low weight, consistent streak, streak milestones at 7/30/90/180 days)
-
-**Secondary notifications (add later, user must opt-in):**
-- AM kegel reminder (default 7:30 AM)
-- PM kegel reminder (default 9 PM)
-- Step nudge (if below target threshold by afternoon)
-- Bedtime reminder (calculated from wake time + 7-hour target, default 10:45 PM)
-- Daily check-in reminder (configurable, default 9 PM)
-- Sunday weekly report
-
----
-
-## 12) Freemium Strategy
-
-**Core principle:** Gate optimization, not logging.
-
-### Free Tier
-- Full data tracking (all health metrics, workout logging, food logging)
-- Basic charts (7-day views)
-- Basic dashboard
-- Manual VO2 Max entry
-- Exercise database access
-- 3 AI calls/day
-
-### Pro Tier
-- Goal projections with timeline forecasts
-- Recovery score (proprietary composite)
-- Training load analysis + overtraining detection
-- AI Daily Coach (morning check-in -> daily prescription)
-- AI Meal Planning (daily/weekly generation + swaps)
-- Meal prep assistant + shopping lists
-- 30-day / 90-day / all-time chart views
-- Weekly AI insight reports
-- Progressive overload suggestions
-- Body map visualisation
-- Unlimited AI calls
-- Baseline comparison ("vs your first 14 days")
+The reminder creation works but `flutter_local_notifications` is not scheduling the actual device notification.
+- Ensure `flutter_local_notifications` is initialised in `main.dart`
+- Request notification permission on Android 13+ (`POST_NOTIFICATIONS`)
+- Add to `AndroidManifest.xml`:
+```xml
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+```
+- Ensure reminders reschedule on device reboot via `RECEIVE_BOOT_COMPLETED` receiver
 
 ---
 
-## 13) Screens (Complete List)
+## Phase 2 — Rules Engine
 
-| Screen | Module | Purpose | Status |
-|--------|--------|---------|--------|
-| Onboarding | core | Goals, preferences, Health Connect setup | BUILT |
-| Dashboard (Home) | core | Today's snapshot + goal overview rings | BUILT |
-| Morning Check-In | daily_coach | How are you feeling? Quick-tap inputs | -- |
-| Today's Plan | daily_coach | AI-prescribed workout + meals + tips | -- |
-| Workout Logger | workout_logger | JEFIT-style set/rep/weight logging | BUILT |
-| Exercise Library | workout_logger | Browse/search exercises with GIFs | BUILT |
-| Workout Plans | workout_logger | Create/edit weekly plans | BUILT |
-| Session Summary | workout_logger | Post-workout stats + PRs | BUILT |
-| Body Map | workout_logger | Visual muscle map for the week | BUILT |
-| Meal Plan | meal_planner | Daily meals with macros, tap for recipe | BUILT |
-| Recipe Detail | meal_planner | Full recipe with ingredients + steps | BUILT |
-| Meal Prep | meal_planner | Weekly batch cook planner | -- |
-| Shopping List | meal_planner | Auto-generated, sorted by aisle | BUILT |
-| Food Log | meal_planner | Manual meal/nutrition entry fallback | BUILT |
-| Pantry | recipes | Fridge/cupboard/freezer input | BUILT |
-| Recipe Suggestions | recipes | AI-generated from pantry | BUILT |
-| Goal Setup | goals | Set metric, target, deadline | BUILT |
-| Goal Detail | goals | Chart, projection, trend, milestones | BUILT |
-| Steps | health_tracking | Bar chart, goal line, weekly avg | BUILT |
-| Sleep | health_tracking | Stacked bars (deep/light/REM), avg | BUILT |
-| Heart & Cardio | health_tracking | RHR line chart, VO2 Max manual input | BUILT |
-| Weight & Body | health_tracking | Line chart with projection overlay | BUILT |
-| Supplements | supplements | AM/PM protocols, link to goals | BUILT |
-| Bloodwork Log | health_tracking | Input lab results, trend charts per test, out-of-range flags | -- |
-| Habit Streaks | habits | Active streaks (kegels, porn-free, sleep target, etc.), longest streaks, daily tick-off | -- |
-| Weekly Report | insights | Wins, misses, projected dates, volume | -- |
-| Insights Dashboard | insights | Recovery score, load chart, AI narrative | BUILT |
-| Settings | core | Notifications, units, theme, rest timers, AI quota, connections, ingredient preferences | BUILT |
-| Health Connections | core | Garmin/Strava connect/disconnect + status | BUILT |
+File: `lib/features/insights/data/performance_engine.dart`
+File: `lib/features/daily_coach/data/prescription_engine.dart`
+
+### Recovery Score (0–100)
+Calculate daily from real Supabase data — never mock data:
+
+```
+recovery_score = (
+  sleep_score * 0.30 +      // actual sleep vs 7.5hr target
+  sleep_quality * 0.20 +    // (REM + deep) % of total — target 40%+
+  hr_score * 0.25 +          // resting HR vs personal 14-day baseline
+  load_score * 0.25          // 7-day training load (high load = lower score)
+)
+```
+
+### Tomorrow's Plan (prescription_engine.dart)
+Use recovery score to determine plan — no AI guesswork, pure logic:
+
+| Score | Plan Type | Workout | Calories |
+|-------|-----------|---------|----------|
+| 80–100 | Push day | Progressive overload | Full target |
+| 60–79 | Normal day | Standard plan | Maintenance |
+| 40–59 | Easy day | Light / active recovery | -10% |
+| 0–39 | Rest day | Mobility / walk only | Sleep-focused macros |
+
+AI layer (`ai_orchestrator_service.dart`) then generates the narrative explaining WHY — not what to do.
 
 ---
 
-## 14) Build Order
+## Phase 3 — Module Completion
 
-Start by generating the full scaffold, then implement phase by phase. See BUILD-PLAN.md for detailed sequencing.
+Complete each module to the spec below. All modules must use real Supabase data — no stubs.
 
-| Priority | What | Why | Status |
-|----------|------|-----|--------|
-| Phase 0 | Architecture Lock | Prevents rework | DONE |
-| Phase 1 | Schema + RLS | Everything depends on storage | DONE (34 wt_* tables, RLS active) |
-| Phase 2 | Scaffold + Auth + Offline | App must exist | DONE (+ Phase 2b onboarding redesign) |
-| Phase 3 | Health Connect / HealthKit | Gets data flowing | DONE (steps, sleep, heart, weight, VO2max screens) |
-| Phase 4 | AI Orchestrator | Brain built early | DONE (edge function deployed, tool registry, context builder) |
-| Phase 5 | Workout Logger | Core daily interaction | DONE (JEFIT-style: plans, per-set logging, rest timer, 1RM, body map, 181 exercises) |
-| Phase 6 | Goals + Projections | Core value prop | DONE (goal setup, detail, projections) |
-| Phase 7 | Pantry -> Recipes -> Prep | High user value | DONE (pantry, recipes, shopping lists, URL/OCR import) |
-| Phase 8 | AI Meal Planning | Daily nutrition engine | PARTIAL (meal plan screen, nutrition targets, shopping generator, ingredient preferences) |
-| Phase 9 | AI Daily Coach | Intelligence layer | -- |
-| Phase 10 | Performance Engine | Recovery score, load, insights | PARTIAL (insights dashboard, recovery score display) |
-| Phase 11 | Garmin + Strava | OAuth + webhooks | -- |
-| Phase 12 | Supplements + Habits + Bloodwork | Habit engine + health records | PARTIAL (supplements screen built) |
-| Phase 13 | Notifications | Nudges, celebrations | -- |
-| Phase 14 | Recipe URL Import | Extends recipe system | DONE (URL + OCR import screens) |
-| Phase 15 | Freemium + Paywall | Monetisation | PARTIAL (paywall screen scaffold) |
-| Phase 16 | OCR + Polish + Launch | Final features | -- |
+### Meals Module (52 features — see full spec)
+
+**Critical gap — Food Database API:**
+Integrate Open Food Facts (free) as primary food database.
+API endpoint: `https://world.openfoodfacts.org/cgi/search.pl`
+- Search by keyword → return name, calories, macros, photo
+- Search by barcode → `https://world.openfoodfacts.org/api/v0/product/{barcode}.json`
+- Cache results in Hive locally to reduce API calls
+- UK foods fallback: Open Food Facts has strong UK supermarket coverage
+
+**Meal plan interactions required:**
+- Mark meal as eaten (one tap)
+- Mark eaten with portion adjustment
+- Log food not in plan (search food database)
+- Swap meal — show 3 macro-matched alternatives, user selects one
+- Regenerate single meal slot
+- Delete and regenerate entire plan
+- Calorie target auto-adjusts from recovery score daily
+- Macro progress bar updates in real time
+
+**Shopping list:**
+- Auto-generate from meal plan with quantities aggregated
+- Cross-reference with pantry (pantry_repository.dart) — only list missing items
+- Items grouped by category (produce, dairy, meat, frozen)
+- Tick off items while shopping
+
+### Workouts Module
+
+**Live session (workout_logging_screen.dart):**
+- Set logging: reps, weight, RPE (rate of perceived exertion)
+- Rest timer fires automatically after each set (uses rest_timer_provider.dart)
+- 1RM auto-calculated from logged sets (Epley formula: weight × (1 + reps/30))
+- Overload detection: flag when user should increase weight (overload_detection_service.dart)
+- Session summary screen shows volume, PRs, and AI recommendation for next session
+
+**Plan management:**
+- Users can create custom plans or use AI-generated plans
+- Exercise browser with search + muscle group filter (body_map_screen.dart)
+- Progressive overload suggestions surfaced proactively
+
+### Goals Module
+
+File: `lib/features/goals/presentation/widgets/goal_projection_chart.dart`
+
+- Connect projection chart to real metric data from `wt_health_metrics`
+- VO₂ max trend line based on actual logged workouts + Health Connect data
+- Weight goal projection based on calorie deficit/surplus trend
+- Milestone notifications when user hits intermediate targets
+
+### Reminders Module
+
+- Reminders created in UI must fire as device notifications (fix per Phase 1.4)
+- Reminders link to relevant module (meal reminder → opens meal log, workout reminder → opens session)
+- Smart timing: suggest optimal reminder times based on user's historical patterns
+
+### Insights Module
+
+File: `lib/features/insights/presentation/insights_dashboard_screen.dart`
+
+- Recovery score card shows today's score + 7-day trend
+- Training load chart (acute vs chronic load ratio)
+- VO₂ max trend — primary performance metric
+- Sleep quality trend
+- All charts pull from `wt_health_metrics` — no mock data
 
 ---
 
-## 15) Coding Conventions
+## Phase 4 — Garmin Webhooks (Server-Side)
 
-- **File naming**: Components `PascalCase.dart`, utilities `snake_case.dart` (Dart convention)
-- **File size limit**: < 500 lines per file; split into modules if exceeding
-- **Commit format**: `type(scope): description` (feat/fix/docs/style/refactor/test/chore)
-- **Branch naming**: `main`, `develop`, `feature/*`, `fix/*`, `hotfix/*`
-- **Sensitive data**: Never store tokens unencrypted on client; use `flutter_secure_storage`
-- **All DB tables**: prefixed with `wt_` (Supabase deployed) or `WT_` (spec reference)
-- **Navigation**: GoRouter only (`context.go()` / `context.push()`). NEVER use `Navigator.pushNamed()`
-- **State management**: Riverpod
-- **Local DB**: Hive (replaced Isar -- AGP 8.11.1 incompatible)
+Garmin data flows through Health Connect automatically on Android (Garmin Connect app → Health Connect → WellTrack).
+This is sufficient for MVP.
+
+Server-side Garmin webhooks are Phase 4 for users who want direct integration:
+
+**Supabase Edge Function: `garmin-webhook`**
+- Receives POST from Garmin Health API (server-to-server)
+- Validates HMAC signature
+- Maps Garmin fields to `wt_health_metrics` schema
+- Upserts with `dedupe_hash` conflict handling
+- Priority metrics: stress score, VO₂ max estimate, body battery, sleep stages
+
+**Required Garmin API scopes:**
+- `ACTIVITY_IMPORT` — workout data
+- `DAILY` — steps, calories, stress, sleep
+- `HEALTH_SNAPSHOT` — HRV, SpO2
 
 ---
 
-## 16) Builder Brief
+## Phase 5 — Play Store Submission
 
-> Treat this as a modular performance system. Prioritise workout UX, deterministic projections, and recovery engine. AI explains; math calculates. No feature should directly couple to another domain. Sensitive data must be encrypted and isolated. Home screen must remain calm and uncluttered. We build one phase at a time -- no parallel mega-build.
+- Build AAB (not APK): `flutter build appbundle --release`
+- Health Connect requires Privacy Policy URL — must be live before submission
+- Add Health Permissions rationale screen (required by Google Play health data policy)
+- Freemium paywall must be active
+- Target SDK: Android 14 (API 34) minimum for Health Connect v2
 
-### Major Risk Flags
-1. **Scope creep within each phase** -- finish one before starting the next
-2. **UI overcrowding** -- dashboard must be minimal, not a data dump
-3. **AI overuse** -- start with 3 tools, grow gradually
-4. **Sensitive data mishandling** -- encrypt, isolate, require consent
-5. **Overcoupling domains** -- enforce service/event boundaries
-6. **Underestimating workout logger complexity** -- this deserves the most testing time
-7. **Meal planning macro precision obsession** -- +/-10% is acceptable
+---
 
-### Simplification Guidance
-For v1, prioritise:
-- **Elite** workout logger
-- **Minimal** bloodwork UI (input + trend chart, nothing fancy)
-- **Simple** vitality tracking (Y/N toggle, nothing more)
-- **Basic** AI meal planning (weekly cache, simple swaps)
-- Everything else can mature later
+## AI Rules
 
-### Key Principles
-1. **Math first, AI explains.** Forecasts are deterministic. AI narrates.
-2. **Suggestive, not prescriptive.** "Consider this" not "Do this."
-3. **No medical claims.** "Helps you train consistently toward your goals."
-4. **Gate optimization, not logging.** Free users track everything. Pro unlocks intelligence.
-5. **Offline-first.** Everything works without internet. Sync when connected.
-6. **Baseline before optimization.** 14 days of data before features unlock.
-7. **Minimal taps in the gym.** Pre-loaded data, single-tap logging, auto-timers.
-8. **One phase at a time.** Don't ask Claude Code to build everything at once.
+- AI calls go through `ai_orchestrator_service.dart` — never direct from screens
+- Math calculates first, AI explains second — never reverse
+- All AI responses are labelled as suggestions in the UI
+- AI never gives specific calorie targets without the math engine running first
+- Rate limit: freemium users get 3 AI explanations/day; premium unlimited
+
+---
+
+## Freemium Gates
+
+| Feature | Free | Premium |
+|---------|------|---------|
+| Health Connect sync | ✅ | ✅ |
+| Basic logging (meals, workouts) | ✅ | ✅ |
+| 7-day history | ✅ | ✅ |
+| Recovery score | ❌ | ✅ |
+| AI daily plan | ❌ | ✅ |
+| VO₂ max forecasting | ❌ | ✅ |
+| Meal plan generation | ❌ | ✅ |
+| Unlimited history | ❌ | ✅ |
+| Insights dashboard | ❌ | ✅ |
+
+---
+
+## Code Standards
+
+- All new code uses Riverpod providers — no setState()
+- Freezed for all entities and state classes
+- Repository pattern: data layer never imported directly by presentation layer
+- All Supabase calls go through repository classes — never direct from providers
+- Offline-first: write to Hive first, sync to Supabase via sync_engine.dart
+- Error handling: all async operations wrapped in try/catch with AppLogger
+- No hardcoded strings — use constants from `shared/core/constants/`
+
+---
+
+## How to Work With This Codebase
+
+1. Before writing any code — read the existing file first
+2. Extend existing classes — do not create duplicate files
+3. If a screen exists, fix it — do not create a new screen
+4. Run `flutter analyze` after every set of changes
+5. Test on real Android device — emulator does not support Health Connect
+6. When in doubt about what's already built — ask before creating

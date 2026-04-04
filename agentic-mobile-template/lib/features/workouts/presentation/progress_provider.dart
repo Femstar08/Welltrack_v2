@@ -12,7 +12,7 @@ import '../domain/workout_entity.dart';
 
 typedef _WeekVolumeParams = ({String profileId, DateTime weekStart});
 typedef _WeekSetsParams = ({String profileId, DateTime weekStart});
-typedef _1rmHistoryParams = ({
+typedef _OneRmHistoryParams = ({
   String profileId,
   String exerciseId,
   int weeks,
@@ -48,7 +48,7 @@ final weeklyMuscleSetsProvider =
 // ---------------------------------------------------------------------------
 
 final exercise1rmHistoryProvider = FutureProvider.family<
-    List<({DateTime date, double estimated1rm})>, _1rmHistoryParams>(
+    List<({DateTime date, double estimated1rm})>, _OneRmHistoryParams>(
   (ref, params) async {
     final repo = ref.watch(workoutRepositoryProvider);
     return repo.getExercise1rmHistory(

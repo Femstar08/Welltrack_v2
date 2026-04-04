@@ -45,11 +45,16 @@ class OcrRecipeExtractor {
     );
 
     // Step 3: Parse AI response
-    final recipeData = _extractJsonFromMessage(response.assistantMessage);
+    var recipeData = _extractJsonFromMessage(response.assistantMessage);
     if (recipeData == null) {
       throw Exception(
         'Could not parse recipe from the image. Try a clearer photo.',
       );
+    }
+
+    // Support new schema (recipe wrapper) and legacy (flat)
+    if (recipeData.containsKey('recipe') && recipeData['recipe'] is Map) {
+      recipeData = recipeData['recipe'] as Map<String, dynamic>;
     }
 
     // Parse ingredients
@@ -93,9 +98,9 @@ class OcrRecipeExtractor {
       profileId: profileId,
       title: recipeData['title']?.toString() ?? 'Untitled Recipe',
       description: recipeData['description']?.toString(),
-      servings: recipeData['servings'] as int? ?? 1,
-      prepTimeMin: recipeData['prep_time'] as int? ?? 0,
-      cookTimeMin: recipeData['cook_time'] as int? ?? 0,
+      servings: _parseInt(recipeData['servings']) ?? 1,
+      prepTimeMin: _parseInt(recipeData['prep_time']) ?? 0,
+      cookTimeMin: _parseInt(recipeData['cook_time']) ?? 0,
       sourceType: 'ocr',
       nutritionScore: recipeData['nutrition_score']?.toString(),
       tags: (recipeData['tags'] as List?)
@@ -110,8 +115,19 @@ class OcrRecipeExtractor {
     );
   }
 
-  /// Extracts the first ```json ... ``` block from an AI assistant message.
+  /// Extracts JSON from an AI assistant message.
+  /// Tries bare JSON first, then falls back to ```json code blocks.
   Map<String, dynamic>? _extractJsonFromMessage(String message) {
+    // Try parsing the entire message as bare JSON first
+    try {
+      final decoded = jsonDecode(message.trim());
+      if (decoded is Map<String, dynamic>) return decoded;
+      if (decoded is List && decoded.isNotEmpty && decoded.first is Map) {
+        return decoded.first as Map<String, dynamic>;
+      }
+    } catch (_) {}
+
+    // Fall back to code-fenced JSON block
     final regex = RegExp(r'```json\n([\s\S]*?)\n```');
     final match = regex.firstMatch(message);
     if (match == null) return null;
@@ -123,6 +139,14 @@ class OcrRecipeExtractor {
         return decoded.first as Map<String, dynamic>;
       }
     } catch (_) {}
+    return null;
+  }
+
+  int? _parseInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is double) return value.round();
+    if (value is String) return int.tryParse(value);
     return null;
   }
 

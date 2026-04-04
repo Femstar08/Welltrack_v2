@@ -1,0 +1,224 @@
+{
+  "project": "WellTrack",
+  "branchName": "ralph/phase-15-play-store",
+  "description": "Phase 15: Play Store Submission Prep — Build AAB, privacy policy, health permissions rationale screen, freemium gate enforcement, Play Store listing metadata, and final polish",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Create Health Permissions Rationale screen (Google Play requirement)",
+      "passes": false,
+      "priority": 1,
+      "acceptanceCriteria": [
+        "Read Google Play health data policy requirements",
+        "Create lib/features/health/presentation/screens/health_permissions_rationale_screen.dart",
+        "Screen explains WHY each health permission is needed (not just what)",
+        "Lists each permission with icon and user-friendly description:",
+        "  - Steps: 'Track daily activity and set movement goals'",
+        "  - Heart Rate: 'Monitor recovery and calculate training readiness'",
+        "  - Sleep: 'Optimise rest and adjust tomorrow's plan'",
+        "  - Weight: 'Track body composition progress toward your goals'",
+        "  - Exercise/Distance/Calories: 'Personalise workout plans and calorie targets'",
+        "  - Body Fat: 'Fine-tune nutrition recommendations'",
+        "Screen shown BEFORE requesting Health Connect permissions (not after)",
+        "Continue button triggers actual permission request",
+        "Decline button shows explanation that app works with limited features",
+        "Register route at /health/permissions-rationale in app_router.dart",
+        "flutter analyze returns 0 errors"
+      ],
+      "technicalNotes": "Google Play requires a rationale screen for apps using Health Connect. This must be shown before the system permission dialog. Navigate here from onboarding or settings when permissions not yet granted."
+    },
+    {
+      "id": "US-002",
+      "title": "Verify and enforce all freemium gates",
+      "passes": false,
+      "priority": 1,
+      "acceptanceCriteria": [
+        "Read lib/features/freemium/ for gate logic",
+        "Verify these features are gated (require PRO):",
+        "  - Recovery score display",
+        "  - AI daily plan generation",
+        "  - VO2 max forecasting",
+        "  - Meal plan generation",
+        "  - Unlimited history (free = 7 days only)",
+        "  - Insights dashboard",
+        "  - Heart Healthy / Low Carb nutrition pages",
+        "  - Voice Log and Meal Scan",
+        "  - AI bloodwork interpretation",
+        "Verify these features are FREE:",
+        "  - Health Connect sync",
+        "  - Basic meal/workout logging",
+        "  - 7-day history view",
+        "  - Habit tracking",
+        "  - Basic step/weight tracking",
+        "Free users see what they're missing (not hidden, just locked)",
+        "All gate checks use currentPlanTierProvider",
+        "Tapping locked feature navigates to /paywall via context.push()",
+        "flutter analyze returns 0 errors"
+      ],
+      "technicalNotes": "Gate logic in freemium_gate_widget.dart. Some gates use Navigator.push internally — verify all use GoRouter context.push('/paywall'). Check every screen/widget that should be gated."
+    },
+    {
+      "id": "US-003",
+      "title": "Remove all debug print statements and console logging of sensitive data",
+      "passes": false,
+      "priority": 1,
+      "acceptanceCriteria": [
+        "Search entire codebase for print() and debugPrint() statements",
+        "Remove all debug print statements from production code",
+        "Known issue: onboarding_flow_screen.dart has debug prints (from memory)",
+        "Verify no sensitive data (tokens, passwords, health values) in any log output",
+        "Replace necessary logging with AppLogger (structured, filterable)",
+        "flutter analyze returns 0 errors"
+      ],
+      "technicalNotes": "Use grep for 'print(' and 'debugPrint(' across lib/. AppLogger is at shared/core/utils/app_logger.dart. Keep AppLogger calls for important error paths."
+    },
+    {
+      "id": "US-004",
+      "title": "Fix all flutter analyze warnings and info messages",
+      "passes": false,
+      "priority": 1,
+      "acceptanceCriteria": [
+        "Run flutter analyze on entire project",
+        "Fix all errors (must be 0)",
+        "Fix all warnings (should be 0 for Play Store)",
+        "Fix info-level issues where practical (unused imports, unnecessary casts)",
+        "No deprecated API usage",
+        "flutter analyze returns 0 errors, 0 warnings"
+      ],
+      "technicalNotes": "Run: cmd.exe /c 'cd agentic-mobile-template && flutter analyze --no-fatal-infos'. Fix systematically — unused imports first, then type issues, then deprecations."
+    },
+    {
+      "id": "US-005",
+      "title": "Verify AndroidManifest.xml has all required permissions and metadata",
+      "passes": false,
+      "priority": 1,
+      "acceptanceCriteria": [
+        "Read android/app/src/main/AndroidManifest.xml",
+        "All Health Connect read permissions declared (steps, heart_rate, sleep, weight, exercise, distance, calories, body_fat)",
+        "POST_NOTIFICATIONS permission for Android 13+",
+        "SCHEDULE_EXACT_ALARM for reminder scheduling",
+        "RECEIVE_BOOT_COMPLETED for reminder persistence",
+        "Health Connect intent filter on activity",
+        "health_permissions.xml resource file exists with all permission strings",
+        "Internet permission declared",
+        "Deep link intent filter for welltrack:// scheme (OAuth callbacks)",
+        "No unnecessary permissions declared"
+      ],
+      "technicalNotes": "Read android/app/src/main/res/values/health_permissions.xml too. Cross-reference with CLAUDE.md Phase 1 requirements."
+    },
+    {
+      "id": "US-006",
+      "title": "Configure release build signing and build AAB",
+      "passes": false,
+      "priority": 1,
+      "acceptanceCriteria": [
+        "android/app/build.gradle has release signing config",
+        "keystore.jks exists (or upload.keystore.jks for Play App Signing)",
+        "key.properties referenced correctly (not committed to git)",
+        "key.properties in .gitignore",
+        "minSdk = 28, targetSdk = 34 (or latest required)",
+        "Build command succeeds: flutter build appbundle --release --dart-define-from-file=.env",
+        "AAB file generated at build/app/outputs/bundle/release/app-release.aab",
+        "AAB size reasonable (< 150MB)"
+      ],
+      "technicalNotes": "Play Store requires AAB not APK. Must pass --dart-define-from-file=.env for Supabase credentials. Do NOT commit keystore or key.properties. If signing not set up, create key.properties template."
+    },
+    {
+      "id": "US-007",
+      "title": "Create privacy policy page content",
+      "passes": false,
+      "priority": 2,
+      "acceptanceCriteria": [
+        "Create a privacy policy document covering:",
+        "  - What health data is collected (steps, heart rate, sleep, weight, exercise, etc.)",
+        "  - How data is stored (Supabase with RLS, encrypted tokens)",
+        "  - What AI processing occurs (server-side only, never client-side)",
+        "  - Sensitive data handling (bloodwork, sexual health metrics — encrypted, consent-gated)",
+        "  - Third-party integrations (Garmin, Strava — OAuth, what data flows)",
+        "  - Data retention and deletion rights",
+        "  - Contact information for data requests",
+        "Privacy policy URL must be live before Play Store submission",
+        "Add privacy policy link to settings screen"
+      ],
+      "technicalNotes": "Privacy policy can be a static HTML page hosted on GitHub Pages, Supabase Storage, or a simple web host. Play Store requires a URL, not an in-app document. Also add link in app for transparency."
+    },
+    {
+      "id": "US-008",
+      "title": "Add app icon, splash screen, and Play Store listing assets",
+      "passes": false,
+      "priority": 2,
+      "acceptanceCriteria": [
+        "App icon set for all Android densities (mdpi through xxxhdpi)",
+        "Adaptive icon with foreground and background layers",
+        "Splash screen with app logo (uses flutter_native_splash or manual)",
+        "Feature graphic (1024x500) for Play Store listing",
+        "At least 2 phone screenshots (1080x1920 or similar) for Play Store",
+        "Short description (80 chars max) written",
+        "Full description (4000 chars max) written",
+        "App category: Health & Fitness"
+      ],
+      "technicalNotes": "If flutter_native_splash is in pubspec.yaml, configure in flutter_native_splash.yaml. Screenshots can be generated from device or emulator. Feature graphic can be designed in Canva or similar."
+    },
+    {
+      "id": "US-009",
+      "title": "Verify offline-first behavior works correctly",
+      "passes": false,
+      "priority": 2,
+      "acceptanceCriteria": [
+        "Read lib/shared/core/sync/sync_engine.dart",
+        "App launches and shows cached data when offline",
+        "Meal logging works offline (saved to Hive, synced later)",
+        "Workout logging works offline (saved to Hive, synced later)",
+        "Habit toggle works offline (saved to Hive, synced later)",
+        "When connectivity returns, sync engine pushes pending changes",
+        "Conflict resolution: server wins for health metrics, client wins for user-entered data",
+        "No crash or unhandled exception in airplane mode",
+        "flutter analyze returns 0 errors"
+      ],
+      "technicalNotes": "Check sync_engine.dart and conflict_resolver.dart. WorkManager must be registered for background sync. Hive boxes should have pending sync queue."
+    },
+    {
+      "id": "US-010",
+      "title": "Verify notification service works end-to-end",
+      "passes": false,
+      "priority": 2,
+      "acceptanceCriteria": [
+        "Read lib/features/reminders/data/notification_service.dart",
+        "NotificationService.initialize() called in main.dart after Supabase init",
+        "Notification channel created on Android",
+        "Timezone database initialized (tz.local set)",
+        "POST_NOTIFICATIONS permission requested on Android 13+",
+        "Creating a reminder in app schedules a device notification",
+        "Notification fires at the scheduled time",
+        "Tapping notification opens the relevant screen (meal log, workout, etc.)",
+        "Reminders survive app restart",
+        "Reminders reschedule after device reboot (RECEIVE_BOOT_COMPLETED)",
+        "flutter analyze returns 0 errors",
+        "Verify on Android device"
+      ],
+      "technicalNotes": "Phase 13 US-001 initialized the notification service. This story verifies the full end-to-end flow including reboot persistence. Check flutter_local_notifications configuration."
+    },
+    {
+      "id": "US-011",
+      "title": "Run full regression test on all major flows",
+      "passes": false,
+      "priority": 3,
+      "acceptanceCriteria": [
+        "Signup flow: email/password -> onboarding -> dashboard (no stuck screens)",
+        "Login flow: existing user -> dashboard with real data",
+        "Health Connect: permissions granted -> data syncs -> metrics visible in dashboard",
+        "Morning check-in: complete 5-step flow -> Today's Plan screen shows personalized plan",
+        "Meal logging: search food -> log -> macro progress updates",
+        "Workout session: start -> log sets -> complete -> summary screen",
+        "Habit tracking: toggle habits -> streak increments -> milestone fires at threshold",
+        "Bloodwork: add result -> out-of-range flagged -> AI interpretation (with consent)",
+        "Goals: create goal -> projection chart renders -> milestone notification",
+        "Settings: all toggles work, logout works, Health Connect connect/disconnect works",
+        "Navigation: all bottom nav tabs work, back buttons work on all screens",
+        "Freemium: locked features show paywall, free features accessible",
+        "No crashes during any flow"
+      ],
+      "technicalNotes": "This is a manual regression test checklist. Run through each flow on a real Android device (Samsung SM S906B). Note any issues for follow-up fixes."
+    }
+  ]
+}

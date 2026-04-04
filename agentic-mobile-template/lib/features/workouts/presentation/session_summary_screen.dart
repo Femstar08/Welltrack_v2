@@ -235,13 +235,13 @@ class _SummaryBody extends ConsumerWidget {
                 crossAxisCount: 2,
                 mainAxisSpacing: 12,
                 crossAxisSpacing: 12,
-                childAspectRatio: 1.4,
+                childAspectRatio: 1.2,
               ),
               children: [
                 _StatCard(
                   icon: Icons.timer_outlined,
                   value: durationMinutes != null
-                      ? '${durationMinutes} min'
+                      ? '$durationMinutes min'
                       : '--',
                   label: 'Duration',
                   color: Theme.of(context).colorScheme.primary,

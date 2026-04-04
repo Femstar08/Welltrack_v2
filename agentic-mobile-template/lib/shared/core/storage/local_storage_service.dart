@@ -31,6 +31,7 @@ class LocalStorageService {
       }
 
       // Open boxes (Hive.initFlutter() already called in main())
+      await Hive.openBox('settings');
       _offlineQueueBox = await Hive.openBox(OfflineQueue.boxName);
 
       _initialized = true;

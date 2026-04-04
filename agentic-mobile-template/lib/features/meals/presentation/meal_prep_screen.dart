@@ -156,6 +156,7 @@ class _WeekNavigator extends StatelessWidget {
       children: [
         IconButton(
           icon: const Icon(Icons.chevron_left),
+          tooltip: 'Previous week',
           onPressed: onPrevious,
         ),
         Column(
@@ -175,6 +176,7 @@ class _WeekNavigator extends StatelessWidget {
         ),
         IconButton(
           icon: const Icon(Icons.chevron_right),
+          tooltip: 'Next week',
           onPressed: onNext,
         ),
       ],

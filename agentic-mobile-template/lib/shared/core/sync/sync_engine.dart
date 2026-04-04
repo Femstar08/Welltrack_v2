@@ -9,6 +9,7 @@ import '../storage/local_storage_service.dart';
 import '../logging/app_logger.dart';
 import '../constants/api_constants.dart';
 import 'conflict_resolver.dart';
+import 'offline_write_mixin.dart';
 
 /// Sync status enumeration
 enum SyncStatus { idle, syncing, error }
@@ -161,7 +162,13 @@ class SyncEngine extends StateNotifier<SyncState> {
       state = state.copyWith(status: SyncStatus.syncing);
       _logger.info('Starting sync');
 
-      // Get pending requests
+      // Drain offline writes first (repository-level queue from offline_write_mixin)
+      final offlineSynced = await drainOfflineQueue();
+      if (offlineSynced > 0) {
+        _logger.info('Synced $offlineSynced offline writes');
+      }
+
+      // Get pending requests (HTTP-level queue)
       final pendingRequests = await _offlineQueue.getPendingRequests();
       _logger.info('Processing ${pendingRequests.length} pending requests');
 

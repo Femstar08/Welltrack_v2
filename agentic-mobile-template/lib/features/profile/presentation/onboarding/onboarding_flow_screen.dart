@@ -90,6 +90,9 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
 
       // Build update fields from collected data
       final updateFields = <String, dynamic>{
+        if (data.displayName != null && data.displayName!.isNotEmpty)
+          'display_name': data.displayName,
+        if (data.biologicalSex != null) 'gender': data.biologicalSex,
         if (data.primaryGoal != null) 'primary_goal': data.primaryGoal,
         if (data.goalIntensity != null) 'goal_intensity': data.goalIntensity,
         if (data.heightCm != null) 'height_cm': data.heightCm,
@@ -106,7 +109,10 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
       // Ensure wt_users row exists before any profile operations
       final email = Supabase.instance.client.auth.currentUser?.email;
       final fallbackName = email?.split('@').first ?? 'User';
-      await repository.ensureUserExists(userId, displayName: fallbackName);
+      final displayName = data.displayName?.isNotEmpty == true
+          ? data.displayName!
+          : fallbackName;
+      await repository.ensureUserExists(userId, displayName: displayName);
 
       // Load existing profile (trigger should have created one on signup)
       _logger.info('Onboarding _complete: loading active profile...');
@@ -123,7 +129,7 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
         await repository.createProfile(
           userId: userId,
           profileType: 'parent',
-          displayName: fallbackName,
+          displayName: displayName,
           dateOfBirth: data.estimatedDateOfBirth,
           heightCm: data.heightCm,
           weightKg: data.weightKg,

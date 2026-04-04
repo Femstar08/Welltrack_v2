@@ -97,6 +97,7 @@ class _RecipeDetailContent extends ConsumerWidget {
                 recipe.isFavorite ? Icons.favorite : Icons.favorite_border,
                 color: recipe.isFavorite ? Colors.red : null,
               ),
+              tooltip: recipe.isFavorite ? 'Remove from favourites' : 'Add to favourites',
               onPressed: () async {
                 await ref
                     .read(recipeRepositoryProvider)

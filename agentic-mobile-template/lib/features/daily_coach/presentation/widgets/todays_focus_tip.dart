@@ -35,7 +35,7 @@ class TodaysFocusTip extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Focus Tip',
+                  'WellTrack insight',
                   style: theme.textTheme.labelLarge?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -61,6 +61,8 @@ class TodaysFocusTip extends StatelessWidget {
         return 'Your body is primed today. Make the most of your energy by attacking your biggest challenge first.';
       case PrescriptionScenario.tiredNotSore:
         return 'Consistency over intensity. Showing up even on tired days is what separates great athletes from good ones.';
+      case PrescriptionScenario.sore:
+        return 'Feeling sore is part of progress. Reduce volume today and focus on form over weight.';
       case PrescriptionScenario.verySore:
         return 'Recovery is training. Prioritise protein, hydration, and sleep to come back stronger tomorrow.';
       case PrescriptionScenario.behindSteps:

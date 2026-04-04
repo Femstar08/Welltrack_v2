@@ -14,10 +14,12 @@
 
 import 'dart:async';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:vibration/vibration.dart';
 
 import '../domain/workout_set_entity.dart';
 import 'live_session_provider.dart';
@@ -81,6 +83,9 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen>
   // ── Rest timer animation ───────────────────────────────────────────────────
   AnimationController? _restOverlayController;
 
+  // ── Audio player for rest timer alert ─────────────────────────────────────
+  final AudioPlayer _audioPlayer = AudioPlayer();
+
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
   @override
@@ -129,6 +134,7 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen>
     _prBannerController?.dispose();
     _restOverlayController?.dispose();
     _pageController.dispose();
+    _audioPlayer.dispose();
     for (final exerciseControllers in _controllers) {
       for (final row in exerciseControllers) {
         row.dispose();
@@ -225,6 +231,26 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen>
     setState(() {});
   }
 
+  // ── Rest timer completion alert ────────────────────────────────────────────
+
+  Future<void> _onRestTimerComplete() async {
+    final alertMode = ref.read(restTimerAlertModeProvider);
+    final shouldVibrate = alertMode == RestTimerAlertMode.vibrateOnly ||
+        alertMode == RestTimerAlertMode.both;
+    final shouldPlay = alertMode == RestTimerAlertMode.soundOnly ||
+        alertMode == RestTimerAlertMode.both;
+
+    if (shouldVibrate) {
+      if (await Vibration.hasVibrator()) {
+        await Vibration.vibrate(pattern: [0, 500, 200, 500]);
+      }
+    }
+
+    if (shouldPlay) {
+      await _audioPlayer.play(AssetSource('sounds/timer_done.mp3'));
+    }
+  }
+
   // ── PR banner ─────────────────────────────────────────────────────────────
 
   void _triggerPrBanner() {
@@ -274,7 +300,7 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen>
           exerciseName: exercise.displayName,
         );
 
-    HapticFeedback.mediumImpact();
+    unawaited(HapticFeedback.mediumImpact());
     setState(() {});
   }
 
@@ -402,6 +428,13 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen>
       // Rebuild controllers if exercises list grows (add exercise support).
       if (prev?.exercises.length != next.exercises.length) {
         _rebuildControllers();
+      }
+    });
+
+    // Trigger vibration/sound when rest timer countdown reaches zero.
+    ref.listen<RestTimerState>(restTimerProvider, (prev, next) {
+      if (next.isComplete && !(prev?.isComplete ?? false)) {
+        _onRestTimerComplete();
       }
     });
 
@@ -607,11 +640,22 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen>
 
             // ── Exercise dot-nav ───────────────────────────────────────────
             if (session.exercises.isNotEmpty)
-              _ExerciseDotNav(
-                session: session,
-                onDotTapped: (i) {
-                  ref.read(liveSessionProvider.notifier).goToExercise(i);
-                },
+              Row(
+                children: [
+                  Expanded(
+                    child: _ExerciseDotNav(
+                      session: session,
+                      onDotTapped: (i) {
+                        ref.read(liveSessionProvider.notifier).goToExercise(i);
+                      },
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add_circle_outline),
+                    tooltip: 'Add Exercise',
+                    onPressed: () => _addExerciseFromBrowser(),
+                  ),
+                ],
               ),
 
             const SizedBox(height: 8),
@@ -646,19 +690,34 @@ class _WorkoutLoggingScreenState extends ConsumerState<WorkoutLoggingScreen>
           ),
           const SizedBox(height: 16),
           Text(
-            'No exercises in this plan day',
+            'No exercises yet',
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
           Text(
-            'Add exercises to your plan before logging.',
+            'Add exercises from the library to start logging.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
           ),
+          const SizedBox(height: 24),
+          FilledButton.icon(
+            onPressed: () => _addExerciseFromBrowser(),
+            icon: const Icon(Icons.add),
+            label: const Text('Add Exercise'),
+          ),
         ],
       ),
     );
+  }
+
+  Future<void> _addExerciseFromBrowser() async {
+    final result = await context.push<dynamic>('/workouts/exercises?selectMode=true');
+    if (result != null && mounted) {
+      final exercise = result as dynamic;
+      ref.read(liveSessionProvider.notifier).addExerciseToSession(exercise);
+      _rebuildControllers();
+    }
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -1399,7 +1458,9 @@ class _MuscleChip extends StatelessWidget {
     if (l.contains('leg') ||
         l.contains('quad') ||
         l.contains('hamstring') ||
-        l.contains('glut')) return Colors.green.shade700;
+        l.contains('glut')) {
+      return Colors.green.shade700;
+    }
     if (l.contains('core') || l.contains('abs')) return Colors.teal.shade700;
     if (l.contains('calf')) return Colors.indigo.shade700;
     return colorScheme.primary;
@@ -1529,12 +1590,12 @@ class _PrBanner extends StatelessWidget {
             ),
           ],
         ),
-        child: Row(
+        child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.emoji_events, color: Colors.white, size: 22),
-            const SizedBox(width: 10),
-            const Text(
+            Icon(Icons.emoji_events, color: Colors.white, size: 22),
+            SizedBox(width: 10),
+            Text(
               'New Personal Record!',
               style: TextStyle(
                 color: Colors.white,
@@ -1543,8 +1604,8 @@ class _PrBanner extends StatelessWidget {
                 letterSpacing: 0.5,
               ),
             ),
-            const SizedBox(width: 10),
-            const Icon(Icons.emoji_events, color: Colors.white, size: 22),
+            SizedBox(width: 10),
+            Icon(Icons.emoji_events, color: Colors.white, size: 22),
           ],
         ),
       ),

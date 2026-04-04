@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'health_data_source.dart';
@@ -159,12 +161,14 @@ class HealthRepository {
     return upsertedCount;
   }
 
-  /// Get health metrics for a profile and date range
+  /// Get health metrics for a profile and date range.
+  /// Optionally filter by [source] (e.g. healthconnect).
   Future<List<HealthMetricEntity>> getMetrics(
     String profileId,
     MetricType metricType, {
     DateTime? startDate,
     DateTime? endDate,
+    HealthSource? source,
   }) async {
     if (profileId.isEmpty) return [];
     try {
@@ -174,6 +178,10 @@ class HealthRepository {
           .eq('profile_id', profileId)
           .eq('metric_type', metricType.name)
           .eq('validation_status', ValidationStatus.validated.name);
+
+      if (source != null) {
+        query = query.eq('source', source.name);
+      }
 
       if (startDate != null) {
         query = query.gte('start_time', startDate.toIso8601String());
@@ -312,6 +320,37 @@ class HealthRepository {
       return CalibrationStatus.inProgress;
     }
     return CalibrationStatus.pending;
+  }
+
+  /// Logs a manual weight entry with SHA-256 dedupe hash.
+  Future<void> logWeight({
+    required String profileId,
+    required String userId,
+    required double weightKg,
+  }) async {
+    final now = DateTime.now();
+    final dateKey =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    final hashInput = '$profileId:weight:$dateKey';
+    final dedupeHash =
+        sha256.convert(utf8.encode(hashInput)).toString();
+
+    await _supabase.from('wt_health_metrics').upsert(
+      {
+        'profile_id': profileId,
+        'user_id': userId,
+        'source': 'manual',
+        'metric_type': 'weight',
+        'value_num': weightKg,
+        'unit': 'kg',
+        'start_time': now.toIso8601String(),
+        'recorded_at': now.toIso8601String(),
+        'validation_status': 'validated',
+        'processing_status': 'processed',
+        'dedupe_hash': dedupeHash,
+      },
+      onConflict: 'dedupe_hash',
+    );
   }
 }
 

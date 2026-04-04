@@ -224,6 +224,7 @@ class DependentProfilesScreen extends ConsumerWidget {
               )
             : IconButton(
                 icon: const Icon(Icons.more_vert),
+                tooltip: 'More options',
                 onPressed: () => _showProfileMenu(context, name),
               ),
       ),

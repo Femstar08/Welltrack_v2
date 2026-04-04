@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <array name="health_permissions">
+        <item>androidx.health.permission.Steps</item>
+        <item>androidx.health.permission.HeartRate</item>
+        <item>androidx.health.permission.SleepSession</item>
+        <item>androidx.health.permission.Weight</item>
+        <item>androidx.health.permission.Distance</item>
+        <item>androidx.health.permission.ActiveCaloriesBurned</item>
+        <item>androidx.health.permission.TotalCaloriesBurned</item>
+        <item>androidx.health.permission.BodyFat</item>
+        <item>androidx.health.permission.ExerciseSession</item>
+        <item>androidx.health.permission.RestingHeartRate</item>
+        <item>androidx.health.permission.HeartRateVariability</item>
+        <item>androidx.health.permission.OxygenSaturation</item>
+        <item>androidx.health.permission.Vo2Max</item>
+    </array>
+</resources>

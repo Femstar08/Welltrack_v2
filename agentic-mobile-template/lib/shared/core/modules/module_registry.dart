@@ -42,6 +42,11 @@ class ModuleRegistry {
             }
           })
           .whereType<ModuleConfig>()
+          .fold<Map<WellTrackModule, ModuleConfig>>({}, (map, config) {
+            map.putIfAbsent(config.module, () => config);
+            return map;
+          })
+          .values
           .toList();
 
       // If we got configs but they're incomplete, merge with defaults

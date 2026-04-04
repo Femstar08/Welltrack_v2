@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../data/freemium_repository.dart';
-import 'paywall_screen.dart';
 import '../../../shared/core/constants/feature_flags.dart';
 
 /// Widget that gates Pro-only features behind a paywall
@@ -91,14 +91,7 @@ class FreemiumGate extends ConsumerWidget {
   }
 
   void _navigateToPaywall(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => PaywallScreen(
-          featureName: FeatureFlags.getFeatureDisplayName(featureName),
-          description: description ?? FeatureFlags.getFeatureDescription(featureName),
-        ),
-      ),
-    );
+    context.push('/paywall');
   }
 }
 
@@ -182,14 +175,7 @@ class FreemiumGateInline extends ConsumerWidget {
   }
 
   void _navigateToPaywall(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => PaywallScreen(
-          featureName: FeatureFlags.getFeatureDisplayName(featureName),
-          description: FeatureFlags.getFeatureDescription(featureName),
-        ),
-      ),
-    );
+    context.push('/paywall');
   }
 }
 
@@ -245,13 +231,6 @@ class FreemiumGatedButton extends ConsumerWidget {
   }
 
   void _showPaywall(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => PaywallScreen(
-          featureName: FeatureFlags.getFeatureDisplayName(featureName),
-          description: FeatureFlags.getFeatureDescription(featureName),
-        ),
-      ),
-    );
+    context.push('/paywall');
   }
 }

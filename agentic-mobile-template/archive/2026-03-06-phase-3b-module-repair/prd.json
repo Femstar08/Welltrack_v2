@@ -1,0 +1,157 @@
+{
+    "branchName": "phase-3b-module-repair",
+    "description": "Fix all broken modules before building new features. Every story must work on a real Android device with real data flowing to Supabase before marked complete.",
+    "userStories": [
+        {
+            "id": "3b-1",
+            "title": "Fix AndroidManifest Health Connect permissions",
+            "priority": 1,
+            "passes": false,
+            "acceptanceCriteria": [
+                "android/app/src/main/AndroidManifest.xml contains all 8 health READ permissions inside <manifest> tag",
+                "android/app/src/main/res/values/health_permissions.xml created with all 7 health permission items",
+                "Intent filter for androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE added inside <activity> tag",
+                "flutter analyze returns 0 errors",
+                "App builds and runs without crash on Android device"
+            ],
+            "technicalNotes": "File: android/app/src/main/AndroidManifest.xml. Permissions needed: READ_SLEEP, READ_STEPS, READ_HEART_RATE, READ_WEIGHT, READ_EXERCISE, READ_DISTANCE, READ_ACTIVE_CALORIES_BURNED, READ_BODY_FAT. health_service.dart is already complete — this is purely a manifest fix."
+        },
+        {
+            "id": "3b-2",
+            "title": "Register WorkManager background health sync",
+            "priority": 2,
+            "passes": false,
+            "acceptanceCriteria": [
+                "WorkManager callback registered in lib/main.dart before runApp()",
+                "Background task calls HealthService.syncHealthData() then HealthRepositoryImpl.saveHealthMetrics()",
+                "Sync interval set to minimum 15 minutes (WorkManager constraint)",
+                "flutter analyze returns 0 errors",
+                "After closing app and waiting 15 minutes, new rows appear in wt_health_metrics table in Supabase"
+            ],
+            "technicalNotes": "File: lib/main.dart and lib/features/health/data/health_background_sync.dart. The sync class already exists — it just needs wiring to WorkManager in main.dart. Use workmanager package already in pubspec."
+        },
+        {
+            "id": "3b-3",
+            "title": "Fix notification service so reminders fire on device",
+            "priority": 3,
+            "passes": false,
+            "acceptanceCriteria": [
+                "flutter_local_notifications initialised in lib/main.dart before runApp()",
+                "POST_NOTIFICATIONS permission requested on Android 13+ on first app launch",
+                "AndroidManifest.xml includes POST_NOTIFICATIONS, SCHEDULE_EXACT_ALARM, RECEIVE_BOOT_COMPLETED permissions",
+                "Boot receiver registered so reminders reschedule after device restart",
+                "Every reminder saved to wt_reminders table also schedules a device notification via notification_service.scheduleNotification()",
+                "Tapping a notification deep links to the correct module screen",
+                "flutter analyze returns 0 errors",
+                "Test: create a reminder set 2 minutes from now — device notification fires at correct time"
+            ],
+            "technicalNotes": "File: lib/features/reminders/data/notification_service.dart and lib/main.dart. The reminder creation UI works. The notification_service.dart exists but is not initialised or called. Use flutter_local_notifications package already in pubspec."
+        },
+        {
+            "id": "3b-4",
+            "title": "Integrate Open Food Facts food database API",
+            "priority": 4,
+            "passes": false,
+            "acceptanceCriteria": [
+                "lib/features/meals/data/food_database_service.dart created",
+                "Keyword search calls https://world.openfoodfacts.org/cgi/search.pl and returns name, calories per 100g, protein, carbs, fat, image_url",
+                "Barcode search calls https://world.openfoodfacts.org/api/v0/product/{barcode}.json and returns same fields",
+                "Results cached in Hive to reduce repeat API calls (key = search term or barcode)",
+                "Existing barcode scanner (mobile_scanner) connected to barcode search method",
+                "Food search screen allows keyword search with results list showing name, calories, macro summary",
+                "Selecting a food item returns it to the meal log flow",
+                "flutter analyze returns 0 errors",
+                "Test: search 'chicken breast' returns results with calorie and macro data"
+            ],
+            "technicalNotes": "This is the most critical gap — without a food database, users cannot log real food. Open Food Facts is free with no API key required. Use Dio (already installed) for HTTP calls. Cache with Hive (already installed). Connect to existing barcode scanner widget."
+        },
+        {
+            "id": "3b-5",
+            "title": "Fix meals module user interactions",
+            "priority": 5,
+            "passes": false,
+            "acceptanceCriteria": [
+                "Mark planned meal as eaten — one tap updates meal status and refreshes macro progress bar",
+                "Mark eaten with portion adjustment — user can select 50%, 75%, 100%, 125%, 150% or enter custom grams",
+                "Log food not in plan — triggers food database search (story 3b-4), logs result against today",
+                "Macro progress bar on meals screen updates in real time as meals are marked eaten",
+                "Swap meal button shows 3 macro-matched AI alternatives — user selects one, plan updates",
+                "Regenerate single meal slot — replaces one meal without affecting rest of plan",
+                "Calorie target on meal plan screen reads from wt_profiles (not hardcoded)",
+                "flutter analyze returns 0 errors",
+                "Test: mark breakfast as eaten — macro bar updates, daily total changes correctly"
+            ],
+            "technicalNotes": "File: lib/features/meals/presentation/. The meal plan generation works. The missing piece is user interaction — tap handlers, portion logic, and swap functionality. Swap should call ai_orchestrator_service.dart with current meal macros and ask for 3 alternatives."
+        },
+        {
+            "id": "3b-6",
+            "title": "Fix shopping list ingredient generation",
+            "priority": 6,
+            "passes": false,
+            "acceptanceCriteria": [
+                "Shopping list auto-generates from current active meal plan by extracting all ingredients with quantities",
+                "Quantities aggregated correctly across all meals in the plan (e.g. 3 meals using chicken = total grams combined)",
+                "Items cross-referenced with pantry_repository — items already in pantry excluded from list",
+                "Items grouped by category: produce, dairy, meat/fish, frozen, dry goods, other",
+                "Each item has a tick-off checkbox — tapping marks it bought",
+                "Manual add item input works for non-plan items",
+                "flutter analyze returns 0 errors",
+                "Test: generate list from a 7-day meal plan — list shows categorised ingredients excluding pantry items"
+            ],
+            "technicalNotes": "File: lib/features/shopping/data/ and lib/features/shopping/presentation/. The shopping list screen exists but ingredient extraction from meal plans is broken. shopping_list_repository.dart needs to query current meal plan → extract ingredients → aggregate → cross-ref pantry."
+        },
+        {
+            "id": "3b-7",
+            "title": "Connect goals projection chart to real health data",
+            "priority": 7,
+            "passes": false,
+            "acceptanceCriteria": [
+                "Goal projection chart reads real metric data from wt_health_metrics via health_repository_impl.dart",
+                "Weight goal projection calculates trend from actual logged weight entries",
+                "VO2 max trend line shows actual data points from Health Connect workouts",
+                "Projected completion date calculated from weighted moving average (14-28 day window, 2x recent bias)",
+                "Warning displayed when projected date exceeds goal deadline",
+                "Chart shows at minimum 7 days of data points before rendering trend line",
+                "flutter analyze returns 0 errors",
+                "Test: log 7 days of weight data — projection chart shows trend line with estimated goal date"
+            ],
+            "technicalNotes": "File: lib/features/goals/presentation/widgets/goal_projection_chart.dart. The chart widget exists with mock data. Replace mock data with real Supabase queries via the existing goal_repository.dart and health_repository_impl.dart."
+        },
+        {
+            "id": "3b-8",
+            "title": "Connect performance and prescription engines to real data",
+            "priority": 8,
+            "passes": false,
+            "acceptanceCriteria": [
+                "performance_engine.dart calculates recovery score from real wt_health_metrics rows (not stub data)",
+                "Recovery score formula: sleep_score×0.30 + sleep_quality×0.20 + rhr_score×0.25 + load_score×0.25",
+                "RHR score uses personal 14-day baseline from real logged data",
+                "prescription_engine.dart reads recovery score and outputs correct plan type (push/normal/easy/rest)",
+                "Plan type correctly sets workout recommendation and calorie adjustment",
+                "Recovery score displays on insights dashboard with today's value and 7-day sparkline",
+                "If fewer than 14 days of data exist, dashboard shows 'Collecting your baseline — Day X of 14'",
+                "flutter analyze returns 0 errors",
+                "Test: with real Health Connect data synced, recovery score shows a non-null value on dashboard"
+            ],
+            "technicalNotes": "Files: lib/features/insights/data/performance_engine.dart and lib/features/daily_coach/data/prescription_engine.dart. Engines are built but query stub/hardcoded data. Wire them to health_repository_impl.dart to pull real metrics. Recovery score is the product's core differentiator — get this right."
+        },
+        {
+            "id": "3b-9",
+            "title": "Fix workout live session rest timer and overload detection",
+            "priority": 9,
+            "passes": false,
+            "acceptanceCriteria": [
+                "Rest timer auto-starts immediately after each set is logged",
+                "Rest timer shows countdown on screen with vibration + sound alert when period ends",
+                "1RM auto-calculates from logged sets using Epley formula: weight × (1 + reps/30)",
+                "Current 1RM displays live on exercise header during session",
+                "If today's calculated 1RM exceeds stored personal best, PR celebration overlay shown",
+                "Session summary screen shows: total volume (kg), duration, PRs hit, muscle groups trained",
+                "overload_detection_service.dart output shown as suggestion card on session summary",
+                "flutter analyze returns 0 errors",
+                "Test: log 3 sets of bench press — rest timer fires, 1RM updates, summary shows correct volume"
+            ],
+            "technicalNotes": "File: lib/features/workouts/presentation/workout_logging_screen.dart. The screen exists with set logging. rest_timer_provider.dart exists but is not auto-triggering. overload_detection_service.dart exists but output not surfaced in UI. Use vibration package already installed."
+        }
+    ]
+}

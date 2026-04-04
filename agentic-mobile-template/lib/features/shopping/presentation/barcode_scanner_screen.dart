@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -60,9 +61,11 @@ class _BarcodeScannerScreenState extends ConsumerState<BarcodeScannerScreen> {
     }
 
     // Trigger lookup immediately (sheet shows loading state)
-    ref
-        .read(barcodeScanWithItemsProvider(_params).notifier)
-        .onBarcodeScanned(barcode!.rawValue!);
+    unawaited(
+      ref
+          .read(barcodeScanWithItemsProvider(_params).notifier)
+          .onBarcodeScanned(barcode!.rawValue!),
+    );
 
     if (!mounted) return;
     await _showResultSheet();
@@ -123,14 +126,14 @@ class _BarcodeScannerScreenState extends ConsumerState<BarcodeScannerScreen> {
             onDetect: _onDetect,
           ),
           const _ViewfinderOverlay(),
-          Positioned(
+          const Positioned(
             bottom: 40,
             left: 0,
             right: 0,
             child: Text(
               'Align barcode within the frame',
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 color: Colors.white70,
                 fontSize: 13,
               ),

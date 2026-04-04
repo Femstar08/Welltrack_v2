@@ -228,7 +228,7 @@ class _DateTile extends StatelessWidget {
         ? (isSelected
             ? theme.colorScheme.primaryContainer
             : theme.colorScheme.surface)
-        : theme.colorScheme.surfaceContainerHighest.withOpacity(0.4);
+        : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -282,7 +282,7 @@ class _DateTile extends StatelessWidget {
                         isToday ? FontWeight.bold : FontWeight.normal,
                     color: enabled
                         ? null
-                        : theme.colorScheme.onSurface.withOpacity(0.38),
+                        : theme.colorScheme.onSurface.withValues(alpha: 0.38),
                   ),
                 ),
               ),
@@ -297,14 +297,14 @@ class _DateTile extends StatelessWidget {
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   visualDensity: VisualDensity.compact,
                   backgroundColor: isSelected
-                      ? theme.colorScheme.primary.withOpacity(0.15)
+                      ? theme.colorScheme.primary.withValues(alpha: 0.15)
                       : theme.colorScheme.secondaryContainer,
                 ),
               ] else ...[
                 Text(
                   'No plan',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.38),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.38),
                   ),
                 ),
               ],

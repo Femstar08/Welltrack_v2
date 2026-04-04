@@ -30,15 +30,15 @@ final _workoutStatsProvider =
     todayExercises = exercises.length;
   }
 
-  // Get completed workouts this week
+  // Get completed workouts this week — filter pushed to DB via startDate.
   final now = DateTime.now();
   final weekStart = now.subtract(Duration(days: now.weekday - 1));
   final startOfWeek = DateTime(weekStart.year, weekStart.month, weekStart.day);
-  final completedWorkouts = await repo.getCompletedWorkouts(profileId, limit: 50);
-  final thisWeek = completedWorkouts
-      .where((w) =>
-          w.completedAt != null && w.completedAt!.isAfter(startOfWeek))
-      .length;
+  final completedWorkouts = await repo.getCompletedWorkouts(
+    profileId,
+    startDate: startOfWeek,
+  );
+  final thisWeek = completedWorkouts.length;
 
   return _WorkoutStats(
     activePlanName: activePlan?.name,

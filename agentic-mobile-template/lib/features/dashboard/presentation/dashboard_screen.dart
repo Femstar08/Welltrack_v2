@@ -1,26 +1,33 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../shared/core/theme/app_colors.dart';
 import 'dashboard_home_provider.dart';
 import 'dashboard_provider.dart';
-import 'widgets/intelligence_insight_card.dart';
-import 'widgets/key_signals_grid.dart';
-import 'widgets/secondary_modules_list.dart';
 import 'widgets/shimmer_loading.dart';
 import 'widgets/pantry_recipe_card.dart';
-import 'widgets/today_summary_card.dart';
-import 'widgets/trends_preview_card.dart';
-import 'widgets/workouts_card.dart';
+// WorkoutsCard removed — workouts now in Plan tab
 import 'widgets/daily_coach_card.dart';
+import 'widgets/dashboard_scenario_nudges.dart';
+import 'widgets/nutrition_summary_carousel.dart';
+import 'widgets/steps_summary_tile.dart';
+import 'widgets/exercise_summary_tile.dart';
+import 'widgets/weight_trend_chart_widget.dart';
+import 'widgets/habit_streak_prompt_card.dart';
+import 'widgets/discover_quick_access_grid.dart';
+import 'widgets/recovery_score_dashboard_card.dart';
+import '../../../shared/core/widgets/medical_disclaimer.dart';
+import '../../../shared/core/modules/module_metadata.dart';
+import '../../../shared/core/modules/module_registry.dart';
 import '../../goals/domain/goal_entity.dart';
 import '../../goals/presentation/goals_provider.dart';
+import '../../bloodwork/presentation/bloodwork_provider.dart';
 
-/// Main dashboard screen showing goal-adaptive metrics and module tiles.
+/// Main dashboard screen showing goal-adaptive metrics and module tiles
+/// Designed with the "Obsidian Vitality" Design System
 class DashboardScreen extends ConsumerStatefulWidget {
-
   const DashboardScreen({
     super.key,
     required this.profileId,
@@ -34,8 +41,6 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
-  int _currentIndex = 0;
-
   @override
   void initState() {
     super.initState();
@@ -43,6 +48,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       unawaited(ref.read(dashboardProvider.notifier).initialize(widget.profileId));
       unawaited(ref.read(dashboardHomeProvider.notifier).initialize(widget.profileId));
     });
+  }
+
+  bool _isModuleEnabled(WidgetRef ref, WellTrackModule module) {
+    final configs = ref.watch(enabledModulesProvider);
+    // If no configs loaded yet, show everything (default enabled)
+    if (configs.isEmpty) return module.defaultEnabled;
+    return configs.any((c) => c.module == module);
+  }
+
+  String _greeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good morning,';
+    if (hour < 17) return 'Good afternoon,';
+    return 'Good evening,';
   }
 
   Future<void> _handleRefresh() async {
@@ -56,7 +75,27 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final homeState = ref.watch(dashboardHomeProvider);
-    final dashboard = ref.watch(dashboardProvider);
+    final dashState = ref.watch(dashboardProvider);
+
+    // Show error banner if dashboard loading failed (ARCH-003)
+    if (dashState.errorMessage != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(dashState.errorMessage!),
+              action: SnackBarAction(
+                label: 'Dismiss',
+                onPressed: () {
+                  ref.read(dashboardProvider.notifier).clearError();
+                },
+              ),
+            ),
+          );
+          ref.read(dashboardProvider.notifier).clearError();
+        }
+      });
+    }
 
     return Scaffold(
       body: RefreshIndicator(
@@ -65,203 +104,235 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ? const DashboardShimmer()
             : CustomScrollView(
                 slivers: [
-                  // Section 1: Today Summary
+                  // App Bar / Header Intro
                   SliverToBoxAdapter(
-                    child: TodaySummaryCard(
-                      displayName: widget.displayName,
-                      primaryMetric: homeState.primaryMetric,
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        left: 20,
+                        right: 20,
+                        top: MediaQuery.paddingOf(context).top + 16,
+                        bottom: 24,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _greeting(),
+                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                  color: AppColors.textSecondaryDark,
+                                ),
+                          ),
+                          Text(
+                            widget.displayName,
+                            style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                                  color: AppColors.textPrimaryDark,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
-                  // Section 1b: Daily Coach Card
+                  // 0. Recovery Score — always visible (core differentiator)
                   SliverToBoxAdapter(
-                    child: DailyCoachCard(profileId: widget.profileId),
+                    child: RecoveryScoreDashboardCard(profileId: widget.profileId),
                   ),
                   const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
-                  // Section 2: Key Signals Grid
-                  SliverToBoxAdapter(
-                    child: KeySignalsGrid(signals: homeState.keySignals),
+                  // 1. Nutrition Carousel (meals module)
+                  if (_isModuleEnabled(ref, WellTrackModule.meals))
+                    SliverToBoxAdapter(
+                      child: NutritionSummaryCarousel(profileId: widget.profileId),
+                    ),
+                  if (_isModuleEnabled(ref, WellTrackModule.meals))
+                    const SliverToBoxAdapter(child: SizedBox(height: 32)),
+
+                  // 2. Steps + Exercise Row (health module)
+                  if (_isModuleEnabled(ref, WellTrackModule.health))
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: StepsSummaryTile(profileId: widget.profileId),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: ExerciseSummaryTile(profileId: widget.profileId),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  if (_isModuleEnabled(ref, WellTrackModule.health))
+                    const SliverToBoxAdapter(child: SizedBox(height: 32)),
+
+                  // 3. Weight Trend Chart (health module)
+                  if (_isModuleEnabled(ref, WellTrackModule.health))
+                    SliverToBoxAdapter(
+                      child: WeightTrendChartWidget(profileId: widget.profileId),
+                    ),
+                  if (_isModuleEnabled(ref, WellTrackModule.health))
+                    const SliverToBoxAdapter(child: SizedBox(height: 32)),
+
+                  // 4a. Bloodwork Summary Card
+                  if (_isModuleEnabled(ref, WellTrackModule.bloodwork))
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: _buildBloodworkSummary(context),
+                      ),
+                    ),
+                  if (_isModuleEnabled(ref, WellTrackModule.bloodwork))
+                    const SliverToBoxAdapter(child: SizedBox(height: 16)),
+
+                  // 4b. Habit Streak Prompt
+                  if (_isModuleEnabled(ref, WellTrackModule.habits))
+                    SliverToBoxAdapter(
+                      child: HabitStreakPromptCard(profileId: widget.profileId),
+                    ),
+                  if (_isModuleEnabled(ref, WellTrackModule.habits))
+                    const SliverToBoxAdapter(child: SizedBox(height: 32)),
+
+                  // 5. Discover Grid — always visible
+                  const SliverToBoxAdapter(
+                    child: DiscoverQuickAccessGrid(),
                   ),
                   const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
-                  // Section 3: Intelligence Insight
+                  // 6. Core Features
                   SliverToBoxAdapter(
-                    child: IntelligenceInsightCard(
-                      insightText: homeState.insightText,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 0),
+                      child: Column(
+                        children: [
+                          DailyCoachCard(profileId: widget.profileId),
+                          const SizedBox(height: 8),
+                          DashboardScenarioNudges(profileId: widget.profileId),
+                          if (_isModuleEnabled(ref, WellTrackModule.goals)) ...[
+                            const SizedBox(height: 8),
+                            _GoalsSummaryCard(profileId: widget.profileId),
+                          ],
+                          if (_isModuleEnabled(ref, WellTrackModule.meals)) ...[
+                            const SizedBox(height: 24),
+                            PantryRecipeCard(profileId: widget.profileId),
+                          ],
+                        ],
+                      ),
                     ),
                   ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
-                  // Section 4: Trends Preview
-                  SliverToBoxAdapter(
-                    child: TrendsPreviewCard(
-                      trendData: homeState.trendData,
-                      trendLabel: homeState.trendLabel,
-                      trendDirection: homeState.trendDirection,
-                    ),
-                  ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
-
-                  // Section 5: Goals Summary
-                  SliverToBoxAdapter(
-                    child: _GoalsSummaryCard(
-                      profileId: widget.profileId,
-                    ),
-                  ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
-
-                  // Section: Workouts
-                  SliverToBoxAdapter(
-                    child: WorkoutsCard(profileId: widget.profileId),
-                  ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
-
-                  // Section: Pantry & Recipes
-                  SliverToBoxAdapter(
-                    child: PantryRecipeCard(profileId: widget.profileId),
-                  ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
-
-                  // Section 6: Secondary Modules
-                  SliverToBoxAdapter(
-                    child: SecondaryModulesList(tiles: dashboard.tiles),
-                  ),
-
-                  // Bottom padding for scroll clearance
+                  const SliverToBoxAdapter(child: MedicalDisclaimer()),
                   const SliverToBoxAdapter(child: SizedBox(height: 100)),
                 ],
               ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-          _handleBottomNavTap(index);
-        },
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.edit_note_outlined),
-            activeIcon: Icon(Icons.edit_note),
-            label: 'Log',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today_outlined),
-            activeIcon: Icon(Icons.calendar_today),
-            label: 'Plan',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outlined),
-            activeIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
-      ),
     );
   }
 
-  void _handleBottomNavTap(int index) {
-    switch (index) {
-      case 0:
-        break; // Already on dashboard
-      case 1:
-        context.push('/daily-view');
-      case 2:
-        _showPlanSheet();
-      case 3:
-        context.push('/profile');
-    }
-    // Reset index so Home tab stays highlighted when returning
-    if (index != 0) {
-      setState(() {
-        _currentIndex = 0;
-      });
-    }
-  }
+  Widget _buildBloodworkSummary(BuildContext context) {
+    final bwState = ref.watch(bloodworkProvider(widget.profileId));
+    final flaggedCount = bwState.outOfRangeCount;
+    final totalResults = bwState.results.length;
 
-  void _showPlanSheet() {
-    showModalBottomSheet<void>(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) {
-        final theme = Theme.of(ctx);
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Planning',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
+    // Empty state: no bloodwork results
+    if (totalResults == 0) {
+      return Semantics(
+        button: true,
+        label: 'Log your first blood test',
+        child: Material(
+          color: AppColors.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(24),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(24),
+            onTap: () => context.push('/bloodwork'),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Row(
+                children: [
+                  const Icon(Icons.biotech_outlined, color: AppColors.textSecondaryDark, size: 32),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      'Log your first blood test',
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            color: AppColors.textSecondaryDark,
+                          ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: const Color(0xFF42A5F5).withValues(alpha: 0.2),
-                    child: const Icon(Icons.fitness_center, color: Color(0xFF42A5F5)),
-                  ),
-                  title: const Text('Workout Plans'),
-                  subtitle: const Text('Create and manage training splits'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    Navigator.of(ctx).pop();
-                    context.push('/workouts');
-                  },
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: const Color(0xFFFF7043).withValues(alpha: 0.2),
-                    child: const Icon(Icons.restaurant, color: Color(0xFFFF7043)),
-                  ),
-                  title: const Text('Meal Plans'),
-                  subtitle: const Text('Daily meals and nutrition targets'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    Navigator.of(ctx).pop();
-                    context.push('/meals/plan');
-                  },
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.green.withValues(alpha: 0.2),
-                    child: const Icon(Icons.flag, color: Colors.green),
-                  ),
-                  title: const Text('Goals'),
-                  subtitle: const Text('Track targets and projections'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    Navigator.of(ctx).pop();
-                    context.push('/goals');
-                  },
-                ),
-              ],
+                  const Icon(Icons.chevron_right, color: AppColors.textSecondaryDark),
+                ],
+              ),
             ),
           ),
-        );
-      },
+        ),
+      );
+    }
+
+    return Semantics(
+      button: true,
+      label: 'View bloodwork — $flaggedCount results out of range',
+      child: Material(
+        color: AppColors.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(24),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(24),
+          onTap: () => context.push('/bloodwork'),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: flaggedCount > 0
+                    ? Colors.red.withValues(alpha: 0.15)
+                    : Colors.green.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                flaggedCount > 0 ? Icons.warning_amber : Icons.check_circle,
+                color: flaggedCount > 0 ? Colors.red : Colors.green,
+                size: 32,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Bloodwork',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    flaggedCount > 0
+                        ? '$flaggedCount result${flaggedCount == 1 ? '' : 's'} out of range'
+                        : 'All results in range',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: flaggedCount > 0 ? Colors.red : AppColors.textSecondaryDark,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: AppColors.textSecondaryDark),
+          ],
+        ),
+          ),
+        ),
+      ),
     );
   }
+
 }
 
 class _GoalsSummaryCard extends ConsumerWidget {
-
   const _GoalsSummaryCard({required this.profileId});
   final String profileId;
 
@@ -409,7 +480,7 @@ class _GoalsSummaryCard extends ConsumerWidget {
             child: Text(
               goal.statusLabel,
               style: TextStyle(
-                fontSize: 9,
+                fontSize: 11,
                 fontWeight: FontWeight.w600,
                 color: statusColor,
               ),

@@ -106,14 +106,39 @@ class MealPlanRepository {
     }
   }
 
-  Future<void> updateItemLogged(String itemId, {required bool isLogged}) async {
+  Future<void> updateItemLogged(
+    String itemId, {
+    required bool isLogged,
+    double portionMultiplier = 1.0,
+  }) async {
     try {
-      await _client
-          .from('wt_meal_plan_items')
-          .update({'is_logged': isLogged})
-          .eq('id', itemId);
+      await _client.from('wt_meal_plan_items').update({
+        'is_logged': isLogged,
+        'portion_multiplier': portionMultiplier,
+      }).eq('id', itemId);
     } catch (e) {
       throw Exception('Failed to update meal item: $e');
+    }
+  }
+
+  Future<MealPlanItemEntity> insertItem(
+    String mealPlanId,
+    MealPlanItemEntity item,
+  ) async {
+    try {
+      final json = item.toJson();
+      json.remove('id');
+      json['meal_plan_id'] = mealPlanId;
+
+      final response = await _client
+          .from('wt_meal_plan_items')
+          .insert(json)
+          .select()
+          .single();
+
+      return MealPlanItemEntity.fromJson(response);
+    } catch (e) {
+      throw Exception('Failed to insert meal item: $e');
     }
   }
 

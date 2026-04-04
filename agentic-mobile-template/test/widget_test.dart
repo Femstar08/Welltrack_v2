@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:welltrack/app.dart';
@@ -72,23 +74,33 @@ class MockAuthRepository extends Fake implements AuthRepository {
 }
 
 void main() {
-  setUpAll(() {
+  setUpAll(() async {
     // Initialize Logger
     AppLogger().init();
 
+    // Initialize Hive with a temp directory for tests
+    final tempDir = Directory.systemTemp.createTempSync('hive_test_');
+    Hive.init(tempDir.path);
+    await Hive.openBox('settings');
+    await Hive.openBox('rest_timer');
+
     // Mock SharedPreferences
     SharedPreferences.setMockInitialValues({});
-  
+
     // Initialize Supabase with dummy values
     try {
-      Supabase.instance; 
+      Supabase.instance;
     } catch (_) {
-      Supabase.initialize(
+      await Supabase.initialize(
         url: 'https://example.supabase.co',
         anonKey: 'dummy',
         debug: false,
       );
     }
+  });
+
+  tearDownAll(() async {
+    await Hive.close();
   });
 
   testWidgets('App renders without crashing', (WidgetTester tester) async {
@@ -107,7 +119,7 @@ void main() {
 
     // Verify app shows initialization loading
     expect(find.text('Initializing WellTrack...'), findsOneWidget);
-    
+
     // Pump to allow async initialization to complete
     await tester.pump();
   });

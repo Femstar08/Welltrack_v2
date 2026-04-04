@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../profile/presentation/profile_provider.dart';
 import '../data/notification_service.dart';
 import '../data/reminder_repository.dart';
@@ -29,6 +30,10 @@ class RemindersScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.pop(),
+        ),
         title: const Text('Reminders'),
         actions: [
           IconButton(
@@ -495,7 +500,7 @@ class _AddReminderFormState extends ConsumerState<AddReminderForm> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: _selectedModule,
+              initialValue: _selectedModule,
               decoration: const InputDecoration(
                 labelText: 'Category',
                 border: OutlineInputBorder(),
@@ -563,7 +568,7 @@ class _AddReminderFormState extends ConsumerState<AddReminderForm> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: _selectedRepeat,
+              initialValue: _selectedRepeat,
               decoration: const InputDecoration(
                 labelText: 'Repeat',
                 border: OutlineInputBorder(),

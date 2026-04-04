@@ -1,469 +1,504 @@
-# WellTrack — Enhanced Build Plan v4
+# WellTrack — Build Plan v5
 
 > **Product:** Performance & Recovery Optimization Engine
 > **First optimization model:** Physical fitness & VO₂ max improvement
 > **AI philosophy:** Suggestive. Math generates forecasts; AI explains them.
 > **Positioning:** Strictly wellness — no medical claims ever.
-> **Builder directive:** One modular performance engine with staged capability unlocks. Not 8 parallel mini apps.
+> **Builder directive:** Fix what's broken before building what's new.
 >
-> Foundation → Structure → Plumbing → Muscles → Brain → Intelligence → Polish
+> Foundation → Repair → Wire → Intelligence → Complete → Polish
 
 ---
 
-## What Changed from v2 → v3
+## ⚠️ Critical Finding (March 2026 Codebase Audit)
 
-| v2 (Original WellTrack) | v3 (Enhanced) | Why |
-|--------------------------|---------------|-----|
-| Basic workout module (manual + suggested) | Full JEFIT-style workout logger | Core daily interaction — must be excellent |
-| Pantry → recipes only | + AI meal planning with daily macros | Nutrition is 80% of fitness results |
-| No daily coach | AI Daily Coach with morning check-in | Turns data into daily action |
-| Basic goal forecasting | Full goal tracking with projections, velocity, confidence | Key differentiator |
-| No progressive overload | 1RM tracking, volume charts, smart suggestions | Essential for strength goals |
-| No body map | Visual muscle map (trained this week) | Ensures balanced training |
-| No shopping lists | Auto-generated shopping list from meal plan | Reduces friction |
-| No meal prep | Batch cook planner for the week | Practical time-saver |
-| No nutrition profiles | Cardiovascular & Hormonal nutrition profiles for AI meals | Optimise food for blood flow + testosterone |
-| No morning erection tracking | Morning erection Y/N + weekly quality 1–10 (encrypted) | Key outcome metric, feeds AI correlations |
-| No habit streaks | Generic streak tracker (kegels, porn-free, sleep, custom) | Accountability + milestone celebrations |
-| No bloodwork logging | Lab results with reference ranges, trend charts, flags | Stop flying blind on hormones |
-| No wind-down reminders | 10 PM screens-off + kegel reminders (AM/PM) | Sleep protocol + pelvic floor consistency |
-| 12 phases, ~60–75 days | 16 phases, ~90–120 days | More features, more realistic |
+A full codebase review revealed that several phases previously marked DONE are **partially complete or broken in production**. The app runs and compiles cleanly, but key integrations are not wired end-to-end. No phase can be marked truly DONE until it works on a real device with real data flowing to Supabase.
+
+**Root problems identified:**
+1. Health Connect permissions not declared in AndroidManifest.xml → no health data flows
+2. Notifications service not initialised → reminders never fire on device
+3. Meals module generates plans but user cannot interact with them (no mark eaten, no swap, no portion adjust)
+4. Shopping list does not pull real ingredients — broken end-to-end
+5. Goals projection chart not connected to real metric data
+6. prescription_engine.dart and performance_engine.dart running on stub/mock data
+7. Food database missing entirely — users cannot log real food they ate
+
+**Resolution:** Phase 3b (Module Repair) inserted before any new development. Nothing new gets built until existing features work properly.
 
 ---
 
-## Phase 0: Architecture Lock (2–3 days) — DONE
-**Why:** Skipping this causes rework. Like drawing blueprints before pouring concrete.
+## What Changed v4 → v5
+
+| Area | v4 | v5 | Reason |
+|------|----|----|--------|
+| Phase 3 status | DONE | ⚠️ INCOMPLETE | AndroidManifest missing — no HC data flows |
+| Phase 5 status | DONE | ⚠️ INCOMPLETE | Live session UX needs finishing + testing |
+| Phase 8 status | DONE | ⚠️ INCOMPLETE | Meal interactions broken, no food DB |
+| Phase 9 | NOT STARTED | NOT STARTED | Unchanged — correct |
+| Phase 10 status | PARTIAL | ⚠️ BLOCKED | Blocked until Phase 3b completes |
+| Phase 13 | NOT STARTED | ⚠️ PARTIALLY BROKEN | Notification service exists but silent |
+| **New Phase 3b** | — | **REPAIR** | Fix all broken modules before new builds |
+| Meals spec | Basic | **52-feature spec** | Full competitive benchmarking done |
+| Food database | Not mentioned | **Open Food Facts API** | Critical gap — without it logging is broken |
+| Timeline | ~50–70 days remaining | ~55–75 days remaining | Phase 3b adds ~10–15 days |
+
+---
+
+## Phase 0: Architecture Lock — ✅ DONE
+Architecture, ER diagram, module dependency map, AI contract all locked.
+
+---
+
+## Phase 1: Schema + RLS — ✅ DONE
+34 `wt_*` tables deployed in Supabase with RLS policies active.
+
+**Remaining before Phase 3b:**
+- Verify `wt_health_metrics` has `dedupe_hash` UNIQUE constraint active
+- Verify `wt_reminders` table structure matches notification_service.dart expectations
+- Add `wt_food_log` table for individual food item logging (needed for Phase 3b meals repair)
+
+---
+
+## Phase 2: App Skeleton + Auth + Offline — ✅ DONE
+Flutter scaffolded, Supabase auth, Hive local DB, GoRouter, Riverpod all working.
+App compiles clean (0 errors, 50 minor warnings — all non-breaking).
+
+---
+
+## Phase 3: Health Connect + HealthKit — ⚠️ INCOMPLETE
+**Status:** Integration code is complete and production-quality. Health Connect is NOT receiving data because Android permissions are not declared.
+
+**health_service.dart** — fully built, reads all metric types
+**health_repository_impl.dart** — fully built, bulk upserts to Supabase with dedup
+**health_background_sync.dart** — built but WorkManager not registered in main.dart
+
+### Remaining Work (estimate: 1–2 days)
+
+**3.1 — AndroidManifest.xml permissions (30 mins) — CRITICAL**
+File: `android/app/src/main/AndroidManifest.xml`
+
+Add inside `<manifest>` tag:
+```xml
+<uses-permission android:name="android.permission.health.READ_SLEEP" />
+<uses-permission android:name="android.permission.health.READ_STEPS" />
+<uses-permission android:name="android.permission.health.READ_HEART_RATE" />
+<uses-permission android:name="android.permission.health.READ_WEIGHT" />
+<uses-permission android:name="android.permission.health.READ_EXERCISE" />
+<uses-permission android:name="android.permission.health.READ_DISTANCE" />
+<uses-permission android:name="android.permission.health.READ_ACTIVE_CALORIES_BURNED" />
+<uses-permission android:name="android.permission.health.READ_BODY_FAT" />
+```
+
+Add inside `<activity>` tag:
+```xml
+<intent-filter>
+    <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+</intent-filter>
+```
+
+Create `android/app/src/main/res/values/health_permissions.xml`:
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <array name="health_permissions">
+        <item>androidx.health.permission.Steps</item>
+        <item>androidx.health.permission.HeartRate</item>
+        <item>androidx.health.permission.SleepSession</item>
+        <item>androidx.health.permission.Weight</item>
+        <item>androidx.health.permission.Distance</item>
+        <item>androidx.health.permission.ActiveCaloriesBurned</item>
+        <item>androidx.health.permission.BodyFat</item>
+    </array>
+</resources>
+```
+
+**3.2 — Register WorkManager background sync (1 day)**
+File: `lib/main.dart`
+- Register WorkManager callback before `runApp()`
+- Background task calls `HealthService.syncHealthData()` → `HealthRepositoryImpl.saveHealthMetrics()`
+- Sync interval: 15 minutes (WorkManager minimum)
+
+**3.3 — Verify data flows (30 mins)**
+- Grant permissions on device
+- Wait 15 minutes or trigger manual sync
+- Check `wt_health_metrics` in Supabase dashboard — rows should appear
+- Confirm `source` field shows `health_connect`
+
+**Do not proceed to Phase 3b until Supabase shows real health data rows.**
+
+---
+
+## Phase 3b: Module Repair — 🔴 NEW (estimate: 10–15 days)
+
+**This phase must complete before any new phases begin.**
+The codebase has every module built but none working end-to-end. Fix existing features to production quality before adding new ones.
+
+---
+
+### 3b.1 — Notifications Fix (2 days)
+File: `lib/features/reminders/data/notification_service.dart`
+File: `lib/main.dart`
+
+**Problem:** Reminders are created in the database but the device never receives a notification.
+
+**Fix:**
+- Initialise `flutter_local_notifications` in `main.dart` before `runApp()`
+- Request `POST_NOTIFICATIONS` permission on Android 13+ on app first launch
+- Add to AndroidManifest.xml:
+```xml
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+```
+- Add boot receiver so reminders reschedule after device restart
+- Each reminder saved to DB must also call `notification_service.scheduleNotification()`
+- Tapping notification must deep link to relevant module screen
+- Test: create reminder → lock phone → wait → notification fires ✅
+
+---
+
+### 3b.2 — Food Database Integration (3 days)
+**Problem:** No food database exists. Users cannot log real food — only AI-generated meals.
+
+**Solution:** Integrate Open Food Facts API (free, no API key required)
+
+Base URL: `https://world.openfoodfacts.org`
+
+**Search by keyword:**
+```
+GET /cgi/search.pl?search_terms={query}&search_simple=1&action=process&json=1&fields=product_name,nutriments,image_url,brands
+```
+
+**Search by barcode:**
+```
+GET /api/v0/product/{barcode}.json
+```
+
+**Implementation:**
+- Create `lib/features/meals/data/food_database_service.dart`
+- Returns: food name, calories per 100g, protein, carbs, fat, photo URL
+- Cache results in Hive to reduce API calls (key = product name or barcode)
+- UK foods well covered — supplement with USDA API if gaps found
+- Connect to existing barcode scanner (`mobile_scanner`) — scanner exists, database connection missing
+- Add photo search using existing `google_mlkit_text_recognition` for food label OCR
+
+---
+
+### 3b.3 — Meals Module Repair (4 days)
+**Problem:** Meal plan generates but user cannot interact with it meaningfully.
+
+**Full meals spec:** 52 features across 5 sections (see WellTrack-Meals-Module-Spec.docx)
+
+**Critical interactions to implement first (24 critical features):**
+
+*Daily logging:*
+- Mark planned meal as eaten — one tap, updates macro progress bar instantly
+- Mark eaten with portion adjustment (50%, 75%, 125%, 150% — or custom)
+- Log food not in plan — triggers food database search (3b.2 required first)
+- Real-time macro progress bar on meals screen and dashboard
+
+*Meal plan management:*
+- Swap meal — show 3 macro-matched alternatives, user selects one (not auto-swap)
+- Regenerate single meal slot — keep rest of plan intact
+- Delete entire plan and regenerate fresh
+- Calorie target pulls from recovery score daily (connects to Phase 10 engine)
+- Dietary restriction filter applied to all AI generation
+
+*Shopping list (connects to 3b.5):*
+- Auto-generate from meal plan with quantities aggregated across week
+- Cross-reference with pantry — exclude items already in stock
+- Tick off items while shopping
+
+---
+
+### 3b.4 — Workout Live Session Completion (2 days)
+File: `lib/features/workouts/presentation/workout_logging_screen.dart`
+
+**Problem:** Live session screen exists but rest timer and overload detection output not fully wired.
+
+**Fix:**
+- Rest timer auto-starts after each set is logged — uses `rest_timer_provider.dart`
+- Vibration + sound alert when rest period ends (`vibration` package already installed)
+- 1RM auto-calculates from logged sets (Epley: `weight × (1 + reps/30)`) and displays live
+- PR detection: if today's 1RM > personal best → PR celebration overlay
+- `overload_detection_service.dart` output surfaces as suggestion card on session summary
+- Session summary shows: total volume, duration, PRs hit, muscle groups trained, AI suggestion for next session
+
+---
+
+### 3b.5 — Shopping List Repair (2 days)
+File: `lib/features/shopping/data/`
+
+**Problem:** Shopping list creation works but ingredients are not being pulled from meal plans correctly.
+
+**Fix:**
+- `shopping_list_repository.dart` must query current meal plan → extract all ingredients → aggregate quantities
+- Cross-reference `pantry_repository.dart` — items in pantry excluded from list
+- `aisle_mapper.dart` must categorise all ingredients (produce, dairy, meat, frozen, dry goods)
+- Barcode scanner on shopping list — scan item to tick it off automatically
+- Manual add for non-meal-plan items (household staples)
+
+---
+
+### 3b.6 — Goals Chart Connection (1 day)
+File: `lib/features/goals/presentation/widgets/goal_projection_chart.dart`
+
+**Problem:** Projection chart exists but shows mock/static data.
+
+**Fix:**
+- Connect to `wt_health_metrics` via `health_repository_impl.dart`
+- VO₂ max trend pulls from actual workout + Health Connect data
+- Weight projection pulls from logged weight entries
+- "At current pace" calculation runs against real data points
+- Warning fires when projected date > goal deadline
+
+---
+
+### 3b.7 — Performance Engine Connection (1 day)
+Files: `performance_engine.dart`, `prescription_engine.dart`
+
+**Problem:** Engines exist but run on stub data.
+
+**Fix — connect to real Supabase data:**
+
+Recovery score formula (exact weights):
+```
+recovery_score = (
+  sleep_score      × 0.30   // actual sleep vs 7.5hr target
+  sleep_quality    × 0.20   // (REM + deep) % — target 40%+
+  rhr_score        × 0.25   // resting HR vs personal 14-day baseline
+  load_score       × 0.25   // 7-day training load — high load = lower score
+)
+```
+
+Prescription logic (rule-based first, AI narrates):
+| Score | Plan | Workout | Calories |
+|-------|------|---------|----------|
+| 80–100 | Push | Progressive overload | Full target |
+| 60–79 | Normal | Standard plan | Maintenance |
+| 40–59 | Easy | Light / active recovery | −10% |
+| 0–39 | Rest | Mobility / walk only | Sleep-focused |
+
+---
+
+## Phase 4: AI Orchestrator — ✅ DONE (verify)
+`ai-orchestrate` edge function deployed. Tool registry, context builder, safety validator, usage metering operational.
+
+**Verify after Phase 3b:**
+- AI orchestrator receives real recovery score (not stub)
+- AI narrative for daily plan pulls from prescription_engine output
+- Sensitive data consent toggle working (vitality + bloodwork data)
+- `explain_metric` tool added to registry
+
+---
+
+## Phase 5: Workout Logger — ⚠️ INCOMPLETE
+Workout plan builder, exercise browser, body map, progress charts — all built.
+Live session needs finishing per Phase 3b.4.
+
+**After 3b.4 completes, Phase 5 is DONE.**
+
+---
+
+## Phase 6: Goals + Projections — ⚠️ INCOMPLETE
+Goal screens built. Projection chart not connected to real data.
+
+**After 3b.6 completes, Phase 6 is DONE.**
+
+---
+
+## Phase 7: Pantry → Recipes → Prep — ✅ DONE
+Pantry, recipes, URL import, OCR import — all built and functional.
+
+**Verify:** Pantry cross-references shopping list (connects to 3b.5).
+
+---
+
+## Phase 8: AI Meal Planning — ⚠️ INCOMPLETE
+Meal plan generation works. User interactions broken.
+
+**After 3b.2 + 3b.3 complete, Phase 8 is DONE.**
+
+**Remaining beyond 3b:**
+- Nutrition profiles (cardiovascular + hormonal) feeding AI generation
+- Weekly meal prep / batch cook planner
+- Macro cycling (training day vs rest day targets)
+- End-of-day variance summary (planned vs actually eaten)
+- Weekly nutrition summary
+
+---
+
+## Phase 9: AI Daily Coach — 🔴 NOT STARTED
+**Prerequisite:** Phase 3 (real health data) + Phase 3b.7 (prescription engine on real data) must complete first.
 
 **Delivers:**
-- Finalised ER diagram (all table relationships including new workout/meal/goal tables)
-- Health metric mapping table (which source → which metric → which format)
-- AI Orchestrator contract (JSON schema for inputs/outputs)
-- Recovery formula spec (exact weights, inputs, calculation logic)
-- Event-driven domain map (how domains communicate via services/events — no direct table queries across domains)
-- Module dependency map
-- Screen wireflow (how screens connect)
-
-**Do not start coding before Phase 0 output is approved.**
-
-**You'll need:** Nothing yet — this is planning.
-
----
-
-## Phase 1: Schema + RLS (2–3 days) — DONE
-**Why:** Every feature reads/writes data.
-
-**Status:** 34 `wt_*` tables deployed in Supabase with RLS policies active. Includes `wt_profiles` with `preferred_ingredients` and `excluded_ingredients` text[] columns.
-
-**Delivers:**
-- All `WT_` tables in Supabase (including new workout, meal, goal, check-in, habit streak, and bloodwork tables)
-- `WT_habit_streaks` for generic streak tracking (porn-free, kegels, sleep target, etc.)
-- `WT_bloodwork_results` for lab result history with reference ranges and out-of-range flags
-- `WT_daily_checkins` includes `morning_erection` (boolean) and `erection_quality_weekly` (1–10) fields marked `is_sensitive = true`
-- Row Level Security on every table (extra encryption on sensitive fields)
-- Composite indexes on: `(user_id, date)` and `(user_id, metric_type, start_time)`
-- Database indexes for performance
-- Seed data for development
-
-**You'll need:** Supabase account (free tier fine)
-
-**Remaining:** Add `WT_habit_streaks`, `WT_bloodwork_results` tables. Add `morning_erection` + `erection_quality_weekly` sensitive fields to `WT_daily_checkins`.
-
----
-
-## Phase 2: App Skeleton + Auth + Offline (5–7 days) — DONE
-**Why:** The app needs to exist, log users in, and work offline.
-
-**Status:** Flutter project scaffolded with Clean Architecture, Supabase Auth (email/password), Hive local DB, GoRouter (20+ routes), Riverpod state management. Phase 2b onboarding UI redesign (7-screen premium flow) also complete.
-
-**Delivers:**
-- Flutter project with Clean Architecture (domain-isolated structure per Section 1 of CLAUDE.md)
-- Supabase Auth (email/password)
-- Encrypted local database (Room on Android equivalent)
-- Offline sync: queue writes locally, last-write-wins resolution. **Do NOT overengineer** — no enterprise-grade conflict engine needed for personal use. Refine later.
-- Module registry + dashboard tile system
-- Navigation + routing
-- Error reporting (Sentry) + logging from day one
-- Single profile only (dependents later)
-
----
-
-## Phase 3: Health Connect + HealthKit (3–4 days) — DONE
-**Why:** Gets health data flowing without OAuth complexity.
-
-**Status:** Health Connect integration active. Steps, Sleep, Heart/Cardio, Weight/Body, and VO2 Max entry screens all built and functional. Background sync via WorkManager registered (every 6 hours).
-
-**Delivers:**
-- Health Connect integration (Android) — steps, sleep, HR, weight, body fat, HRV, active calories, exercise sessions
-- HealthKit integration (iOS) — same metrics
-- Normalisation into `WT_health_metrics`
-- Deduplication logic
-- Background sync via WorkManager (every 2–4 hours + on app open)
-
-**What changed:** Garmin/Strava still deferred to Phase 11. Test everything with native health data first.
-
----
-
-## Phase 4: AI Orchestrator (5–7 days) — DONE
-**Why:** Build the brain early so it evolves with features.
-
-**Status:** `ai-orchestrate` edge function deployed. Tool registry, context builder (including preferred/excluded ingredients, dietary restrictions, allergies), safety validator, and usage metering all operational. Uses `gpt-4o-mini` via OpenAI.
-
-⚠️ **Scope risk.** Implement ONLY 3 tools initially: `generate_daily_plan`, `explain_metric`, `generate_meal_plan`. Do NOT register every tool upfront. Grow the registry as each phase lands.
-
-**Delivers:**
-- `/ai/orchestrate` Edge Function
-- Tool registry with initial 3 tools (add more per phase)
-- Structured JSON responses
-- Context builder (health data + preferences → prompts)
-- Usage metering + audit log
-- Cost control: context trimming, snapshot strategy, response caching
-- AI guardrails: rate limiting, input/output validation, safety checks
-- Sensitive data consent toggle: vitality + bloodwork data only sent to AI if user explicitly opts in
-
-**Remaining:** Add `explain_metric` tool. Add sensitive data consent toggle for vitality/bloodwork AI sharing.
-
----
-
-## Phase 5: Workout Logger — JEFIT-Style (7–10 days) ⭐ NEW — DONE
-**Why:** Core daily interaction. Must be excellent. This is what you'll use every gym session.
-
-**Delivers:**
-- Exercise database (200+ pre-loaded with images/GIFs)
-- Custom exercise creation
-- Workout plan builder (named plans, day assignments, exercise ordering)
-- Default plan pre-loaded from current 4-day split
-- **Live workout logging screen:**
-  - Exercise header with GIF demo + 1RM display
-  - Set rows: Set # | Weight (kg) | Reps | Completion tick
-  - Pre-loaded values from last session (single-tap logging)
-  - Swipe between exercises
-  - Rest timer (auto-start, configurable, vibrate/sound alert)
-  - 1RM auto-calculation (Epley formula) + PR celebrations
-- Session summary (volume, duration, PRs, muscle groups)
-- Progressive overload tracking (volume trends, 1RM history charts)
-- Smart overload suggestions
-- Body map visualisation (muscles trained this week, colour-coded)
-- Personal records log
-
-**This is the biggest phase and highest-risk feature.** UX matters more than architecture here. If this is weak, everything collapses. Allocate at least 2 of the 7–10 days purely for UX testing and refinement. Test with actual gym sessions.
-
----
-
-## Phase 6: Goals + Projections (4–5 days) ⭐ ENHANCED — DONE
-**Why:** Turns tracking into motivation. Shows you when you'll hit your targets.
-
-**Status:** Goal setup screen, goal detail screen with projections, goals list with progress rings, daily snapshots, forecast engine — all built and functional.
-
-**Delivers:**
-- Goal setup screen (metric, current value, target, deadline, priority)
-- Pre-loaded goals from your current plan (weight, VO₂ max, RHR, steps, sleep, strength, cardio)
-- Exercise-specific goals (e.g. Trap Bar DL 1RM: 119 → 160 kg)
-- Projection algorithm (weighted moving average, 14–28 day window, 2× recent bias)
-- Goal detail screen: progress bar, trend arrow, projected date, status badge, velocity, confidence range
-- Dashboard progress rings with status colours
-- Daily goal snapshots stored for trend calculation
-- "At current pace, goal will not be reached by deadline" warning
-
----
-
-## Phase 7: Pantry → Recipes → Prep (5–7 days) — DONE
-**Why:** Existing WellTrack feature. High user value, proves AI + schema work together.
-
-**Status:** Pantry screen, recipe suggestions, recipe detail, recipe list/edit, URL import, OCR import, shopping lists with detail/photo-import/barcode-scan, photo pantry import — all built.
-
-⚠️ **Some version of this already exists.** Refactor into domain isolation. Ensure meal logs feed goals and macro data feeds recovery. Do NOT rewrite from scratch unless necessary.
-
-**Delivers:**
-- Pantry input screen (fridge/cupboard/freezer)
-- AI generates recipe options from pantry items
-- Recipe cards with tags, time, difficulty, nutrition
-- Step-by-step prep walkthrough with timers + checklist
-- Leftover capture → feeds next recipe suggestion
-- Nutrient auto-extraction from logged meals
-
----
-
-## Phase 8: AI Meal Planning (6–8 days) ⭐ NEW — DONE
-**Why:** Nutrition is 80% of fitness results. AI removes the guesswork.
-
-**Status:** DONE (2026-02-21). Meal plan screen, nutrition targets, shopping list generator, ingredient preferences, nutrition profiles UI (cardiovascular/hormonal), cuisine preference selector, weekly meal prep screen, meal swap functionality — all built and functional.
-
-**Delivers:**
-- Daily macro calculation (auto-adjusts based on weight, goal, training day type)
-- **Nutrition profiles** — user-selectable biases for meal generation:
-  - *Cardiovascular & Blood Flow*: prioritises beetroot, dark leafy greens, watermelon, pomegranate, dark chocolate 85%+, garlic (nitric oxide boosters)
-  - *Hormonal Support*: prioritises whole eggs, fatty fish, zinc-rich foods, cruciferous veg, magnesium-rich foods
-  - Profiles stack and are preferences, not hard constraints
-- AI meal generation: 3 meals + 1–2 snacks per day
-- Each meal: name, description, full macro breakdown, portion sizes in grams
-- Full recipe with step-by-step instructions, prep time, cook time
-- Swap button: AI generates alternative hitting same macros
-- Cuisine preference support (Nigerian, British, Mediterranean, Asian, etc.)
-- Weekly meal prep screen (batch cook planner)
-- Auto-generated shopping list sorted by supermarket aisle
-- Recipe favourites → AI prioritises in future plans
-- Recipe database: browse by goal, cuisine, prep time, diet type
-- Manual food logging fallback
-
-**API cost management:** Cache weekly meal plans. Only regenerate on swap or new week.
-
----
-
-## Phase 9: AI Daily Coach (5–7 days) ⭐ NEW — NOT STARTED
-**Why:** The intelligence layer that ties everything together. Turns data into daily action.
-
-⚠️ **High coupling risk.** Keep prescription logic rule-based first (if/else decision tree). AI only narrates the output. Morning check-in must be lightweight (< 30 seconds). Workout modification must not corrupt workout history.
-
-**Delivers:**
-- Morning check-in screen (feeling, sleep auto-fill, **morning erection Y/N**, injuries, schedule)
-- **Weekly check-in** (Sunday): erection quality 1–10 slider — private, encrypted
-- Morning erection + erection quality data feeds into trend charts and AI correlation engine
-- Daily prescription logic engine (check-in + Health Connect data → plan)
+- Morning check-in screen (feeling, sleep auto-fill, morning erection Y/N, injuries, schedule)
+- Weekly check-in (Sunday): erection quality 1–10 — private, encrypted
 - Today's Plan screen: workout card + meals card + steps ring + focus tip + bedtime
-- Scenario handling: tired, sore, unwell, busy, behind on steps, weight stalling
-- Workout modification logic (reduce volume, swap exercises for injuries)
-- Adaptive intelligence (learns patterns over time, including sleep → morning erection correlation)
+- Scenario handling: tired, sore, unwell, busy, behind on steps
+- Workout modification logic for injuries
 - Bedtime reminder calculation
+- Adaptive intelligence (learns patterns over time)
+
+⚠️ Keep prescription logic rule-based (if/else). AI only narrates. Morning check-in < 30 seconds.
 
 ---
 
-## Phase 10: Performance Intelligence Engine (5–7 days) — PARTIAL
-**Why:** This is your moat. This is where WellTrack becomes a performance system, not just a tracker.
+## Phase 10: Performance Intelligence Engine — ⚠️ BLOCKED
+Insights dashboard and recovery score entity exist. Blocked until Phase 3 delivers real data.
 
-**Status:** Insights dashboard screen built with recovery score display (calibrating state). Recovery score entity and basic calculation exist.
-
-**Build in this exact order:**
-
-**Step 1 — Recovery Score (build first):**
-- Proprietary composite: Stress trend (0.25) + Sleep quality (0.30) + RHR trend (0.20) + Load trend (0.25)
-- Score 0–100, recalculated daily, stored with component breakdown
-- Primary performance indicator on dashboard
-
-**Step 2 — Training Load model:**
-- `Load = Duration × Intensity Factor`
-- Weekly load tracking, trend detection, recovery ratio
-- Overtraining detection (load spike > 150% of 4-week average)
-
-**Step 3 — Baseline Calibration Mode:**
-- 14-day baseline capture required before optimization unlocks
-- Dashboard shows "Collecting your baseline..." with day counter
-- Baseline comparison ("vs your first 14 days") available on all charts after
-
-**Step 4 — Deterministic Insights (all SQL, not AI):**
-- Sleep trend (7/14/30-day averages)
-- VO₂ max trend (slope, moving average)
-- Stress trend, training load trend
-
-**Step 5 — AI narrative layer (last):**
-- AI explains the math, suggests actions
-- AI does NOT calculate. Math calculates. AI narrates.
-- Dashboard: recovery score, load chart, VO₂ max trend with forecast line
-
-**Remaining:** Training load model, baseline calibration mode, deterministic SQL insights, AI narrative layer.
+**After Phase 3 + 3b complete, build in this order:**
+1. Recovery score on real data (3b.7 does this)
+2. Training load model (`Load = Duration × Intensity Factor`)
+3. Baseline calibration mode (14-day counter, "Collecting your baseline...")
+4. Deterministic SQL insights (sleep/VO₂/stress/load trends — no AI)
+5. AI narrative layer last — explains the math, never replaces it
 
 ---
 
-## Phase 11: Garmin + Strava Integration (5–7 days) — NOT STARTED
-**Why:** App is stable. Now handle OAuth + webhook complexity.
+## Phase 11: Garmin + Strava Direct Integration — 🔴 NOT STARTED
+Garmin data already flows via Health Connect (Garmin Connect app → HC → WellTrack).
+This phase adds direct server-to-server webhook integration for users without Garmin Connect.
 
 **Delivers:**
-- Garmin OAuth 2.0 PKCE connect/disconnect flow
-- Strava OAuth connect/disconnect flow
-- Encrypted token storage
-- Webhook receivers (Supabase Edge Functions) with queue-first architecture
+- Garmin OAuth 2.0 PKCE connect/disconnect
+- Strava OAuth connect/disconnect
+- Supabase Edge Function webhook receivers with HMAC validation
 - Backfill job (last 14 days on first connect)
-- Connection status UI + last sync timestamps
-- Garmin brand attribution (required for review)
-- Data validation layer (signatures, dedup, range checks)
-- Stress score + VO₂ max now flowing into pipeline
+- Stress score + VO₂ max + body battery flowing directly
+- Garmin brand attribution (required for Garmin review approval)
 
-**You'll need:** Garmin Developer account, Strava Developer account
+**You'll need:** Garmin Developer account (developer.garmin.com), Strava Developer account
 
 ---
 
-## Phase 12: Supplements + Habits + Bloodwork (5–6 days) — PARTIAL
-**Why:** Completes the daily habit engine and health data picture.
+## Phase 12: Supplements + Habits + Bloodwork — ⚠️ PARTIAL
+Supplements screen built. Reminders not linked (fixed in 3b.1).
 
-**Status:** Supplements screen built. Daily view screen exists.
-
-⚠️ **UI placement:** These features live inside Log → Secondary tab or Profile → Health Records. Do NOT surface aggressively on home dashboard. Keep bloodwork UI minimal for v1 (input + trend chart, nothing fancy).
-
-**Delivers:**
-- Supplements tracker (AM/PM protocols, link to goals)
-- **Habit Streak Tracker** (generic, reusable):
-  - Pre-loaded habits: Kegels AM, Kegels PM, Porn-free, Sleep target hit, Steps target hit
-  - User can add custom habits
-  - Daily tick-off (tap to complete)
-  - Current streak + longest streak display
-  - Streak milestone celebrations (7, 30, 90, 180 days)
-- **Kegel protocol** pre-loaded as an exercise in the habit tracker:
-  - Quick Flicks (10 reps × 3 sets), Long Holds (10 reps, progressive duration), Reverse Kegels (10 reps)
-  - Simple "Done" tick per session (AM/PM), no need to log individual reps
-- **Bloodwork Log screen:**
-  - Input lab results: test name (dropdown of pre-loaded types), value, date
-  - Pre-loaded test types: total testosterone, free testosterone, SHBG, oestradiol, prolactin, fasting glucose, HbA1c, cholesterol panel, TSH, vitamin D, blood pressure
-  - Reference ranges displayed beside each result
-  - Out-of-range values flagged with amber/red
-  - Trend chart per test over time (line chart)
-  - AI can interpret results and suggest retests (suggestive, not prescriptive)
-- Daily View (single-day checklist across all modules)
-- Reminders table + scheduler hooks
-
-**Remaining:** Habit streak tracker, kegel protocol, bloodwork log screen, reminders scheduler.
+**Remaining:**
+- Habit streak tracker (porn-free, kegels, sleep target, steps target, custom)
+- Streak milestones: 7 / 30 / 90 / 180 days with celebrations
+- Kegel protocol pre-loaded (Quick Flicks, Long Holds, Reverse Kegels)
+- Bloodwork log: input lab results, reference ranges, out-of-range flags, trend charts
+- Pre-loaded test types: testosterone, SHBG, oestradiol, glucose, HbA1c, cholesterol, TSH, Vit D, BP
+- AI interpretation of bloodwork (suggestive only)
+- Daily View single-day checklist across all modules
 
 ---
 
-## Phase 13: Notifications (3–4 days) — NOT STARTED
-**Why:** Nudges and celebrations drive consistency.
+## Phase 13: Notifications — ⚠️ PARTIALLY BROKEN → fixed in Phase 3b.1
+After 3b.1, remaining notification work:
 
-**Delivers:**
-- Morning check-in notification
-- **AM kegel reminder** (default 7:30 AM)
-- Step nudge (afternoon if below target)
-- **PM kegel reminder** (default 9 PM)
-- Daily check-in reminder (evening)
-- **Wind-down reminder** (default 10 PM — "Screens off. Start your wind-down routine.")
-- **Bedtime reminder** (calculated from wake time + 7-hour target, default 10:45 PM)
-- Sunday weekly report
-- Milestone celebrations (new PR, streak milestones at 7/30/90/180 days, goal milestones)
+**Remaining beyond 3b.1:**
+- AM kegel reminder (default 7:30 AM)
+- PM kegel reminder (default 9 PM)
+- Wind-down reminder (default 10 PM)
+- Bedtime reminder (calculated from wake time + 7hr target)
+- Step nudge (afternoon if below daily target)
+- Sunday weekly report notification
+- Milestone celebrations (PRs, streaks, goal milestones)
 - Workout reminder (30 min before planned session)
+- All notifications deep link to relevant screen
 
 ---
 
-## Phase 14: Recipe URL Import (3 days) — DONE
-**Why:** Extends recipe system with web imports.
-
-**Status:** URL import screen and OCR import screen both built and functional.
-
-**Delivers:**
-- User pastes URL → server extracts recipe → user confirms/edits
-- Stores to recipe tables, available for meal planning
+## Phase 14: Recipe URL Import — ✅ DONE
+URL import and OCR import screens built and functional.
 
 ---
 
-## Phase 15: Freemium + Paywall (3–4 days) — PARTIAL
-**Why:** Monetisation layer.
+## Phase 15: Freemium + Paywall — ⚠️ PARTIAL
+Paywall screen scaffold and feature flags exist. Gate enforcement not active.
 
-**Status:** Paywall screen scaffold exists. Feature flags infrastructure in place.
+**Remaining:**
+- In-app purchase integration (Google Play Billing)
+- AI quota tracking display in settings
+- Enforce feature gates properly:
 
-**Delivers:**
-- Free tier: full tracking, basic charts, 3 AI calls/day
-- Pro tier: projections, recovery score, daily coach, meal planning, meal prep, advanced charts, unlimited AI
-- In-app purchase integration
-- AI quota display in settings
-- Pro upsell prompts at feature gates
-
-**Remaining:** In-app purchase integration, AI quota tracking display, feature gate enforcement.
+| Feature | Free | Premium |
+|---------|------|---------|
+| Health Connect sync | ✅ | ✅ |
+| Basic logging (meals, workouts) | ✅ | ✅ |
+| 7-day history | ✅ | ✅ |
+| Recovery score | ❌ | ✅ |
+| AI daily plan | ❌ | ✅ |
+| VO₂ max forecasting | ❌ | ✅ |
+| Meal plan generation | ❌ | ✅ |
+| Unlimited history | ❌ | ✅ |
+| Insights dashboard | ❌ | ✅ |
+| Bloodwork AI interpretation | ❌ | ✅ |
 
 ---
 
-## Phase 16: OCR + Polish + Launch (4–5 days) — NOT STARTED
-**Why:** Final features and launch readiness.
+## Phase 16: Polish + Launch — 🔴 NOT STARTED
 
 **Delivers:**
-- Recipe photo OCR (photograph recipe → extract → confirm)
-- Dark/light theme
-- Onboarding flow
+- Dark / light theme
 - Data export (CSV)
 - Performance optimisation + battery testing
-- Play Store / App Store preparation
-- Garmin production review submission
+- Health Connect privacy policy (required for Play Store submission)
+- Health permissions rationale screen (required by Google Play health data policy)
+- Build AAB: `flutter build appbundle --release` (Play Store gets ~25MB, not 70MB APK)
+- Play Store listing + screenshots
+- Garmin production review submission (separate process — apply early)
+- App Store submission if iOS build active
 
 ---
 
-## Effort Summary
+## Updated Effort Summary
 
 | Phase | Scope | Est. Days | Status |
 |-------|-------|-----------|--------|
-| 0 | Architecture Lock | 2–3 | DONE |
-| 1 | Schema + RLS | 2–3 | DONE |
-| 2 | Scaffold + Auth + Offline | 5–7 | DONE |
-| 3 | Health Connect / HealthKit | 3–4 | DONE |
-| 4 | AI Orchestrator | 5–7 | DONE |
-| 5 | **Workout Logger (JEFIT-style)** | **7–10** | DONE |
-| 6 | **Goals + Projections** | **4–5** | DONE |
-| 7 | Pantry → Recipes → Prep | 5–7 | DONE |
-| 8 | **AI Meal Planning** | **6–8** | DONE |
-| 9 | **AI Daily Coach** | **5–7** | NOT STARTED |
-| 10 | Performance Intelligence | 5–7 | PARTIAL |
-| 11 | Garmin + Strava | 5–7 | NOT STARTED |
-| 12 | Supplements + **Habits + Bloodwork** | **5–6** | PARTIAL |
-| 13 | Notifications | 3–4 | NOT STARTED |
-| 14 | Recipe URL Import | 3 | DONE |
-| 15 | Freemium + Paywall | 3–4 | PARTIAL |
-| 16 | OCR + Polish + Launch | 4–5 | NOT STARTED |
-| **Total** | | **~72–96 focused days** | |
-
-**Completed:** ~40–45 days of work across Phases 0–8, 14.
-**Remaining:** ~35–50 focused days (Phases 9–13, 15 remainder, 16).
-**Realistic range with integration friction:** 50–70 more days to launch-ready.
+| 0 | Architecture Lock | 2–3 | ✅ DONE |
+| 1 | Schema + RLS | 2–3 | ✅ DONE (verify HC table) |
+| 2 | Scaffold + Auth + Offline | 5–7 | ✅ DONE |
+| 3 | Health Connect / HealthKit | 3–4 | ⚠️ 1–2 days remaining |
+| **3b** | **Module Repair** | **10–15** | 🔴 NEW — must do first |
+| 4 | AI Orchestrator | 5–7 | ✅ DONE (verify after 3b) |
+| 5 | Workout Logger | 7–10 | ⚠️ fixed in 3b.4 |
+| 6 | Goals + Projections | 4–5 | ⚠️ fixed in 3b.6 |
+| 7 | Pantry → Recipes | 5–7 | ✅ DONE |
+| 8 | AI Meal Planning | 6–8 | ⚠️ fixed in 3b.2 + 3b.3 |
+| 9 | AI Daily Coach | 5–7 | 🔴 NOT STARTED |
+| 10 | Performance Intelligence | 5–7 | ⚠️ BLOCKED → unblocked by 3b |
+| 11 | Garmin + Strava Direct | 5–7 | 🔴 NOT STARTED |
+| 12 | Supplements + Habits + Bloodwork | 5–6 | ⚠️ PARTIAL |
+| 13 | Notifications (remaining) | 2–3 | ⚠️ core fixed in 3b.1 |
+| 14 | Recipe URL Import | 3 | ✅ DONE |
+| 15 | Freemium + Paywall | 3–4 | ⚠️ PARTIAL |
+| 16 | Polish + Launch | 4–5 | 🔴 NOT STARTED |
+| **Total remaining** | | **~55–75 days** | |
 
 ---
 
-## Milestone Checkpoints
+## Revised Milestone Checkpoints
 
-| Milestone | When | What You Can Do | Status |
-|-----------|------|-----------------|--------|
-| **Usable tracker** | End of Phase 3 (~2 weeks) | See your Health Connect data on a dashboard | DONE |
-| **Gym companion** | End of Phase 5 (~5 weeks) | Log workouts JEFIT-style with 1RM tracking | NEXT |
-| **Goal-driven** | End of Phase 6 (~6 weeks) | Track goals with timeline projections | DONE |
-| **Meal-planned** | End of Phase 8 (~9 weeks) | AI generates daily meals + recipes + shopping lists | DONE |
-| **Daily coached** | End of Phase 9 (~11 weeks) | Morning check-in → personalised daily plan | -- |
-| **Performance engine** | End of Phase 10 (~12 weeks) | Recovery score, load analysis, baseline comparisons | PARTIAL |
-| **Fully connected** | End of Phase 11 (~14 weeks) | Garmin data flowing via webhooks | -- |
-| **Launch ready** | End of Phase 16 (~18–20 weeks) | Polished, monetised, store-ready | -- |
+| Milestone | Prerequisite | What It Proves |
+|-----------|-------------|----------------|
+| **Real data flowing** | Phase 3 complete | Health Connect → Supabase working |
+| **App works properly** | Phase 3b complete | All existing features work end-to-end |
+| **Intelligent planning** | Phase 9 complete | Morning check-in → personalised daily plan |
+| **Full performance engine** | Phase 10 complete | Recovery score on real data, VO₂ trends |
+| **Fully connected** | Phase 11 complete | Direct Garmin webhooks active |
+| **Launch ready** | Phase 16 complete | Polished, monetised, store-ready |
 
 ---
 
-## Prerequisites (Set Up Before Phase 1)
-
-| What | When Needed | Where | Status |
-|------|-------------|-------|--------|
-| Supabase account | Phase 1 | supabase.com (free tier) | DONE (project nppjffhzkzfduulbbcih) |
-| Flutter SDK + Android Studio | Phase 2 | flutter.dev | DONE |
-| Anthropic API key (Claude) | Phase 4 | console.anthropic.com | DONE (using OpenAI gpt-4o-mini) |
-| Exercise image/GIF assets | Phase 5 | Open-source or licensed library | NEEDED |
-| Garmin Developer account | Phase 11 | developer.garmin.com | -- |
-| Strava Developer account | Phase 11 | developers.strava.com | -- |
-| Google Play Developer account | Phase 16 | play.google.com/console ($25 one-time) | -- |
-| Apple Developer account (if iOS) | Phase 16 | developer.apple.com ($99/year) | -- |
-
----
-
-## Key Principles (Carried Forward)
+## Key Principles (Unchanged)
 
 1. **Math first, AI explains.** Forecasts are deterministic. AI narrates.
 2. **Suggestive, not prescriptive.** "Consider this" not "Do this."
-3. **No medical claims.** "Helps you train consistently toward your goals."
+3. **No medical claims.** Ever.
 4. **Gate intelligence, never gate logging.** Free users track everything. Pro unlocks intelligence.
-5. **Offline-first.** Queue writes, last-write-wins, sync when connected. No enterprise-grade conflict engine.
-6. **Baseline before optimization.** 14 days of data before features unlock.
-7. **Minimal taps in the gym.** Pre-loaded data, single-tap logging, auto-timers.
-8. **One phase at a time.** Don't ask Claude Code to build everything at once.
+5. **Fix before build.** No new features until existing ones work properly.
+6. **Offline-first.** Queue writes, sync when connected.
+7. **Baseline before optimization.** 14 days of data before features unlock.
+8. **One phase at a time.** Never ask Claude Code to build everything at once.
 9. **Domain isolation.** No domain directly queries another domain's tables.
-10. **Dashboard stays calm.** Home screen is minimal and uncluttered. Less is more.
-
----
-
-## Major Risk Flags
-
-1. **Scope creep within each phase** — finish one completely before starting the next
-2. **UI overcrowding** — dashboard must be minimal, not a data dump
-3. **AI overuse** — start with 3 tools, grow gradually per phase
-4. **Sensitive data mishandling** — encrypt, isolate, require consent for AI sharing
-5. **Overcoupling domains** — enforce service/event boundaries strictly
-6. **Underestimating workout logger complexity** — allocate testing time
-7. **Meal planning macro precision obsession** — ±10% of targets is acceptable
+10. **Dashboard stays calm.** Less is more.
 
 ---
 
 ## Builder Brief
 
-> Treat this as a modular performance system. Prioritise workout UX, deterministic projections, and recovery engine. AI explains; math calculates. No feature should directly couple to another domain. Sensitive data must be encrypted and isolated. Home screen must remain calm and uncluttered. We build one phase at a time — no parallel mega-build.
-
-### V1 Prioritisation
-- **Elite:** Workout logger
-- **Minimal:** Bloodwork UI (input + trend chart, nothing fancy)
-- **Simple:** Vitality tracking (Y/N toggle, nothing more)
-- **Basic:** AI meal planning (weekly cache, simple swaps)
-- Everything else can mature later
+> The codebase is further along than it appears but less complete than it looks. Every module exists. Most are partially wired. Fix the wiring before adding rooms. Start with Phase 3 (AndroidManifest — 30 minutes) then work through Phase 3b systematically. Once all existing features work on real data, resume the original build sequence from Phase 9. The performance intelligence engine is the product's moat — protect it.

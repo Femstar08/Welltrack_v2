@@ -55,6 +55,7 @@ class BedtimeReminderCard extends StatelessWidget {
             ),
             IconButton(
               icon: const Icon(Icons.chevron_right),
+              tooltip: 'Manage reminders',
               color: theme.colorScheme.onSurfaceVariant,
               onPressed: () => context.push('/reminders'),
             ),

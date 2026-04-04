@@ -18,6 +18,8 @@ class TodaysPlanState {
     this.mealPlan,
     this.todaysWorkoutName,
     this.todaysExerciseCount,
+    this.estimatedDurationMinutes,
+    this.muscleGroups = const [],
     this.activePlanId,
     this.stepsToday,
     this.stepsGoal = 10000,
@@ -29,6 +31,8 @@ class TodaysPlanState {
   final MealPlanEntity? mealPlan;
   final String? todaysWorkoutName;
   final int? todaysExerciseCount;
+  final int? estimatedDurationMinutes;
+  final List<String> muscleGroups;
 
   /// Plan ID used for deep-linking to /workouts/plan/:planId
   final String? activePlanId;
@@ -43,6 +47,8 @@ class TodaysPlanState {
     MealPlanEntity? mealPlan,
     String? todaysWorkoutName,
     int? todaysExerciseCount,
+    int? estimatedDurationMinutes,
+    List<String>? muscleGroups,
     String? activePlanId,
     int? stepsToday,
     int? stepsGoal,
@@ -54,6 +60,9 @@ class TodaysPlanState {
       mealPlan: mealPlan ?? this.mealPlan,
       todaysWorkoutName: todaysWorkoutName ?? this.todaysWorkoutName,
       todaysExerciseCount: todaysExerciseCount ?? this.todaysExerciseCount,
+      estimatedDurationMinutes:
+          estimatedDurationMinutes ?? this.estimatedDurationMinutes,
+      muscleGroups: muscleGroups ?? this.muscleGroups,
       activePlanId: activePlanId ?? this.activePlanId,
       stepsToday: stepsToday ?? this.stepsToday,
       stepsGoal: stepsGoal ?? this.stepsGoal,
@@ -128,6 +137,8 @@ class TodaysPlanNotifier extends StateNotifier<TodaysPlanState> {
       // Load today's workout exercises if there's an active plan
       String? todaysWorkoutName;
       int? exerciseCount;
+      int? estimatedDuration;
+      List<String> muscleGroups = [];
       String? activePlanId;
 
       if (activePlan != null) {
@@ -138,6 +149,19 @@ class TodaysPlanNotifier extends StateNotifier<TodaysPlanState> {
         );
         todaysWorkoutName = activePlan.name;
         exerciseCount = exercises.length;
+
+        // Estimate duration: ~45s per set + rest between sets
+        int totalSeconds = 0;
+        final groups = <String>{};
+        for (final ex in exercises) {
+          final sets = ex.targetSets;
+          totalSeconds += (sets * 45) + ((sets - 1).clamp(0, 99) * ex.restSeconds);
+          if (ex.exercise?.muscleGroup != null) {
+            groups.add(ex.exercise!.muscleGroup!);
+          }
+        }
+        estimatedDuration = (totalSeconds / 60).ceil();
+        muscleGroups = groups.toList();
       }
 
       state = TodaysPlanState(
@@ -145,6 +169,8 @@ class TodaysPlanNotifier extends StateNotifier<TodaysPlanState> {
         mealPlan: mealPlan,
         todaysWorkoutName: todaysWorkoutName,
         todaysExerciseCount: exerciseCount,
+        estimatedDurationMinutes: estimatedDuration,
+        muscleGroups: muscleGroups,
         activePlanId: activePlanId,
         stepsToday: stepsToday,
         stepsGoal: stepsGoal,

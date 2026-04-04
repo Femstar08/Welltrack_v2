@@ -103,7 +103,7 @@ class AppTheme {
       ),
 
       // Bottom navigation bar theme
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: AppColors.surfaceLight,
         selectedItemColor: AppColors.primary,
         unselectedItemColor: AppColors.textSecondaryLight,
@@ -136,15 +136,19 @@ class AppTheme {
     );
   }
 
-  // Dark theme
+  // Dark theme (Obsidian Vitality Default)
   static ThemeData get darkTheme {
     final ColorScheme colorScheme = ColorScheme.fromSeed(
       seedColor: AppColors.primary,
       brightness: Brightness.dark,
-      primary: AppColors.primaryLight,
-      secondary: AppColors.secondaryLight,
+      primary: AppColors.primary,
+      primaryContainer: AppColors.primaryContainer,
+      secondary: AppColors.secondary,
+      secondaryContainer: AppColors.secondaryContainer,
+      tertiary: AppColors.tertiary,
       error: AppColors.error,
       surface: AppColors.surfaceDark,
+      surfaceContainerHighest: AppColors.surfaceContainerHighest,
     );
 
     return ThemeData(
@@ -153,12 +157,17 @@ class AppTheme {
       brightness: Brightness.dark,
       scaffoldBackgroundColor: AppColors.backgroundDark,
       textTheme: AppTypography.getTextTheme(AppColors.textPrimaryDark),
+      dividerTheme: const DividerThemeData(
+        thickness: 0,
+        space: 0,
+        color: Colors.transparent,
+      ),
 
-      // AppBar theme
+      // AppBar theme (Glass layer simulation)
       appBarTheme: AppBarTheme(
         elevation: 0,
         centerTitle: true,
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: AppColors.surfaceBright.withValues(alpha: 0.4), // 40% opacity 
         foregroundColor: AppColors.textPrimaryDark,
         titleTextStyle: AppTypography.titleLarge.copyWith(
           color: AppColors.textPrimaryDark,
@@ -167,33 +176,28 @@ class AppTheme {
 
       // Card theme
       cardTheme: CardThemeData(
-        color: AppColors.cardDark,
-        elevation: 2,
+        color: AppColors.surfaceContainerHigh,
+        elevation: 0, // No shadow layering
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(24), // 'lg' radius
         ),
         clipBehavior: Clip.antiAlias,
+        margin: EdgeInsets.zero,
       ),
 
       // Input decoration theme
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.surfaceDark,
+        fillColor: AppColors.surfaceContainerLow,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
-          vertical: 12,
+          vertical: 16,
         ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: AppColors.textSecondaryDark.withValues(alpha: 0.3)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: AppColors.textSecondaryDark.withValues(alpha: 0.3)),
-        ),
+        border: InputBorder.none, // "No Line" rule
+        enabledBorder: InputBorder.none,
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.primaryLight, width: 2),
+          borderSide: BorderSide(color: AppColors.secondary.withValues(alpha: 0.3), width: 1), // Ghost border fallback
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
@@ -210,12 +214,12 @@ class AppTheme {
       // Elevated button theme
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primaryLight,
-          foregroundColor: AppColors.backgroundDark,
-          elevation: 2,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.surfaceDark,
+          elevation: 0, // Using ambient glow handled by custom shadow
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(9999), // Pill aesthetic
           ),
           textStyle: AppTypography.labelLarge,
         ),
@@ -224,42 +228,43 @@ class AppTheme {
       // Text button theme
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: AppColors.primaryLight,
+          foregroundColor: AppColors.primary,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           textStyle: AppTypography.labelLarge,
         ),
       ),
 
       // Bottom navigation bar theme
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: AppColors.surfaceDark,
-        selectedItemColor: AppColors.primaryLight,
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: AppColors.surfaceBright.withValues(alpha: 0.4),
+        selectedItemColor: AppColors.primary,
         unselectedItemColor: AppColors.textSecondaryDark,
         selectedLabelStyle: AppTypography.labelSmall,
         unselectedLabelStyle: AppTypography.labelSmall,
         type: BottomNavigationBarType.fixed,
-        elevation: 8,
+        elevation: 0,
       ),
 
       // Floating action button theme
       floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: AppColors.secondaryLight,
-        foregroundColor: AppColors.backgroundDark,
-        elevation: 4,
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.surfaceDark,
+        elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(24),
         ),
       ),
 
       // Chip theme
       chipTheme: ChipThemeData(
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: AppColors.surfaceContainerHighest,
         deleteIconColor: AppColors.textSecondaryDark,
         labelStyle: AppTypography.labelMedium,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(8), // tactile pebbles
         ),
+        side: BorderSide.none,
       ),
     );
   }
@@ -268,7 +273,7 @@ class AppTheme {
 /// Theme mode notifier for persisting user preference
 class ThemeModeNotifier extends StateNotifier<ThemeMode> {
 
-  ThemeModeNotifier() : super(ThemeMode.system) {
+  ThemeModeNotifier() : super(ThemeMode.dark) {
     _loadThemeMode();
   }
   static const String _themeModeKey = 'theme_mode';

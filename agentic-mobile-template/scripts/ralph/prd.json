@@ -1,0 +1,84 @@
+{
+  "project": "WellTrack",
+  "branchName": "ralph/production-readiness",
+  "description": "Fix all code-fixable Play Store blockers: targetSdk, compile errors, account deletion, medical disclaimer, BootReceiver, health permissions XML, test failures, AI calls display",
+  "userStories": [
+    {
+      "id": "PROD-001",
+      "title": "Pin targetSdk=35, fix BootReceiver export, complete health_permissions.xml",
+      "passes": true,
+      "priority": 1,
+      "acceptanceCriteria": [
+        "In android/app/build.gradle.kts: change targetSdk from flutter.targetSdkVersion to 35",
+        "In AndroidManifest.xml: change BootReceiver android:exported from false to true",
+        "In android/app/src/main/res/values/health_permissions.xml: add missing 6 permissions to match all 13 in manifest (HeartRateVariability, RestingHeartRate, OxygenSaturation, Vo2Max, ExerciseSession, TotalCaloriesBurned)",
+        "flutter analyze returns 0 errors"
+      ]
+    },
+    {
+      "id": "PROD-002",
+      "title": "Fix compile errors from orphaned files and invalid constants",
+      "passes": true,
+      "priority": 2,
+      "acceptanceCriteria": [
+        "Check if lib/features/meals/presentation_v2/ still exists — if so delete it",
+        "Check lib/features/dashboard/presentation/dashboard_screen.dart for surfaceContainerLowest usage — fix or remove",
+        "Check lib/shared/core/theme/app_theme.dart for invalid constant — fix",
+        "Run flutter analyze — must return 0 errors",
+        "Run flutter test — check for failures"
+      ]
+    },
+    {
+      "id": "PROD-003",
+      "title": "Add account deletion flow to Settings",
+      "passes": true,
+      "priority": 3,
+      "acceptanceCriteria": [
+        "Add Delete Account option to settings_screen.dart under Account section",
+        "Tapping shows confirmation dialog: Are you sure? This will permanently delete your account and all data.",
+        "Confirmation calls a delete function that: deletes all wt_* table rows for the user via Supabase RPC, signs out the user, navigates to /login",
+        "Create supabase/migrations/ RPC function delete_user_data(user_id) that cascades deletes across wt_profiles, wt_health_metrics, wt_meals, wt_workouts, etc.",
+        "Add a note: Data deletion may take up to 30 days to propagate",
+        "flutter analyze returns 0 errors"
+      ]
+    },
+    {
+      "id": "PROD-004",
+      "title": "Add medical disclaimer to health recommendation screens",
+      "passes": true,
+      "priority": 4,
+      "acceptanceCriteria": [
+        "Add a persistent disclaimer banner or footer to: recovery_score_dashboard_card.dart, progress_tab_screen.dart, daily_view_screen.dart (Plan tab)",
+        "Disclaimer text: This app provides wellness suggestions only and is not a substitute for professional medical advice. Consult your doctor before making health decisions.",
+        "Disclaimer is subtle (small text, muted color) but always visible — not dismissable",
+        "Add disclaimer to the Insights dashboard screen as well",
+        "flutter analyze returns 0 errors"
+      ]
+    },
+    {
+      "id": "PROD-005",
+      "title": "Fix test failures in recovery score and prescription engine",
+      "passes": true,
+      "priority": 5,
+      "acceptanceCriteria": [
+        "Run flutter test and identify all failing tests",
+        "Fix each test — update expectations to match current implementation",
+        "All tests must pass: flutter test returns 0 failures",
+        "flutter analyze returns 0 errors"
+      ]
+    },
+    {
+      "id": "PROD-006",
+      "title": "Wire AI calls remaining display and fix settings stubs",
+      "passes": true,
+      "priority": 6,
+      "acceptanceCriteria": [
+        "In settings_screen.dart: replace hardcoded 10/10 AI calls with live remainingAICallsProvider data",
+        "Replace Privacy Policy coming soon SnackBar with url_launcher opening https://welltrack.fit/privacy (placeholder URL for now)",
+        "Replace Terms of Service coming soon with url_launcher opening https://welltrack.fit/terms",
+        "Replace Password change coming soon with a working password change dialog using Supabase auth.updateUser",
+        "flutter analyze returns 0 errors"
+      ]
+    }
+  ]
+}

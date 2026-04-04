@@ -1,0 +1,174 @@
+{
+  "project": "WellTrack",
+  "branchName": "ralph/phase-11-garmin-strava",
+  "description": "Phase 11: Garmin & Strava OAuth Verify & Complete — Enable the OAuth connection UI, verify end-to-end flows, fix token refresh wiring, and ensure webhook data surfaces in the app",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Remove 'Coming Soon' flag from Garmin/Strava in health_connection_screen.dart",
+      "passes": false,
+      "priority": 1,
+      "acceptanceCriteria": [
+        "Read lib/features/health/presentation/screens/health_connection_screen.dart first",
+        "Remove isComingSoon=true flags on Garmin and Strava cards (approx lines 57-69)",
+        "Cards show real connection status from healthConnectionsProvider",
+        "Connected state shows provider name, last sync time, and Disconnect button",
+        "Disconnected state shows Connect button with provider logo",
+        "GarminAttributionWidget and StravaAttributionWidget displayed when connected",
+        "flutter analyze returns 0 errors"
+      ],
+      "technicalNotes": "The settings_screen.dart already has working Connect/Disconnect buttons. health_connection_screen.dart is the secondary screen that still hides them. Use the same provider pattern as settings_screen.dart."
+    },
+    {
+      "id": "US-002",
+      "title": "Verify Garmin OAuth 1.0a flow end-to-end",
+      "passes": false,
+      "priority": 1,
+      "acceptanceCriteria": [
+        "Read lib/features/health/presentation/health_connections_provider.dart first",
+        "Read supabase/functions/oauth-garmin/index.ts",
+        "Tap Connect Garmin in settings screen opens browser with Garmin consent URL",
+        "After user approves, deep link welltrack://oauth/garmin/callback is caught by app.dart",
+        "oauth_verifier parameter extracted and passed to connectGarmin()",
+        "Edge Function exchanges verifier for access_token + refresh_token",
+        "Tokens stored encrypted in wt_health_connections",
+        "UI updates to show Connected state with last sync time",
+        "14-day backfill fires (fire-and-forget)",
+        "flutter analyze returns 0 errors"
+      ],
+      "technicalNotes": "Deep link handler is in app.dart _handleOAuthDeepLink(). Verify AndroidManifest.xml has the intent filter for welltrack:// scheme. If GARMIN_CLIENT_ID/SECRET not set in Supabase secrets, note this as a blocker but do not hardcode credentials."
+    },
+    {
+      "id": "US-003",
+      "title": "Verify Strava OAuth 2.0 flow end-to-end",
+      "passes": false,
+      "priority": 1,
+      "acceptanceCriteria": [
+        "Read lib/features/health/presentation/health_connections_provider.dart first",
+        "Read supabase/functions/oauth-strava/index.ts",
+        "Tap Connect Strava in settings screen opens browser with Strava authorization URL",
+        "After user approves, deep link welltrack://oauth/strava/callback is caught by app.dart",
+        "code parameter extracted and passed to connectStrava()",
+        "Edge Function exchanges code for access_token + refresh_token",
+        "Tokens stored encrypted in wt_health_connections with athlete metadata",
+        "UI updates to show Connected state",
+        "14-day backfill fires (fire-and-forget)",
+        "flutter analyze returns 0 errors"
+      ],
+      "technicalNotes": "Strava uses standard OAuth 2.0. STRAVA_CLIENT_ID must be passed via --dart-define at build time. Verify the redirect URI matches what's registered in the Strava API settings."
+    },
+    {
+      "id": "US-004",
+      "title": "Verify disconnect flow for both providers",
+      "passes": false,
+      "priority": 2,
+      "acceptanceCriteria": [
+        "Read the disconnect methods in health_connections_provider.dart",
+        "Tap Disconnect Garmin shows confirmation dialog",
+        "Confirmation calls disconnectGarmin() which hits oauth-garmin DELETE endpoint",
+        "Edge Function revokes token (best-effort) and clears wt_health_connections row",
+        "UI updates to show Disconnected state immediately",
+        "Same flow works for Strava via disconnectStrava()",
+        "No orphan webhook events after disconnect",
+        "flutter analyze returns 0 errors"
+      ],
+      "technicalNotes": "Garmin revocation is best-effort (may fail silently). Strava calls deauthorize endpoint. Both should set is_connected=false and clear tokens."
+    },
+    {
+      "id": "US-005",
+      "title": "Verify token refresh works for expired tokens",
+      "passes": false,
+      "priority": 2,
+      "acceptanceCriteria": [
+        "Read supabase/functions/_shared/token-refresh.ts",
+        "Read supabase/functions/backfill-health-data/index.ts",
+        "refreshGarminToken() correctly exchanges refresh_token for new access_token",
+        "refreshStravaToken() correctly exchanges refresh_token for new access_token",
+        "New tokens stored back in wt_health_connections",
+        "token_expires_at updated correctly",
+        "process-webhooks function calls token refresh before making API calls when token is expired",
+        "If refresh fails, connection marked as needing re-authorization"
+      ],
+      "technicalNotes": "Token refresh functions exist in _shared/token-refresh.ts. Verify they are actually imported and called by backfill-health-data and process-webhooks. If not wired, add the import and call."
+    },
+    {
+      "id": "US-006",
+      "title": "Verify webhook ingestion pipeline (Garmin)",
+      "passes": false,
+      "priority": 2,
+      "acceptanceCriteria": [
+        "Read supabase/functions/webhook-garmin/index.ts",
+        "Read supabase/functions/process-webhooks/index.ts",
+        "Garmin POST to webhook endpoint is validated via HMAC (X-Garmin-Signature)",
+        "Event queued to wt_webhook_events with status='pending'",
+        "process-webhooks picks up pending events and normalizes payload",
+        "Normalized metrics upserted to wt_health_metrics with dedupe_hash",
+        "Supported event types: sleeps, stressDetails, userMetrics, dailies, activities",
+        "Deregistration event marks connection as disconnected"
+      ],
+      "technicalNotes": "Webhook handler must respond 200 within 30 seconds. Never process inline. GARMIN_CONSUMER_SECRET needed for HMAC validation."
+    },
+    {
+      "id": "US-007",
+      "title": "Verify webhook ingestion pipeline (Strava)",
+      "passes": false,
+      "priority": 2,
+      "acceptanceCriteria": [
+        "Read supabase/functions/webhook-strava/index.ts",
+        "GET request returns hub.challenge for subscription verification",
+        "POST event queued to wt_webhook_events with strava_object_id",
+        "process-webhooks fetches full activity from Strava API using stored tokens",
+        "Activity data normalized to wt_health_metrics (distance, calories, duration)",
+        "Deauthorization event clears connection",
+        "STRAVA_VERIFY_TOKEN used for subscription verification"
+      ],
+      "technicalNotes": "Strava requires fetching full activity details via their API after receiving the webhook. This requires valid access_token — token refresh must work."
+    },
+    {
+      "id": "US-008",
+      "title": "Verify deep-link configuration for Android",
+      "passes": false,
+      "priority": 3,
+      "acceptanceCriteria": [
+        "Read android/app/src/main/AndroidManifest.xml",
+        "Intent filter exists for welltrack:// scheme",
+        "welltrack://oauth/garmin/callback handled by app.dart",
+        "welltrack://oauth/strava/callback handled by app.dart",
+        "Deep links work when app is in foreground AND background",
+        "flutter analyze returns 0 errors"
+      ],
+      "technicalNotes": "Check AndroidManifest.xml for intent-filter with scheme='welltrack' and host='oauth'. If missing, add the intent filter. Also check if url_launcher or app_links package is needed."
+    },
+    {
+      "id": "US-009",
+      "title": "Show Garmin/Strava data in insights dashboard",
+      "passes": false,
+      "priority": 3,
+      "acceptanceCriteria": [
+        "Read lib/features/insights/presentation/insights_dashboard_screen.dart",
+        "When Garmin is connected, stress score chart shows Garmin-sourced data",
+        "VO2 max trend includes Garmin/Strava-sourced estimates",
+        "Body battery metric (Garmin-exclusive) displayed when available",
+        "Data source indicated on chart (e.g., small Garmin/Strava icon or label)",
+        "Charts gracefully handle mixed data sources (Health Connect + Garmin)",
+        "flutter analyze returns 0 errors"
+      ],
+      "technicalNotes": "wt_health_metrics already stores source field. Insights charts read from this table. Verify they don't filter by source='health_connect' only."
+    },
+    {
+      "id": "US-010",
+      "title": "Add manual sync button for Garmin/Strava connections",
+      "passes": false,
+      "priority": 3,
+      "acceptanceCriteria": [
+        "Settings screen shows 'Sync Now' button next to each connected provider",
+        "Tapping calls backfill-health-data Edge Function for that provider",
+        "Rate limit enforced: if last backfill < 24h ago, show 'Already synced recently' message",
+        "Loading spinner during sync, success/error SnackBar after",
+        "last_sync_at updated in wt_health_connections after successful sync",
+        "flutter analyze returns 0 errors"
+      ],
+      "technicalNotes": "backfill-health-data Edge Function already exists with 24h rate limit guard. Add a method to HealthConnectionsRepository to trigger it. Wire to a button in settings_screen.dart."
+    }
+  ]
+}

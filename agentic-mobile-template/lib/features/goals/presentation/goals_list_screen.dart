@@ -21,6 +21,7 @@ class GoalsListScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
+            tooltip: 'Add goal',
             onPressed: () => context.push('/goals/create'),
           ),
         ],

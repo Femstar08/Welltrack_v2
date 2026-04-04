@@ -80,13 +80,20 @@ class WorkoutRepository {
   Future<List<WorkoutEntity>> getCompletedWorkouts(
     String profileId, {
     int limit = 20,
+    DateTime? startDate,
   }) async {
     try {
-      final response = await _supabase
+      var query = _supabase
           .from('wt_workouts')
           .select()
           .eq('profile_id', profileId)
-          .eq('completed', true)
+          .eq('completed', true);
+
+      if (startDate != null) {
+        query = query.gte('completed_at', startDate.toIso8601String());
+      }
+
+      final response = await query
           .order('completed_at', ascending: false)
           .limit(limit);
 
@@ -741,6 +748,91 @@ class WorkoutRepository {
       return bestPerSession;
     } catch (e) {
       throw Exception('Failed to fetch recent best sets: $e');
+    }
+  }
+
+  /// Batch variant of [getRecentBestSetsForExercise].
+  ///
+  /// Fetches the best set per session for ALL [exerciseIds] in a single
+  /// Supabase query, then groups the results by exercise ID client-side.
+  /// This eliminates the N+1 pattern when checking plateaus for every
+  /// exercise in a completed session.
+  ///
+  /// Returns a map of exerciseId → ordered list of best sets (most-recent
+  /// first, up to [sessionCount] entries per exercise).
+  Future<Map<String, List<WorkoutSetEntity>>> getBatchRecentBestSets(
+    String profileId,
+    List<String> exerciseIds, {
+    int sessionCount = 5,
+  }) async {
+    if (exerciseIds.isEmpty) return {};
+
+    try {
+      // Single round-trip: all exercises at once.
+      final response = await _supabase
+          .from('wt_workout_sets')
+          .select()
+          .eq('profile_id', profileId)
+          .inFilter('exercise_id', exerciseIds)
+          .eq('completed', true)
+          .not('weight_kg', 'is', null)
+          .not('reps', 'is', null)
+          .order('logged_at', ascending: false)
+          .limit(exerciseIds.length * sessionCount * 10); // generous buffer
+
+      if ((response as List).isEmpty) {
+        return {for (final id in exerciseIds) id: []};
+      }
+
+      final allSets = response
+          .map((json) => WorkoutSetEntity.fromJson(json))
+          .toList();
+
+      // Group all sets by exercise ID first.
+      // exerciseId is nullable on the entity but the inFilter above guarantees
+      // only rows with a matching, non-null exercise_id are returned.
+      final byExercise = <String, List<WorkoutSetEntity>>{};
+      for (final s in allSets) {
+        final eid = s.exerciseId;
+        if (eid != null) byExercise.putIfAbsent(eid, () => []).add(s);
+      }
+
+      // For each exercise, derive best set per session (mirrors the single
+      // exercise logic in getRecentBestSetsForExercise).
+      final result = <String, List<WorkoutSetEntity>>{};
+      for (final exerciseId in exerciseIds) {
+        final sets = byExercise[exerciseId] ?? [];
+        if (sets.isEmpty) {
+          result[exerciseId] = [];
+          continue;
+        }
+
+        final seenWorkouts = <String>[];
+        final bestPerSession = <WorkoutSetEntity>[];
+
+        for (final s in sets) {
+          final wid = s.workoutId;
+          if (!seenWorkouts.contains(wid)) {
+            seenWorkouts.add(wid);
+            final sameWorkout = sets.where((x) => x.workoutId == wid);
+            final best = sameWorkout.reduce((a, b) {
+              final aWeight = a.weightKg ?? 0;
+              final bWeight = b.weightKg ?? 0;
+              if (aWeight != bWeight) return aWeight > bWeight ? a : b;
+              return (a.reps ?? 0) > (b.reps ?? 0) ? a : b;
+            });
+            bestPerSession.add(best);
+
+            if (seenWorkouts.length >= sessionCount) break;
+          }
+        }
+
+        result[exerciseId] = bestPerSession;
+      }
+
+      return result;
+    } catch (e) {
+      throw Exception('Failed to fetch batch recent best sets: $e');
     }
   }
 

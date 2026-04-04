@@ -331,13 +331,13 @@ class NotificationService {
       case 'supplements':
         return '/supplements';
       case 'meals':
-        return '/meals';
+        return '/meals/log';
       case 'workouts':
         return '/workouts';
       case 'custom':
-        return '/daily-view';
+        return '/plan';
       default:
-        return '/home';
+        return '/';
     }
   }
 }
@@ -347,3 +347,11 @@ final notificationServiceProvider = Provider<NotificationService>((ref) {
   final plugin = FlutterLocalNotificationsPlugin();
   return NotificationService(plugin);
 });
+
+/// Holds the GoRouter route derived from a notification that cold-launched the
+/// app (i.e. the user tapped a notification while the app was terminated).
+///
+/// Populated in main() via a ProviderScope override before runApp() so the
+/// value is available synchronously when the router first renders.
+/// Consumed once by WellTrackApp._initializeServices() and then cleared.
+final notificationLaunchRouteProvider = StateProvider<String?>((ref) => null);

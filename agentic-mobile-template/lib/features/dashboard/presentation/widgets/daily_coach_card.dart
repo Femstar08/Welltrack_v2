@@ -52,6 +52,8 @@ final _dailyCoachStatusProvider =
       (Icons.wb_sunny, 'Well Rested', Colors.green),
     PrescriptionScenario.tiredNotSore =>
       (Icons.bedtime, 'Take It Easy', Colors.amber),
+    PrescriptionScenario.sore =>
+      (Icons.fitness_center, 'Light Day', Colors.amber),
     PrescriptionScenario.verySore =>
       (Icons.healing, 'Recovery Day', Colors.orange),
     PrescriptionScenario.busyDay =>

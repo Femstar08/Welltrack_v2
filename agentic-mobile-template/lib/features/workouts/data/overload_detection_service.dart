@@ -82,23 +82,84 @@ class OverloadDetectionService {
 
   /// Batch-detect plateaus for multiple exercises (e.g. all exercises in a
   /// just-completed session). Returns only exercises where a plateau is found.
+  ///
+  /// Uses a single Supabase query via [WorkoutRepository.getBatchRecentBestSets]
+  /// instead of one query per exercise, eliminating the N+1 pattern.
   Future<List<OverloadSuggestion>> detectPlateausForExercises({
     required String profileId,
     required List<({String exerciseId, String exerciseName})> exercises,
   }) async {
+    if (exercises.isEmpty) return [];
+
+    final exerciseIds = exercises.map((e) => e.exerciseId).toList();
+
+    // One round-trip for all exercises.
+    final batchBestSets = await _repository.getBatchRecentBestSets(
+      profileId,
+      exerciseIds,
+      sessionCount: 5,
+    );
+
     final suggestions = <OverloadSuggestion>[];
 
     for (final ex in exercises) {
-      final suggestion = await detectPlateau(
-        profileId: profileId,
+      final bestSets = batchBestSets[ex.exerciseId] ?? [];
+      final suggestion = _evaluatePlateau(
         exerciseId: ex.exerciseId,
         exerciseName: ex.exerciseName,
+        bestSets: bestSets,
       );
-      if (suggestion != null) {
-        suggestions.add(suggestion);
-      }
+      if (suggestion != null) suggestions.add(suggestion);
     }
 
     return suggestions;
+  }
+
+  /// Pure plateau evaluation given an already-fetched list of best sets.
+  /// Extracted so [detectPlateausForExercises] can share the logic without
+  /// making additional repository calls.
+  OverloadSuggestion? _evaluatePlateau({
+    required String exerciseId,
+    required String exerciseName,
+    required List<dynamic> bestSets,
+  }) {
+    if (bestSets.length < minSessions) return null;
+
+    final recent = bestSets.take(minSessions).toList();
+    final refWeight = recent.first.weightKg as double?;
+    final refReps = recent.first.reps as int?;
+
+    if (refWeight == null || refReps == null) return null;
+    if (refWeight <= 0 || refReps <= 0) return null;
+
+    final allSame = recent.every(
+      (s) => s.weightKg == refWeight && s.reps == refReps,
+    );
+
+    if (!allSame) return null;
+
+    int plateauCount = minSessions;
+    for (int i = minSessions; i < bestSets.length; i++) {
+      if (bestSets[i].weightKg == refWeight && bestSets[i].reps == refReps) {
+        plateauCount++;
+      } else {
+        break;
+      }
+    }
+
+    final rawSuggested = refWeight * _increaseFactor;
+    final suggestedWeight =
+        (rawSuggested / _roundingIncrement).ceil() * _roundingIncrement;
+    final suggestedReps = max(1, refReps - 2);
+
+    return OverloadSuggestion(
+      exerciseId: exerciseId,
+      exerciseName: exerciseName,
+      currentWeightKg: refWeight,
+      currentReps: refReps,
+      sessionCount: plateauCount,
+      suggestedWeightKg: suggestedWeight,
+      suggestedReps: suggestedReps,
+    );
   }
 }
