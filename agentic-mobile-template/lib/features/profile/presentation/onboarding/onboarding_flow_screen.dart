@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/profile_repository.dart';
+import '../../../goals/data/goal_repository.dart';
 import 'onboarding_state.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/goal_selection_screen.dart';
@@ -155,6 +156,36 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
         ref.read(activeProfileIdProvider.notifier).state = updatedProfile.id;
         ref.read(activeDisplayNameProvider.notifier).state =
             updatedProfile.displayName;
+
+        // Auto-create a trackable goal from the onboarding primary_goal.
+        // This bridges the onboarding selection into the goals module so
+        // the user immediately has something to track on the dashboard.
+        if (data.primaryGoal != null) {
+          try {
+            final goalConfig = _goalConfigFromPrimaryGoal(
+              data.primaryGoal!,
+              weightKg: data.weightKg,
+            );
+            if (goalConfig != null) {
+              await ref.read(goalsRepositoryProvider).createGoal(
+                    profileId: updatedProfile.id,
+                    metricType: goalConfig.metricType,
+                    description: goalConfig.description,
+                    targetValue: goalConfig.targetValue,
+                    currentValue: goalConfig.currentValue,
+                    unit: goalConfig.unit,
+                    deadline: DateTime.now().add(const Duration(days: 90)),
+                    priority: 5,
+                  );
+              _logger.info(
+                'Auto-created goal: ${goalConfig.metricType} for primary_goal=${data.primaryGoal}',
+              );
+            }
+          } catch (e) {
+            // Non-fatal: goal creation failure shouldn't block onboarding
+            _logger.warning('Auto goal creation failed (non-fatal): $e');
+          }
+        }
       }
 
       if (mounted) context.go('/');
@@ -237,4 +268,80 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen> {
       ),
     );
   }
+
+  /// Maps onboarding primary_goal to a concrete goal config for auto-creation.
+  static _OnboardingGoalConfig? _goalConfigFromPrimaryGoal(
+    String primaryGoal, {
+    double? weightKg,
+  }) {
+    switch (primaryGoal) {
+      case 'performance':
+        return _OnboardingGoalConfig(
+          metricType: 'vo2max',
+          description: 'Improve VO₂ Max',
+          currentValue: 35,
+          targetValue: 42,
+          unit: 'mL/kg/min',
+        );
+      case 'sleep':
+        return _OnboardingGoalConfig(
+          metricType: 'sleep',
+          description: 'Improve Sleep Quality',
+          currentValue: 6.5,
+          targetValue: 7.5,
+          unit: 'hours',
+        );
+      case 'strength':
+        return _OnboardingGoalConfig(
+          metricType: 'active_minutes',
+          description: 'Build Consistent Training',
+          currentValue: 60,
+          targetValue: 150,
+          unit: 'min/week',
+        );
+      case 'fat_loss':
+        final current = weightKg ?? 80;
+        return _OnboardingGoalConfig(
+          metricType: 'weight',
+          description: 'Reach Target Weight',
+          currentValue: current,
+          targetValue: (current * 0.9).roundToDouble(), // 10% loss
+          unit: 'kg',
+        );
+      case 'stress':
+        return _OnboardingGoalConfig(
+          metricType: 'resting_hr',
+          description: 'Lower Resting Heart Rate',
+          currentValue: 72,
+          targetValue: 62,
+          unit: 'bpm',
+        );
+      case 'wellness':
+        return _OnboardingGoalConfig(
+          metricType: 'steps',
+          description: 'Daily Steps Goal',
+          currentValue: 5000,
+          targetValue: 10000,
+          unit: 'steps',
+        );
+      default:
+        return null;
+    }
+  }
+}
+
+class _OnboardingGoalConfig {
+  const _OnboardingGoalConfig({
+    required this.metricType,
+    required this.description,
+    required this.currentValue,
+    required this.targetValue,
+    required this.unit,
+  });
+
+  final String metricType;
+  final String description;
+  final double currentValue;
+  final double targetValue;
+  final String unit;
 }

@@ -10,6 +10,7 @@ import '../../reminders/domain/reminder_entity.dart';
 import '../../insights/data/insights_repository.dart';
 import '../../insights/domain/training_load_entity.dart';
 import '../../insights/data/performance_engine.dart';
+import '../../goals/data/goal_repository.dart';
 import '../../../shared/core/logging/app_logger.dart';
 
 final _logger = AppLogger();
@@ -135,6 +136,11 @@ class HealthBackgroundSync {
       // Auto-calculate today's recovery score if not yet done (US-001)
       await _calculateDailyRecoveryIfNeeded(profileId);
 
+      // Auto-refresh goal progress from latest health data.
+      // recalculateForecast() pulls the latest value from wt_health_metrics
+      // and updates goal.currentValue so progress tracking stays current.
+      await _refreshGoalProgress(profileId);
+
       // Update last sync timestamp
       await _updateLastSyncTime(profileId);
 
@@ -247,6 +253,32 @@ class HealthBackgroundSync {
             'HealthBackgroundSync: Source priority enforcement failed for $metricType: $e');
         // Non-fatal — continue to next metric
       }
+    }
+  }
+
+  /// Refresh all active goals by recalculating forecasts from latest health data.
+  /// This ensures goal.currentValue stays in sync after every health sync.
+  Future<void> _refreshGoalProgress(String profileId) async {
+    try {
+      final supabase = Supabase.instance.client;
+      final goalsRepo = GoalsRepository(supabase);
+      final insightsRepo = InsightsRepository(supabase);
+
+      final goals = await goalsRepo.getGoals(profileId);
+      int updated = 0;
+      for (final goal in goals) {
+        try {
+          await goalsRepo.recalculateForecast(goal.id, insightsRepo);
+          updated++;
+        } catch (_) {
+          // Individual goal failure shouldn't stop others
+        }
+      }
+      if (updated > 0) {
+        _logger.info('HealthBackgroundSync: Refreshed $updated goal(s)');
+      }
+    } catch (e) {
+      _logger.warning('HealthBackgroundSync: Goal refresh failed (non-fatal): $e');
     }
   }
 
